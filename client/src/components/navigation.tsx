@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
-import { Menu, X, Trophy, Users, Gavel, Play, BarChart3, Award, Shield } from "lucide-react";
+import { Menu, X, Trophy, Users, Gavel, Play, BarChart3, Award, Shield, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,12 @@ export function Navigation() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <Link href="/display">
+              <Button variant="outline" size="sm" className="hidden sm:flex gap-2" data-testid="link-display">
+                <Monitor className="w-4 h-4" />
+                Display
+              </Button>
+            </Link>
             <Link href="/admin">
               <Button variant="outline" size="sm" className="hidden sm:flex gap-2" data-testid="link-admin">
                 <Shield className="w-4 h-4" />
@@ -91,6 +97,17 @@ export function Navigation() {
                 </Button>
               </Link>
             ))}
+            <Link href="/display">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-3"
+                onClick={() => setMobileMenuOpen(false)}
+                data-testid="link-mobile-display"
+              >
+                <Monitor className="w-5 h-5" />
+                Display Mode
+              </Button>
+            </Link>
             <Link href="/admin">
               <Button
                 variant="outline"
