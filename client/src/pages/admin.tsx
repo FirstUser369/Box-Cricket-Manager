@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Shield, Users, Gavel, Play, Settings, Plus, Trash2, Edit, Lock, Unlock, Check, X, CircleDot, Target, Loader2, QrCode, RotateCcw, Trophy, Upload } from "lucide-react";
+import { Shield, Users, Gavel, Play, Settings, Plus, Trash2, Edit, Lock, Unlock, Check, X, CircleDot, Target, Loader2, QrCode, RotateCcw, Trophy, Upload, Zap, Star, Award, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Player, Team, Match, AuctionState } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,6 +86,33 @@ export default function Admin() {
 
 function AdminDashboard() {
   const { toast } = useToast();
+  const [showSoldCelebration, setShowSoldCelebration] = useState(false);
+  const [soldPlayerName, setSoldPlayerName] = useState("");
+  const [soldTeamName, setSoldTeamName] = useState("");
+  const [soldAmount, setSoldAmount] = useState(0);
+
+  const triggerConfetti = useCallback(() => {
+    const duration = 2000;
+    const animationEnd = Date.now() + duration;
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+      const particleCount = 50 * (timeLeft / duration);
+
+      confetti({
+        particleCount,
+        startVelocity: 30,
+        spread: 360,
+        origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
+        colors: ['#ff6b35', '#9d4edd', '#ffd60a', '#00f5ff', '#10b981'],
+      });
+    }, 250);
+  }, []);
 
   const { data: players, isLoading: playersLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
@@ -166,7 +195,8 @@ function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
-      toast({ title: "Groups assigned randomly" });
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "Groups assigned & fixtures generated!" });
     },
   });
 
@@ -192,6 +222,16 @@ function AdminDashboard() {
   const sellPlayerMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", "/api/auction/sell", {});
+    },
+    onMutate: () => {
+      if (currentPlayer && currentBiddingTeam && auctionState) {
+        setSoldPlayerName(currentPlayer.name);
+        setSoldTeamName(currentBiddingTeam.name);
+        setSoldAmount(auctionState.currentBid || currentPlayer.basePoints);
+        setShowSoldCelebration(true);
+        triggerConfetti();
+        setTimeout(() => setShowSoldCelebration(false), 3000);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
@@ -442,85 +482,179 @@ function AdminDashboard() {
                   )}
                 </div>
 
-                {currentPlayer && auctionState?.status === "in_progress" && (
-                  <div className="mt-6 p-6 bg-muted/50 rounded-md">
-                    <div className="flex items-center gap-4 mb-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={currentPlayer.photoUrl} alt={currentPlayer.name} />
-                        <AvatarFallback>{currentPlayer.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-display text-2xl">{currentPlayer.name}</h3>
-                        <p className="text-muted-foreground">{currentPlayer.role}</p>
-                      </div>
-                      <div className="ml-auto text-right">
-                        <p className="text-sm text-muted-foreground">Current Bid</p>
-                        <p className="font-display text-4xl text-primary">
-                          {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    {currentBiddingTeam && (
-                      <div className="mb-4 p-3 rounded-md bg-card flex items-center gap-3">
-                        <div 
-                          className="w-8 h-8 rounded-md flex items-center justify-center text-white font-display text-xs"
-                          style={{ backgroundColor: currentBiddingTeam.primaryColor }}
-                        >
-                          {currentBiddingTeam.shortName}
+                <AnimatePresence mode="wait">
+                  {currentPlayer && auctionState?.status === "in_progress" && (
+                    <motion.div 
+                      key={currentPlayer.id}
+                      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -50, scale: 0.9 }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="mt-6 relative overflow-visible"
+                    >
+                      <div className="absolute inset-0 auction-spotlight rounded-xl" />
+                      <div className="relative p-8 rounded-xl stadium-bg border border-white/10">
+                        <div className="absolute top-4 right-4">
+                          <Badge variant="outline" className="bg-red-500/20 border-red-500 text-red-400 animate-pulse">
+                            <span className="w-2 h-2 bg-red-500 rounded-full mr-2 inline-block" />
+                            LIVE
+                          </Badge>
                         </div>
-                        <span className="font-medium">{currentBiddingTeam.name} leads</span>
-                      </div>
-                    )}
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {teams?.map((team) => {
-                        const canBid = team.remainingBudget >= (auctionState.currentBid || currentPlayer.basePoints) + getBidIncrement(auctionState.currentBid || currentPlayer.basePoints);
-                        return (
-                          <Button
-                            key={team.id}
-                            variant="outline"
-                            size="sm"
-                            disabled={!canBid || currentBiddingTeam?.id === team.id}
-                            onClick={() => placeBidMutation.mutate(team.id)}
-                            className="flex-col h-auto py-2"
-                            style={{ borderColor: team.primaryColor }}
-                            data-testid={`button-bid-${team.id}`}
+                        <div className="flex flex-col lg:flex-row items-center gap-8 mb-6">
+                          <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                            className="relative"
                           >
-                            <span 
-                              className="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs font-display mb-1"
-                              style={{ backgroundColor: team.primaryColor }}
-                            >
-                              {team.shortName}
-                            </span>
-                            <span className="text-xs">{team.remainingBudget.toLocaleString()}</span>
-                          </Button>
-                        );
-                      })}
-                    </div>
+                            <div className="absolute inset-0 rounded-full neon-purple opacity-60" />
+                            <Avatar className="h-32 w-32 border-4 border-purple-500/50 relative z-10">
+                              <AvatarImage src={currentPlayer.photoUrl} alt={currentPlayer.name} className="object-cover" />
+                              <AvatarFallback className="text-3xl font-display bg-gradient-to-br from-purple-600 to-orange-500">
+                                {currentPlayer.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                              <Badge className="bg-gradient-to-r from-purple-600 to-orange-500 border-0 text-white px-3">
+                                {currentPlayer.role === "batsman" && <Zap className="w-3 h-3 mr-1" />}
+                                {currentPlayer.role === "bowler" && <Target className="w-3 h-3 mr-1" />}
+                                {currentPlayer.role === "all-rounder" && <Star className="w-3 h-3 mr-1" />}
+                                {currentPlayer.role === "wicket-keeper" && <Shield className="w-3 h-3 mr-1" />}
+                                {currentPlayer.role}
+                              </Badge>
+                            </div>
+                          </motion.div>
 
-                    <div className="flex gap-3 mt-6">
-                      <Button 
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() => sellPlayerMutation.mutate()}
-                        disabled={!currentBiddingTeam}
-                        data-testid="button-sold"
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        SOLD
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        className="flex-1"
-                        onClick={() => unsoldPlayerMutation.mutate()}
-                        data-testid="button-unsold"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        UNSOLD
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                          <div className="text-center lg:text-left flex-1">
+                            <motion.h3 
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.3 }}
+                              className="font-display text-4xl text-white text-glow-orange"
+                            >
+                              {currentPlayer.name}
+                            </motion.h3>
+                            <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-3">
+                              <div className="flex items-center gap-2">
+                                <Zap className="w-4 h-4 text-orange-500" />
+                                <span className="text-sm text-orange-400">Batting: {currentPlayer.battingRating}/10</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Target className="w-4 h-4 text-purple-500" />
+                                <span className="text-sm text-purple-400">Bowling: {currentPlayer.bowlingRating}/10</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Award className="w-4 h-4 text-emerald-500" />
+                                <span className="text-sm text-emerald-400">Fielding: {currentPlayer.fieldingRating}/10</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <motion.div 
+                            key={auctionState.currentBid || currentPlayer.basePoints}
+                            initial={{ scale: 1.2 }}
+                            animate={{ scale: 1 }}
+                            className="text-center"
+                          >
+                            <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">Current Bid</p>
+                            <motion.p 
+                              key={auctionState.currentBid}
+                              initial={{ scale: 1.3, color: "#ffd60a" }}
+                              animate={{ scale: 1, color: "#ff6b35" }}
+                              transition={{ duration: 0.3 }}
+                              className="font-display text-6xl text-glow-gold"
+                            >
+                              {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
+                            </motion.p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Base: {currentPlayer.basePoints.toLocaleString()}
+                            </p>
+                          </motion.div>
+                        </div>
+
+                        <AnimatePresence>
+                          {currentBiddingTeam && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              className="mb-6 p-4 rounded-lg flex items-center justify-center gap-4"
+                              style={{ 
+                                background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}30 0%, ${currentBiddingTeam.secondaryColor}30 100%)`,
+                                borderLeft: `4px solid ${currentBiddingTeam.primaryColor}`
+                              }}
+                            >
+                              <TrendingUp className="w-5 h-5 text-emerald-400" />
+                              <span className="font-display text-xl text-white">
+                                {currentBiddingTeam.name} LEADS THE BID
+                              </span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                          {teams?.map((team, index) => {
+                            const canBid = team.remainingBudget >= (auctionState.currentBid || currentPlayer.basePoints) + getBidIncrement(auctionState.currentBid || currentPlayer.basePoints);
+                            const isLeading = currentBiddingTeam?.id === team.id;
+                            return (
+                              <motion.div
+                                key={team.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                              >
+                                <Button
+                                  variant="outline"
+                                  disabled={!canBid || isLeading}
+                                  onClick={() => placeBidMutation.mutate(team.id)}
+                                  className={cn(
+                                    "w-full flex-col h-auto py-3 transition-all",
+                                    isLeading && "neon-gold animate-pulse-glow"
+                                  )}
+                                  style={{ 
+                                    borderColor: team.primaryColor,
+                                    background: isLeading ? `${team.primaryColor}30` : 'transparent'
+                                  }}
+                                  data-testid={`button-bid-${team.id}`}
+                                >
+                                  <span 
+                                    className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-display mb-2"
+                                    style={{ backgroundColor: team.primaryColor }}
+                                  >
+                                    {team.shortName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">{team.remainingBudget.toLocaleString()}</span>
+                                </Button>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex gap-4 mt-8">
+                          <Button 
+                            className="flex-1 h-14 text-lg font-display bg-gradient-to-r from-emerald-600 to-emerald-500 neon-gold"
+                            onClick={() => sellPlayerMutation.mutate()}
+                            disabled={!currentBiddingTeam}
+                            data-testid="button-sold"
+                          >
+                            <Check className="w-5 h-5 mr-2" />
+                            SOLD!
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            className="flex-1 h-14 text-lg font-display"
+                            onClick={() => unsoldPlayerMutation.mutate()}
+                            data-testid="button-unsold"
+                          >
+                            <X className="w-5 h-5 mr-2" />
+                            UNSOLD
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
           </TabsContent>
@@ -753,9 +887,11 @@ function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="scoring" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Match Scoring</h2>
-              <CreateMatchDialog teams={teams || []} onSubmit={(data) => createMatchMutation.mutate(data)} />
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Match Scoring</h2>
+                <p className="text-sm text-muted-foreground">Matches are auto-generated when groups are assigned in Tournament tab</p>
+              </div>
             </div>
 
             {liveMatch ? (
@@ -802,6 +938,49 @@ function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AnimatePresence>
+        {showSoldCelebration && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          >
+            <div className="absolute inset-0 bg-black/60" />
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="relative text-center"
+            >
+              <motion.div
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mb-4"
+              >
+                <span className="font-display text-8xl md:text-9xl text-glow-gold bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 bg-clip-text text-transparent">
+                  SOLD!
+                </span>
+              </motion.div>
+              <motion.div
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="space-y-2"
+              >
+                <p className="font-display text-4xl text-white">{soldPlayerName}</p>
+                <p className="text-2xl text-purple-400">to {soldTeamName}</p>
+                <p className="font-display text-5xl text-emerald-400 text-glow-gold">
+                  {soldAmount.toLocaleString()}
+                </p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -950,67 +1129,6 @@ function EditTeamDialog({ team, onSubmit }: { team: Team; onSubmit: (data: { nam
   );
 }
 
-function CreateMatchDialog({ teams, onSubmit }: { teams: Team[]; onSubmit: (data: { team1Id: string; team2Id: string }) => void }) {
-  const [open, setOpen] = useState(false);
-  const [team1Id, setTeam1Id] = useState("");
-  const [team2Id, setTeam2Id] = useState("");
-
-  const handleSubmit = () => {
-    onSubmit({ team1Id, team2Id });
-    setOpen(false);
-    setTeam1Id("");
-    setTeam2Id("");
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button data-testid="button-create-match">
-          <Plus className="w-4 h-4 mr-2" />
-          Create Match
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create New Match</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Team 1</Label>
-            <Select value={team1Id} onValueChange={setTeam1Id}>
-              <SelectTrigger data-testid="select-team1">
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Team 2</Label>
-            <Select value={team2Id} onValueChange={setTeam2Id}>
-              <SelectTrigger data-testid="select-team2">
-                <SelectValue placeholder="Select team" />
-              </SelectTrigger>
-              <SelectContent>
-                {teams.filter(t => t.id !== team1Id).map((team) => (
-                  <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSubmit} disabled={!team1Id || !team2Id} data-testid="button-submit-match">
-            Create Match
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function StartMatchDialog({ match, teams, onStart }: { match: Match; teams: Team[]; onStart: (data: { tossWinnerId: string; tossDecision: string }) => void }) {
   const [open, setOpen] = useState(false);

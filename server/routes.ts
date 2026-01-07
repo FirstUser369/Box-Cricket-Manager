@@ -442,7 +442,33 @@ export async function registerRoutes(
         }
       }
       
+      const existingMatches = await storage.getAllMatches();
+      for (const match of existingMatches) {
+        if (match.stage === "group" || match.stage === "semifinal" || match.stage === "final") {
+          await storage.deleteMatch(match.id);
+        }
+      }
+      
       const updatedTeams = await storage.getAllTeams();
+      let matchNumber = 1;
+      
+      for (const group of groups) {
+        const groupTeams = updatedTeams.filter(t => t.groupName === group);
+        if (groupTeams.length >= 2) {
+          for (let i = 0; i < groupTeams.length; i++) {
+            for (let j = i + 1; j < groupTeams.length; j++) {
+              await storage.createMatch({
+                matchNumber: matchNumber++,
+                team1Id: groupTeams[i].id,
+                team2Id: groupTeams[j].id,
+                stage: "group",
+                groupName: group,
+              });
+            }
+          }
+        }
+      }
+      
       res.json(updatedTeams);
     } catch (error) {
       res.status(500).json({ error: "Failed to assign groups" });

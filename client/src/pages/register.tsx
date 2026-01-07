@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { Check, Upload, User, Target, CircleDot } from "lucide-react";
+import { Check, Upload, User, Target, CircleDot, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { playerRegistrationSchema, type PlayerRegistration } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import imageCompression from "browser-image-compression";
 
 const roles = [
   { value: "Batsman", icon: Target, color: "text-orange-500", bg: "bg-orange-500/20" },
@@ -25,6 +26,7 @@ export default function Register() {
   const { toast } = useToast();
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const form = useForm<PlayerRegistration>({
     resolver: zodResolver(playerRegistrationSchema),
@@ -61,16 +63,34 @@ export default function Register() {
     },
   });
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setPhotoPreview(base64);
-        form.setValue("photoUrl", base64);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsCompressing(true);
+        const options = {
+          maxSizeMB: 0.3,
+          maxWidthOrHeight: 400,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setPhotoPreview(base64);
+          form.setValue("photoUrl", base64);
+          setIsCompressing(false);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error("Error compressing image:", error);
+        setIsCompressing(false);
+        toast({
+          title: "Photo Error",
+          description: "Could not process the photo. Please try a smaller image.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -131,7 +151,12 @@ export default function Register() {
                             onClick={() => document.getElementById("photo-upload")?.click()}
                             data-testid="input-photo-dropzone"
                           >
-                            {photoPreview ? (
+                            {isCompressing ? (
+                              <div className="text-center p-4">
+                                <Loader2 className="w-8 h-8 mx-auto mb-2 text-primary animate-spin" />
+                                <p className="text-sm text-muted-foreground">Compressing...</p>
+                              </div>
+                            ) : photoPreview ? (
                               <img 
                                 src={photoPreview} 
                                 alt="Preview" 
@@ -339,10 +364,10 @@ export default function Register() {
                 <Button 
                   type="submit" 
                   className="w-full py-6 text-lg"
-                  disabled={registerMutation.isPending}
+                  disabled={registerMutation.isPending || isCompressing}
                   data-testid="button-submit-registration"
                 >
-                  {registerMutation.isPending ? "Registering..." : "Complete Registration"}
+                  {registerMutation.isPending ? "Registering..." : isCompressing ? "Processing Photo..." : "Complete Registration"}
                 </Button>
               </form>
             </Form>

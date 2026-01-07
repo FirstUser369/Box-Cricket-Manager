@@ -39,6 +39,7 @@ export interface IStorage {
   getMatch(id: string): Promise<Match | undefined>;
   createMatch(match: InsertMatch): Promise<Match>;
   updateMatch(id: string, data: Partial<Match>): Promise<Match | undefined>;
+  deleteMatch(id: string): Promise<void>;
 
   getAllBallEvents(): Promise<BallEvent[]>;
   getMatchBallEvents(matchId: string): Promise<BallEvent[]>;
@@ -216,15 +217,15 @@ export class DatabaseStorage implements IStorage {
 
   async createMatch(match: InsertMatch): Promise<Match> {
     const id = randomUUID();
-    const allMatches = await this.getAllMatches();
-    const matchNumber = allMatches.length + 1;
 
     const [newMatch] = await db.insert(matches).values({
       id,
-      matchNumber,
+      matchNumber: match.matchNumber || 1,
       team1Id: match.team1Id,
       team2Id: match.team2Id,
       status: "scheduled",
+      stage: match.stage || "group",
+      groupName: match.groupName || null,
       tossWinnerId: null,
       tossDecision: null,
       winnerId: null,
@@ -248,6 +249,10 @@ export class DatabaseStorage implements IStorage {
   async updateMatch(id: string, data: Partial<Match>): Promise<Match | undefined> {
     const [updated] = await db.update(matches).set(data).where(eq(matches.id, id)).returning();
     return updated || undefined;
+  }
+
+  async deleteMatch(id: string): Promise<void> {
+    await db.delete(matches).where(eq(matches.id, id));
   }
 
   async getAllBallEvents(): Promise<BallEvent[]> {

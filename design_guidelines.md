@@ -1,148 +1,169 @@
 # Box Cricket Tournament Management System - Design Guidelines
 
-## Design Approach: IPL/Cricbuzz-Inspired Sports Platform
+## Design Approach: IPL Stadium Night Broadcast Experience
 
-**Primary References**: IPL Official, Cricbuzz, ESPN Cricinfo
-**Design Philosophy**: High-energy sports platform with premium feel, data-rich yet visually exciting
+**Primary References**: IPL Official App, Cricbuzz Live, ESPN Broadcast Graphics
+**Design Philosophy**: Dark, high-energy sports platform with stadium-at-night aesthetic, neon accents, and premium broadcast feel
+
+---
+
+## Color System
+
+**Dark Foundation**:
+- Background primary: #0a0e1a (deep navy-black)
+- Background secondary: #1a1f2e (elevated surfaces)
+- Background tertiary: #252b3d (cards, modals)
+
+**Neon Accents** (IPL-inspired):
+- Orange: #ff6b35 (primary actions, highlights)
+- Purple: #9d4edd (secondary actions, badges)
+- Gold: #ffd60a (premium features, celebrations)
+- Cyan: #00f5ff (live indicators, active states)
+
+**Gradients** (Stadium Lights):
+- Hero: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #2d1b4e 100%)
+- Card overlays: linear-gradient(180deg, transparent 0%, rgba(10,14,26,0.9) 100%)
+- Auction spotlight: radial-gradient(circle, rgba(255,107,53,0.2) 0%, transparent 70%)
+- Live match: linear-gradient(90deg, #ff6b35 0%, #9d4edd 100%)
+
+**Functional Colors**:
+- Text primary: #ffffff
+- Text secondary: #a0aec0
+- Text muted: #64748b
+- Success: #10b981 (wickets, wins)
+- Danger: #ef4444 (dismissals, losses)
 
 ---
 
 ## Typography System
 
-**Font Families** (via Google Fonts):
-- Primary: 'Inter' (400, 500, 600, 700) - UI, body text, data tables
-- Accent: 'Bebas Neue' (400) - Large numbers, team names, dramatic headings
+**Font Families** (Google Fonts CDN):
+- Primary: 'Inter' (400, 500, 600, 700) - UI, body, data
+- Display: 'Bebas Neue' (400) - Numbers, team names, dramatic moments
 
 **Type Scale**:
-- Hero headings: text-6xl to text-8xl (Bebas Neue)
-- Section headings: text-3xl to text-4xl (Inter, font-bold)
+- Hero numbers: text-8xl to text-9xl (Bebas Neue) - scores, bids
+- Section headings: text-4xl to text-5xl (Bebas Neue)
 - Card titles: text-xl (Inter, font-semibold)
-- Stats/numbers: text-4xl to text-6xl (Bebas Neue)
-- Body text: text-base (Inter, font-normal)
-- Labels/captions: text-sm (Inter, font-medium)
+- Body text: text-base (Inter)
+- Stats labels: text-sm (Inter, font-medium, uppercase, tracking-wide)
 
 ---
 
 ## Layout System
 
-**Spacing Primitives**: Tailwind units of 2, 4, 6, 8, 12, 16
-- Consistent padding: p-4, p-6, p-8
-- Section gaps: space-y-8, space-y-12
-- Card spacing: gap-6, gap-8
+**Spacing Primitives**: Use Tailwind units 2, 4, 6, 8, 12
+- Card padding: p-6, p-8
+- Section spacing: space-y-12
+- Grid gaps: gap-6, gap-8
 
 **Grid Patterns**:
-- Player cards: grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
-- Team displays: grid-cols-1 lg:grid-cols-2
-- Leaderboard tables: Single column, full-width on mobile
-- Live scoring: Two-column split (scorecard + commentary) on desktop
+- Player auction cards: grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+- Live match sections: 2-column split (lg:grid-cols-5, scorecard takes 3 cols, commentary 2 cols)
+- Points table: Full-width responsive table
+- Team roster: grid-cols-2 md:grid-cols-3 lg:grid-cols-4
 
-**Container Strategy**:
-- Max-width: max-w-7xl for main content
-- Full-width sections for hero and live match displays
-- Sticky navigation: fixed top-0 w-full z-50
+**Container**: max-w-7xl for content, full-width for hero and live sections
 
 ---
 
 ## Core Components
 
-### Player Cards (Auction & Display)
-- Large format: min-h-96
-- Photo: Full-width top section (aspect-ratio: 3/4)
-- Gradient overlay on photo bottom for text readability
-- Content section: p-6
-- Stats display: Grid layout with icon + number pairs
-- Base points: Large prominent number (Bebas Neue, text-5xl)
+### Hero Section
+**Image**: Full-width stadium crowd shot at night with floodlights (min-h-screen). Use dramatic cricket stadium atmosphere - packed stands, lights creating golden glow.
+**Overlay**: Dark gradient from bottom (rgba(10,14,26,0.95)) to transparent top
+**Content**: Center-aligned, white text, CTA buttons with backdrop-blur-md bg-white/10 treatment
 
-### Auction Screen
-- Full-screen layout (min-h-screen)
-- Center stage: Single player card (max-w-md mx-auto)
-- Bidding controls: Bottom fixed bar with team buttons
-- Current bid: Animated number display (text-7xl, Bebas Neue)
-- Team budgets: Horizontal scrolling ticker at top
-- "Sold/Unsold" banner: Slide-in from top
+### Auction Player Card
+- Dark card (bg-[#252b3d])
+- Top section: Player photo with neon border glow (shadow-[0_0_30px_rgba(255,107,53,0.4)])
+- Photo overlay: Bottom gradient for text
+- Large base points: Bebas Neue, text-6xl, gold color
+- Stats grid: 2x2 with icons, purple accent labels
+- Hover: Lift effect (translate-y-[-4px])
+
+### Auction Screen (Full Experience)
+- Full-screen dark background with subtle radial spotlight
+- Center stage: Single player card (max-w-lg)
+- Current bid: Massive number (text-9xl, Bebas Neue, orange neon glow)
+- Team bidding buttons: Full-width grid, each with team gradient background
+- Budget ticker: Top bar, horizontal scroll, real-time updates
+- Sold animation: Full-screen burst with confetti particles, gold "SOLD!" text slides in
 
 ### Live Scoring Interface
-- Split layout: 60% scorecard, 40% ball-by-ball commentary
-- Scorecard sections:
-  - Current partnership bar (horizontal progress)
-  - Batting table: Striped rows, sticky header
-  - Bowling figures: Compact grid
-  - Fall of wickets: Timeline visualization
-- Ball-by-ball: Reverse chronological, runs highlighted with larger typography
-- Mobile: Tabs to switch between views
+- Split layout: Scorecard (60%) + Ball-by-ball (40%)
+- Header: Animated gradient bar showing match progress
+- Current partnership: Horizontal bar chart with player avatars
+- Batting table: Striped rows (alternating bg opacity), sticky header
+- Ball-by-ball: Reverse chrono, boundaries highlighted with orange pill badges
+- Mobile: Tab switcher with active tab underline
 
 ### Points Table
-- Responsive table: Horizontal scroll on mobile
-- Sticky first column (team names)
-- Alternating row treatment
-- Highlighted row for user's favorite team
-- NRR displayed with +/- indicators
-
-### Registration Form (QR Landing)
-- Single column, max-w-2xl centered
-- Photo upload: Large dropzone (min-h-64)
-- Rating sliders: Custom styled range inputs with real-time number display
-- Role selection: Large radio cards with icons
-- Submit button: Full-width, prominent (py-4)
+- Sticky header row with gradient background
+- First column (teams) sticky on horizontal scroll
+- Alternating row backgrounds (bg-white/5)
+- NRR with colored +/- indicators
+- Qualifying positions: Gold border-left-4
 
 ### Navigation
-- Top bar: Logo left, main nav center, admin login right
-- Mobile: Hamburger menu with slide-out drawer
-- Active state: Underline indicator
-- Sticky on scroll with slight shadow
+- Fixed top bar (bg-[#0a0e1a]/95, backdrop-blur-lg)
+- Logo left, nav center, admin right
+- Active state: Orange bottom border (border-b-2)
+- Mobile: Slide-out drawer with purple gradient header
 
-### Team Dashboard (Admin)
-- Card-based grid showing all 12 teams
-- Each card: Team name, player count, budget remaining
-- Click to expand: Player list accordion
-- Action buttons: Edit, View Details (top-right of card)
-
-### Leaderboards (Orange/Purple Cap)
-- Top 3: Podium-style display with large photos
-- Remaining: List format with rank badges
-- Stats: Right-aligned numbers in monospace
-- Avatar + name on left
+### Registration Form (QR Landing)
+- Centered column (max-w-2xl)
+- Dark card with subtle neon border
+- Photo upload: Large dropzone with dashed orange border
+- Rating sliders: Custom purple track, orange thumb
+- Role cards: Large selectable options with icon, purple border when selected
+- Submit: Full-width gradient button (orange to purple)
 
 ---
 
 ## Images
 
-**Hero Section**: Use dynamic cricket action photo (batsman mid-swing or celebration moment). Full-width, min-h-screen with center-aligned content overlay. Buttons with backdrop-blur-md for readability.
-
-**Player Photos**: 
-- Auction cards: Portrait orientation, 3:4 ratio
-- Leaderboard avatars: Circular crops
-- Team rosters: Square thumbnails in grid
-
-**Placeholder Strategy**: Use cricket-themed stock photos from Unsplash (search: "cricket player", "cricket stadium")
+**Hero**: Cricket stadium night shot with floodlights and crowd (Unsplash: "cricket stadium night")
+**Player cards**: Portrait cricket action shots (3:4 ratio) with neon border treatment
+**Team logos**: Circular badges with transparent backgrounds
+**Background textures**: Subtle geometric patterns (stadium seating grid overlay at 5% opacity)
 
 ---
 
-## Animations (Minimal & Purposeful)
+## Animations (Strategic Drama)
 
-- Auction bid increment: Number count-up animation (0.5s)
-- Sold/Unsold reveal: Slide-down banner (0.3s)
-- Live score update: Pulse effect on runs (0.2s)
-- Card hover: Subtle lift (scale-105, 0.2s transition)
-- NO scroll-triggered animations
-- NO page transitions beyond basic fades
+**Auction Events**:
+- Player reveal: Card slide-up with scale (0.5s ease-out)
+- Bid increment: Number count-up with glow pulse
+- Sold celebration: Confetti burst + screen flash (gold) + "SOLD" banner slide-down (1.2s total)
+- Unsold: Card fade-out with purple tint overlay
+
+**Live Match**:
+- Score update: Run value pulses with orange glow (0.3s)
+- Wicket fall: Screen shake effect + red flash
+- Boundary: Expanding ring animation from run badge
+
+**Micro-interactions**:
+- Button hover: Glow intensity increase (transition-all 0.2s)
+- Card hover: Lift + border glow brighten
+- Tab switch: Sliding underline indicator
 
 ---
 
 ## Accessibility
 
-- All interactive elements: min-h-12 touch targets
-- Form inputs: Consistent height (h-12), visible focus rings
-- Tables: Proper thead/tbody structure
-- Live updates: aria-live regions for score changes
-- Image alt text: Player names, descriptive labels
+- Min touch targets: h-12 for all buttons
+- Form inputs: Consistent h-12, visible focus rings (ring-2 ring-orange-500)
+- High contrast maintained on dark backgrounds (AAA for body text)
+- Live regions: aria-live="polite" for score updates
+- Table headers: Proper semantic structure
 
 ---
 
-## Mobile-First Considerations
+## Mobile Optimization
 
-- Navigation collapses to hamburger below 768px
-- Tables switch to card view on mobile
-- Auction controls: Full-width stacked buttons
-- Live scoring: Tab-based switching instead of split view
-- Touch-friendly spacing: Minimum 12px between interactive elements
+- Hero: Reduced height (min-h-[70vh]) on mobile
+- Navigation: Hamburger menu below md breakpoint
+- Live scoring: Single-column stacked, tab navigation
+- Auction controls: Stacked full-width team buttons
+- Tables: Horizontal scroll with visible scroll indicator

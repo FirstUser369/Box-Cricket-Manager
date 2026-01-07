@@ -303,3 +303,145 @@
     inset: -1px;
   }
 }
+
+/* IPL-Style Sporty Animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.4); }
+  50% { box-shadow: 0 0 40px rgba(255, 107, 53, 0.8), 0 0 60px rgba(255, 107, 53, 0.4); }
+}
+
+@keyframes slide-up-fade {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoom-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes sold-banner {
+  0% { transform: translateY(-100%); opacity: 0; }
+  30% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+
+@keyframes bid-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes stadium-wave {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up-fade 0.5s ease-out forwards;
+}
+
+.animate-zoom-in {
+  animation: zoom-in 0.4s ease-out forwards;
+}
+
+.animate-bid-pulse {
+  animation: bid-pulse 0.3s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stadium gradient backgrounds */
+.stadium-bg {
+  background: linear-gradient(135deg, hsl(220 25% 8%) 0%, hsl(220 25% 12%) 30%, hsl(262 40% 15%) 70%, hsl(220 25% 8%) 100%);
+}
+
+.stadium-spotlight {
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 53, 0.15) 0%, transparent 50%);
+}
+
+.auction-spotlight {
+  background: radial-gradient(circle at 50% 30%, rgba(157, 78, 221, 0.2) 0%, transparent 50%),
+              radial-gradient(circle at 30% 70%, rgba(255, 107, 53, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 70% 60%, rgba(0, 245, 255, 0.1) 0%, transparent 40%);
+}
+
+/* Neon glow effects */
+.neon-orange {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.5), 0 0 40px rgba(255, 107, 53, 0.3);
+}
+
+.neon-purple {
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.5), 0 0 40px rgba(157, 78, 221, 0.3);
+}
+
+.neon-gold {
+  box-shadow: 0 0 20px rgba(255, 214, 10, 0.5), 0 0 40px rgba(255, 214, 10, 0.3);
+}
+
+.neon-cyan {
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.5), 0 0 40px rgba(0, 245, 255, 0.3);
+}
+
+/* Text neon glow */
+.text-glow-orange {
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.8), 0 0 20px rgba(255, 107, 53, 0.5);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 10px rgba(255, 214, 10, 0.8), 0 0 20px rgba(255, 214, 10, 0.5);
+}
+
+.text-glow-purple {
+  text-shadow: 0 0 10px rgba(157, 78, 221, 0.8), 0 0 20px rgba(157, 78, 221, 0.5);
+}
+
+/* Sporty card styles */
+.player-card-auction {
+  background: linear-gradient(180deg, hsl(220 25% 15%) 0%, hsl(220 25% 10%) 100%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+
+.player-card-auction::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.5) 0%, rgba(157, 78, 221, 0.5) 100%);
+  z-index: -1;
+}
+
+/* Live indicator */
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.live-indicator::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse-glow 1.5s infinite;
+}
