@@ -157,10 +157,9 @@ export default function AuctionDisplay() {
       </div>
 
       <div className="pt-24 pb-8 px-8">
-        <div className="mb-6">
-          <ScrollArea className="w-full">
-            <div className="flex gap-3 pb-4 px-1">
-              {teams?.map((team) => {
+        <div className="mb-6 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+          <div className="flex gap-3 pb-4 px-1" style={{ minWidth: 'max-content' }}>
+            {teams?.map((team) => {
                 const teamPlayers = players?.filter(p => p.teamId === team.id) || [];
                 return (
                   <motion.div
@@ -203,8 +202,7 @@ export default function AuctionDisplay() {
                   </motion.div>
                 );
               })}
-            </div>
-          </ScrollArea>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
