@@ -341,27 +341,27 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Auction not in progress" });
       }
       
-      const bidHistory = state.bidHistory || [];
+      const originalHistory = state.bidHistory || [];
       
-      if (bidHistory.length === 0) {
+      if (originalHistory.length === 0) {
         return res.status(400).json({ error: "No bids to undo" });
       }
       
-      // Remove the last bid
-      bidHistory.pop();
+      // Create a new array without the last bid (immutable)
+      const newBidHistory = originalHistory.slice(0, -1);
       
       // Determine new current bid and bidding team
       let newCurrentBid: number;
       let newBiddingTeamId: string | null;
       
-      if (bidHistory.length === 0) {
-        // No bids left, revert to base price
+      if (newBidHistory.length === 0) {
+        // No bids left, revert to category base price
         const categoryBasePrice = parseInt(state.currentCategory || "1500");
         newCurrentBid = categoryBasePrice;
         newBiddingTeamId = null;
       } else {
-        // Use the previous bid
-        const previousBid = bidHistory[bidHistory.length - 1];
+        // Restore the previous (now last) bid
+        const previousBid = newBidHistory[newBidHistory.length - 1];
         newCurrentBid = previousBid.amount;
         newBiddingTeamId = previousBid.teamId;
       }
@@ -369,7 +369,7 @@ export async function registerRoutes(
       const updatedState = await storage.updateAuctionState({
         currentBid: newCurrentBid,
         currentBiddingTeamId: newBiddingTeamId,
-        bidHistory,
+        bidHistory: newBidHistory,
       });
       
       res.json(updatedState);
