@@ -313,6 +313,48 @@ export default function AuctionDisplay() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* IPL-Style Bid History */}
+                {auctionState.bidHistory && auctionState.bidHistory.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 bg-white/5 rounded-xl p-4 max-w-md mx-auto"
+                    data-testid="bid-history"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Bid History
+                    </h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {[...auctionState.bidHistory].reverse().slice(0, 8).map((bid, index) => {
+                        const bidTeam = teams?.find(t => t.id === bid.teamId);
+                        return (
+                          <motion.div
+                            key={`${bid.teamId}-${bid.amount}-${index}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className={`flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30' : 'bg-white/5'}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display"
+                                style={{ backgroundColor: bidTeam?.primaryColor || '#666' }}
+                              >
+                                {bidTeam?.shortName || '??'}
+                              </div>
+                              <span className="text-sm text-white">{bidTeam?.name || 'Unknown'}</span>
+                            </div>
+                            <span className={`font-display ${index === 0 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                              {bid.amount.toLocaleString()}
+                            </span>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             </motion.div>
           )}

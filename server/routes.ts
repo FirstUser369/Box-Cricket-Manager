@@ -58,9 +58,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Mobile number already registered" });
       }
 
-      const existingEmail = await storage.getPlayerByEmail(validation.data.email);
-      if (existingEmail) {
-        return res.status(400).json({ error: "Email already registered" });
+      if (validation.data.email) {
+        const existingEmail = await storage.getPlayerByEmail(validation.data.email);
+        if (existingEmail) {
+          return res.status(400).json({ error: "Email already registered" });
+        }
       }
 
       const player = await storage.createPlayer(validation.data);
@@ -148,34 +150,29 @@ export async function registerRoutes(
 
   app.post("/api/auction/control", async (req, res) => {
     try {
-      const { action } = req.body;
+      const { action, category } = req.body;
       const currentState = await storage.getAuctionState();
       
       switch (action) {
         case "start": {
+          // Category is now manually selected by admin
+          const selectedCategory = category || "3000";
           const players = await storage.getAllPlayers();
-          // Start with category 3000 (Jhakaas Superstars) first
-          const categories = ["3000", "2500", "2000", "1500"];
-          let availablePlayer = null;
-          let currentCategory = "3000";
           
-          // Find first available player in category order
-          for (const cat of categories) {
-            availablePlayer = players.find(p => p.status === "registered" && p.category === cat);
-            if (availablePlayer) {
-              currentCategory = cat;
-              break;
-            }
-          }
+          // IMPORTANT: Only payment-verified players can be in auction
+          const availablePlayer = players.find(p => 
+            p.status === "registered" && 
+            p.paymentStatus === "verified" && 
+            p.category === selectedCategory
+          );
           
           if (!availablePlayer) {
-            return res.status(400).json({ error: "No players available for auction" });
+            return res.status(400).json({ error: `No payment-verified players available in category ${selectedCategory}` });
           }
           
           await storage.updatePlayer(availablePlayer.id, { status: "in_auction" });
           
-          // Use category base price instead of calculated basePoints
-          const categoryBasePrice = parseInt(currentCategory);
+          const categoryBasePrice = parseInt(selectedCategory);
           
           const state = await storage.updateAuctionState({
             status: "in_progress",
@@ -183,7 +180,7 @@ export async function registerRoutes(
             currentBid: categoryBasePrice,
             currentBiddingTeamId: null,
             bidHistory: [],
-            currentCategory,
+            currentCategory: selectedCategory,
           });
           
           res.json(state);
@@ -202,30 +199,40 @@ export async function registerRoutes(
           break;
         }
         
-        case "next": {
-          const players = await storage.getAllPlayers();
-          const categories = ["3000", "2500", "2000", "1500"];
-          let nextPlayer = null;
-          let currentCategory = currentState?.currentCategory || "3000";
-          
-          // First try to find player in current category
-          nextPlayer = players.find(p => p.status === "registered" && p.category === currentCategory);
-          
-          // If no player in current category, move to next category
-          if (!nextPlayer) {
-            const currentCatIndex = categories.indexOf(currentCategory);
-            for (let i = currentCatIndex + 1; i < categories.length; i++) {
-              nextPlayer = players.find(p => p.status === "registered" && p.category === categories[i]);
-              if (nextPlayer) {
-                currentCategory = categories[i];
-                break;
-              }
-            }
+        case "select_category": {
+          // Admin manually selects which category to auction next
+          const selectedCategory = category;
+          if (!selectedCategory || !["3000", "2500", "2000", "1500"].includes(selectedCategory)) {
+            return res.status(400).json({ error: "Invalid category. Must be 3000, 2500, 2000, or 1500" });
           }
           
+          const state = await storage.updateAuctionState({
+            currentCategory: selectedCategory,
+          });
+          
+          res.json(state);
+          break;
+        }
+        
+        case "next": {
+          const players = await storage.getAllPlayers();
+          // Admin can override category, otherwise use current
+          const selectedCategory = category || currentState?.currentCategory || "3000";
+          
+          // IMPORTANT: Only payment-verified players can be in auction
+          let nextPlayer = players.find(p => 
+            p.status === "registered" && 
+            p.paymentStatus === "verified" && 
+            p.category === selectedCategory
+          );
+          
           if (!nextPlayer) {
-            // All categories exhausted, try lost gold round
-            const lostGoldPlayers = players.filter(p => p.status === "lost_gold");
+            // Check if there are lost gold players for this category
+            const lostGoldPlayers = players.filter(p => 
+              p.status === "lost_gold" && 
+              p.paymentStatus === "verified"
+            );
+            
             if (lostGoldPlayers.length > 0) {
               const player = lostGoldPlayers[0];
               await storage.updatePlayer(player.id, { status: "in_auction" });
@@ -241,24 +248,23 @@ export async function registerRoutes(
               return res.json(state);
             }
             
-            const state = await storage.updateAuctionState({
-              status: "completed",
-              currentPlayerId: null,
-              currentBid: null,
-              currentBiddingTeamId: null,
+            // No players available in selected category
+            return res.status(400).json({ 
+              error: `No payment-verified players available in category ${selectedCategory}. Select a different category.`,
+              noPlayersInCategory: true
             });
-            return res.json(state);
           }
           
           await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
           
-          const categoryBasePrice = parseInt(currentCategory);
+          const categoryBasePrice = parseInt(selectedCategory);
           const state = await storage.updateAuctionState({
+            status: "in_progress",
             currentPlayerId: nextPlayer.id,
             currentBid: categoryBasePrice,
             currentBiddingTeamId: null,
             bidHistory: [],
-            currentCategory,
+            currentCategory: selectedCategory,
           });
           
           res.json(state);
@@ -323,6 +329,52 @@ export async function registerRoutes(
       res.json(updatedState);
     } catch (error) {
       res.status(500).json({ error: "Failed to place bid" });
+    }
+  });
+
+  // Undo last bid
+  app.post("/api/auction/undo-bid", async (req, res) => {
+    try {
+      const state = await storage.getAuctionState();
+      
+      if (!state || (state.status !== "in_progress" && state.status !== "lost_gold_round")) {
+        return res.status(400).json({ error: "Auction not in progress" });
+      }
+      
+      const bidHistory = state.bidHistory || [];
+      
+      if (bidHistory.length === 0) {
+        return res.status(400).json({ error: "No bids to undo" });
+      }
+      
+      // Remove the last bid
+      bidHistory.pop();
+      
+      // Determine new current bid and bidding team
+      let newCurrentBid: number;
+      let newBiddingTeamId: string | null;
+      
+      if (bidHistory.length === 0) {
+        // No bids left, revert to base price
+        const categoryBasePrice = parseInt(state.currentCategory || "1500");
+        newCurrentBid = categoryBasePrice;
+        newBiddingTeamId = null;
+      } else {
+        // Use the previous bid
+        const previousBid = bidHistory[bidHistory.length - 1];
+        newCurrentBid = previousBid.amount;
+        newBiddingTeamId = previousBid.teamId;
+      }
+      
+      const updatedState = await storage.updateAuctionState({
+        currentBid: newCurrentBid,
+        currentBiddingTeamId: newBiddingTeamId,
+        bidHistory,
+      });
+      
+      res.json(updatedState);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to undo bid" });
     }
   });
 

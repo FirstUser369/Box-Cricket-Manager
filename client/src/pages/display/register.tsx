@@ -42,7 +42,6 @@ export default function DisplayRegister() {
     defaultValues: {
       name: "",
       email: "",
-      phone: "",
       mobile: "",
       address: "",
       role: "Batsman",
@@ -331,12 +330,34 @@ export default function DisplayRegister() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
+                    name="mobile"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2 text-gray-300">
+                          <Phone className="w-4 h-4" />
+                          Mobile Number
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="10-digit mobile number" 
+                            className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
+                            {...field}
+                            data-testid="input-mobile"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2 text-gray-300">
                           <Mail className="w-4 h-4" />
-                          Email
+                          Email (Optional)
                         </FormLabel>
                         <FormControl>
                           <Input 
@@ -351,50 +372,9 @@ export default function DisplayRegister() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 text-gray-300">
-                          <Phone className="w-4 h-4" />
-                          Phone
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Contact number" 
-                            className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
-                            {...field}
-                            data-testid="input-phone"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="mobile"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-300">Mobile Number</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="10-digit mobile number" 
-                            className="bg-white/5 border-white/20 text-white placeholder:text-gray-500"
-                            {...field}
-                            data-testid="input-mobile"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={form.control}
                     name="tshirtSize"

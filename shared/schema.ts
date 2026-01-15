@@ -236,8 +236,7 @@ export type Broadcast = typeof broadcasts.$inferSelect;
 // Validation schemas for forms
 export const playerRegistrationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  email: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
   mobile: z.string().regex(/^\d{10}$/, "Mobile must be 10 digits"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   role: z.enum(["Batsman", "Bowler", "All-rounder"]),

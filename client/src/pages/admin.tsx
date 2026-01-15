@@ -154,13 +154,31 @@ function AdminDashboard() {
   });
 
   const auctionControlMutation = useMutation({
-    mutationFn: async (action: string) => {
-      return apiRequest("POST", "/api/auction/control", { action });
+    mutationFn: async (params: { action: string; category?: string }) => {
+      return apiRequest("POST", "/api/auction/control", params);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+    },
+    onError: (error: any) => {
+      const message = error?.message || "Auction control failed";
+      toast({ title: message, variant: "destructive" });
+    },
+  });
+
+  const undoBidMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/auction/undo-bid", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
+      toast({ title: "Last bid undone" });
+    },
+    onError: (error: any) => {
+      const message = error?.message || "No bids to undo";
+      toast({ title: message, variant: "destructive" });
     },
   });
 
@@ -439,30 +457,68 @@ function AdminDashboard() {
                 </AlertDialog>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Category Selector for Manual Category Selection */}
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="whitespace-nowrap">Select Category:</Label>
+                    <Select 
+                      value={auctionState?.currentCategory || "3000"} 
+                      onValueChange={(value) => auctionControlMutation.mutate({ action: "select_category", category: value })}
+                    >
+                      <SelectTrigger className="w-64" data-testid="select-auction-category">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3000">Jhakaas Superstars (3000 pts)</SelectItem>
+                        <SelectItem value="2500">Solid Performers (2500 pts)</SelectItem>
+                        <SelectItem value="2000">Promising Talent (2000 pts)</SelectItem>
+                        <SelectItem value="1500">Hidden Gems (1500 pts)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap gap-3">
                   {auctionState?.status === "not_started" && (
-                    <Button onClick={() => auctionControlMutation.mutate("start")} data-testid="button-start-auction">
+                    <Button 
+                      onClick={() => auctionControlMutation.mutate({ action: "start", category: auctionState?.currentCategory || "3000" })} 
+                      data-testid="button-start-auction"
+                    >
                       <Play className="w-4 h-4 mr-2" />
                       Start Auction
                     </Button>
                   )}
                   {auctionState?.status === "in_progress" && (
-                    <Button variant="outline" onClick={() => auctionControlMutation.mutate("pause")}>
+                    <Button variant="outline" onClick={() => auctionControlMutation.mutate({ action: "pause" })}>
                       Pause Auction
                     </Button>
                   )}
                   {auctionState?.status === "paused" && (
-                    <Button onClick={() => auctionControlMutation.mutate("resume")}>
+                    <Button onClick={() => auctionControlMutation.mutate({ action: "resume" })}>
                       Resume Auction
                     </Button>
                   )}
                   {(auctionState?.status === "in_progress" || auctionState?.status === "paused") && (
-                    <Button variant="outline" onClick={() => auctionControlMutation.mutate("next")}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => auctionControlMutation.mutate({ action: "next", category: auctionState?.currentCategory })}
+                    >
                       Next Player
                     </Button>
                   )}
+                  {(auctionState?.status === "in_progress" || auctionState?.status === "lost_gold_round") && (
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => undoBidMutation.mutate()} 
+                      disabled={!auctionState?.bidHistory?.length}
+                      data-testid="button-undo-bid"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Undo Last Bid
+                    </Button>
+                  )}
                   {auctionState?.status !== "not_started" && auctionState?.status !== "completed" && (
-                    <Button variant="destructive" onClick={() => auctionControlMutation.mutate("stop")}>
+                    <Button variant="destructive" onClick={() => auctionControlMutation.mutate({ action: "stop" })}>
                       Stop Auction
                     </Button>
                   )}
@@ -1378,9 +1434,17 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">("pending");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editRole, setEditRole] = useState<"Batsman" | "Bowler" | "All-rounder">("Batsman");
+  const [editTshirtSize, setEditTshirtSize] = useState<"S" | "M" | "L" | "XL">("M");
   const [editBatting, setEditBatting] = useState("5");
   const [editBowling, setEditBowling] = useState("5");
   const [editFielding, setEditFielding] = useState("5");
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
 
   const pendingPlayers = players?.filter(p => p.approvalStatus === "pending") || [];
   const approvedPlayers = players?.filter(p => p.approvalStatus === "approved") || [];
@@ -1438,39 +1502,91 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
     },
   });
 
-  const editRatingsMutation = useMutation({
-    mutationFn: async ({ playerId, battingRating, bowlingRating, fieldingRating }: { 
+  const editPlayerMutation = useMutation({
+    mutationFn: async ({ playerId, ...data }: { 
       playerId: string; 
-      battingRating: number; 
-      bowlingRating: number; 
-      fieldingRating: number 
+      name?: string;
+      email?: string;
+      mobile?: string;
+      address?: string;
+      role?: string;
+      tshirtSize?: string;
+      battingRating?: number; 
+      bowlingRating?: number; 
+      fieldingRating?: number;
+      photoUrl?: string;
     }) => {
-      return apiRequest("PATCH", `/api/players/${playerId}`, { battingRating, bowlingRating, fieldingRating });
+      return apiRequest("PATCH", `/api/players/${playerId}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       setEditingPlayer(null);
-      toast({ title: "Player ratings updated" });
+      toast({ title: "Player updated successfully" });
     },
     onError: () => {
-      toast({ title: "Failed to update ratings", variant: "destructive" });
+      toast({ title: "Failed to update player", variant: "destructive" });
     },
   });
 
   const openEditDialog = (player: Player) => {
     setEditingPlayer(player);
+    setEditName(player.name || "");
+    setEditEmail(player.email || "");
+    setEditMobile(player.mobile || "");
+    setEditAddress(player.address || "");
+    setEditRole(player.role as "Batsman" | "Bowler" | "All-rounder" || "Batsman");
+    setEditTshirtSize(player.tshirtSize as "S" | "M" | "L" | "XL" || "M");
     setEditBatting(player.battingRating?.toString() || "5");
     setEditBowling(player.bowlingRating?.toString() || "5");
     setEditFielding(player.fieldingRating?.toString() || "5");
+    setEditPhotoUrl(player.photoUrl || "");
   };
 
-  const handleSaveRatings = () => {
+  const handleEditPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setIsCompressingPhoto(true);
+        const imageCompression = (await import("browser-image-compression")).default;
+        const options = {
+          maxSizeMB: 0.3,
+          maxWidthOrHeight: 400,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          setEditPhotoUrl(base64);
+          setIsCompressingPhoto(false);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error("Error compressing image:", error);
+        setIsCompressingPhoto(false);
+        toast({
+          title: "Photo Error",
+          description: "Could not process the photo. Please try a smaller image.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleSavePlayer = () => {
     if (editingPlayer) {
-      editRatingsMutation.mutate({
+      editPlayerMutation.mutate({
         playerId: editingPlayer.id,
+        name: editName,
+        email: editEmail || undefined,
+        mobile: editMobile,
+        address: editAddress,
+        role: editRole,
+        tshirtSize: editTshirtSize,
         battingRating: parseInt(editBatting) || 5,
         bowlingRating: parseInt(editBowling) || 5,
         fieldingRating: parseInt(editFielding) || 5,
+        photoUrl: editPhotoUrl,
       });
     }
   };
@@ -1518,10 +1634,10 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
               size="sm"
               variant="outline"
               onClick={() => openEditDialog(player)}
-              data-testid={`button-edit-ratings-${player.id}`}
+              data-testid={`button-edit-player-pending-${player.id}`}
             >
               <Edit className="w-4 h-4 mr-1" />
-              Edit Ratings
+              Edit
             </Button>
             <Button
               size="sm"
@@ -1547,6 +1663,15 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
         )}
         {showActions && activeTab === "approved" && (
           <div className="flex flex-col gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openEditDialog(player)}
+              data-testid={`button-edit-player-${player.id}`}
+            >
+              <Edit className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
             {player.paymentStatus !== "verified" && (
               <Button
                 size="sm"
@@ -1678,77 +1803,171 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
         </Tabs>
       </CardContent>
 
-      {/* Edit Ratings Dialog */}
+      {/* Edit Player Dialog */}
       <Dialog open={!!editingPlayer} onOpenChange={(open) => !open && setEditingPlayer(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Player Ratings</DialogTitle>
+            <DialogTitle>Edit Player</DialogTitle>
           </DialogHeader>
           {editingPlayer && (
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-md">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={editingPlayer.photoUrl} alt={editingPlayer.name} />
-                  <AvatarFallback>{editingPlayer.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{editingPlayer.name}</p>
-                  <p className="text-sm text-muted-foreground">{editingPlayer.role}</p>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={editPhotoUrl} alt={editName} />
+                    <AvatarFallback>{editName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/80">
+                    {isCompressingPhoto ? (
+                      <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-primary-foreground" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleEditPhotoChange}
+                      data-testid="input-edit-photo"
+                    />
+                  </label>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Click icon to change photo</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-batting">Batting (1-10)</Label>
+                  <Label htmlFor="edit-name">Full Name</Label>
                   <Input
-                    id="edit-batting"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={editBatting}
-                    onChange={(e) => setEditBatting(e.target.value)}
-                    data-testid="input-edit-batting"
+                    id="edit-name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    data-testid="input-edit-name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-bowling">Bowling (1-10)</Label>
+                  <Label htmlFor="edit-mobile">Mobile Number</Label>
                   <Input
-                    id="edit-bowling"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={editBowling}
-                    onChange={(e) => setEditBowling(e.target.value)}
-                    data-testid="input-edit-bowling"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-fielding">Fielding (1-10)</Label>
-                  <Input
-                    id="edit-fielding"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={editFielding}
-                    onChange={(e) => setEditFielding(e.target.value)}
-                    data-testid="input-edit-fielding"
+                    id="edit-mobile"
+                    value={editMobile}
+                    onChange={(e) => setEditMobile(e.target.value)}
+                    data-testid="input-edit-mobile"
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email (Optional)</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    data-testid="input-edit-email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select value={editRole} onValueChange={(v) => setEditRole(v as typeof editRole)}>
+                    <SelectTrigger data-testid="input-edit-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Batsman">Batsman</SelectItem>
+                      <SelectItem value="Bowler">Bowler</SelectItem>
+                      <SelectItem value="All-rounder">All-rounder</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tshirt">T-Shirt Size</Label>
+                  <Select value={editTshirtSize} onValueChange={(v) => setEditTshirtSize(v as typeof editTshirtSize)}>
+                    <SelectTrigger data-testid="input-edit-tshirt">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="S">S</SelectItem>
+                      <SelectItem value="M">M</SelectItem>
+                      <SelectItem value="L">L</SelectItem>
+                      <SelectItem value="XL">XL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Address</Label>
+                <Input
+                  id="edit-address"
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  data-testid="input-edit-address"
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-3">Player Ratings</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-batting">Batting (1-10)</Label>
+                    <Input
+                      id="edit-batting"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={editBatting}
+                      onChange={(e) => setEditBatting(e.target.value)}
+                      data-testid="input-edit-batting"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-bowling">Bowling (1-10)</Label>
+                    <Input
+                      id="edit-bowling"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={editBowling}
+                      onChange={(e) => setEditBowling(e.target.value)}
+                      data-testid="input-edit-bowling"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-fielding">Fielding (1-10)</Label>
+                    <Input
+                      id="edit-fielding"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={editFielding}
+                      onChange={(e) => setEditFielding(e.target.value)}
+                      data-testid="input-edit-fielding"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditingPlayer(null)}>
                   Cancel
                 </Button>
                 <Button 
-                  onClick={handleSaveRatings} 
-                  disabled={editRatingsMutation.isPending}
-                  data-testid="button-save-ratings"
+                  onClick={handleSavePlayer} 
+                  disabled={editPlayerMutation.isPending}
+                  data-testid="button-save-player"
                 >
-                  {editRatingsMutation.isPending ? (
+                  {editPlayerMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
-                  Save Ratings
+                  Save Changes
                 </Button>
               </DialogFooter>
             </div>
