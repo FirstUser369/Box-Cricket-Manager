@@ -17,7 +17,7 @@ import {
   type AuctionState,
   type BallEvent, type InsertBallEvent,
   type PointsTable,
-  type PlayerMatchStats,
+  type PlayerMatchStats, type InsertPlayerMatchStats,
   type OrangeCapLeader, type PurpleCapLeader, type MVPLeader,
   type TournamentSettings, type InsertTournamentSettings,
   type Broadcast, type InsertBroadcast
@@ -58,6 +58,9 @@ export interface IStorage {
 
   getPlayerStats(playerId: string): Promise<PlayerMatchStats[]>;
   updatePlayerStats(matchId: string, playerId: string, data: Partial<PlayerMatchStats>): Promise<PlayerMatchStats>;
+  getPlayerMatchStats(matchId: string, playerId: string, innings: number): Promise<PlayerMatchStats | undefined>;
+  createPlayerMatchStats(data: InsertPlayerMatchStats): Promise<PlayerMatchStats>;
+  getMatchPlayerStats(matchId: string): Promise<PlayerMatchStats[]>;
 
   getOrangeCapLeaders(): Promise<OrangeCapLeader[]>;
   getPurpleCapLeaders(): Promise<PurpleCapLeader[]>;
@@ -399,6 +402,29 @@ export class DatabaseStorage implements IStorage {
 
     const [updated] = await db.update(playerMatchStats).set(data).where(eq(playerMatchStats.id, existing.id)).returning();
     return updated;
+  }
+
+  async getPlayerMatchStats(matchId: string, playerId: string, innings: number): Promise<PlayerMatchStats | undefined> {
+    const [stats] = await db.select().from(playerMatchStats)
+      .where(and(
+        eq(playerMatchStats.matchId, matchId), 
+        eq(playerMatchStats.playerId, playerId),
+        eq(playerMatchStats.innings, innings)
+      ));
+    return stats || undefined;
+  }
+
+  async createPlayerMatchStats(data: InsertPlayerMatchStats): Promise<PlayerMatchStats> {
+    const id = randomUUID();
+    const [newStats] = await db.insert(playerMatchStats).values({
+      id,
+      ...data,
+    }).returning();
+    return newStats;
+  }
+
+  async getMatchPlayerStats(matchId: string): Promise<PlayerMatchStats[]> {
+    return db.select().from(playerMatchStats).where(eq(playerMatchStats.matchId, matchId));
   }
 
   async getOrangeCapLeaders(): Promise<OrangeCapLeader[]> {

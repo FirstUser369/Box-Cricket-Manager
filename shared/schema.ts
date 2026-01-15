@@ -108,6 +108,16 @@ export const matches = pgTable("matches", {
   powerOverActive: boolean("power_over_active").default(false),
   powerOverNumber: integer("power_over_number"), // Which over is power over
   powerOverInnings: integer("power_over_innings"), // 1 or 2
+  // Current batting/bowling tracking
+  strikerId: varchar("striker_id", { length: 36 }),
+  nonStrikerId: varchar("non_striker_id", { length: 36 }),
+  currentBowlerId: varchar("current_bowler_id", { length: 36 }),
+  // Batting order for each innings (JSON array of player IDs in order they came to bat)
+  innings1BattingOrder: jsonb("innings1_batting_order").$type<string[]>(),
+  innings2BattingOrder: jsonb("innings2_batting_order").$type<string[]>(),
+  // Bowling order for each innings
+  innings1BowlingOrder: jsonb("innings1_bowling_order").$type<string[]>(),
+  innings2BowlingOrder: jsonb("innings2_bowling_order").$type<string[]>(),
 });
 
 export const insertMatchSchema = createInsertSchema(matches).omit({ id: true });
@@ -143,6 +153,7 @@ export const playerMatchStats = pgTable("player_match_stats", {
   id: varchar("id", { length: 36 }).primaryKey(),
   matchId: varchar("match_id", { length: 36 }).notNull(),
   playerId: varchar("player_id", { length: 36 }).notNull(),
+  innings: integer("innings").default(1), // 1 or 2
   runsScored: integer("runs_scored").default(0),
   ballsFaced: integer("balls_faced").default(0),
   fours: integer("fours").default(0),
@@ -152,6 +163,10 @@ export const playerMatchStats = pgTable("player_match_stats", {
   runsConceded: integer("runs_conceded").default(0),
   catches: integer("catches").default(0),
   runOuts: integer("run_outs").default(0),
+  isOut: boolean("is_out").default(false),
+  dismissalType: text("dismissal_type"), // bowled, caught, lbw, run_out, stumped, not_out
+  dismissedBy: varchar("dismissed_by", { length: 36 }), // bowler who got the wicket
+  battingPosition: integer("batting_position"), // Order in which they came to bat
 });
 
 export const insertPlayerMatchStatsSchema = createInsertSchema(playerMatchStats).omit({ id: true });

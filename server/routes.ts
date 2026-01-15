@@ -907,6 +907,10 @@ export async function registerRoutes(
         tossWinnerId,
         tossDecision,
         currentInnings: 1,
+        innings1BattingOrder: [],
+        innings2BattingOrder: [],
+        innings1BowlingOrder: [],
+        innings2BowlingOrder: [],
       });
       
       if (!match) {
@@ -919,6 +923,171 @@ export async function registerRoutes(
     }
   });
 
+  // Set opening batsmen for current innings
+  app.post("/api/matches/:id/set-batsmen", async (req, res) => {
+    try {
+      const match = await storage.getMatch(req.params.id);
+      if (!match || match.status !== "live") {
+        return res.status(400).json({ error: "Match not live" });
+      }
+      
+      const { strikerId, nonStrikerId } = req.body;
+      
+      if (!strikerId || !nonStrikerId) {
+        return res.status(400).json({ error: "Both striker and non-striker required" });
+      }
+      
+      const isFirstInnings = match.currentInnings === 1;
+      const battingOrder = isFirstInnings ? (match.innings1BattingOrder || []) : (match.innings2BattingOrder || []);
+      
+      // Add batsmen to batting order if not already there
+      const newBattingOrder = [...battingOrder];
+      if (!newBattingOrder.includes(strikerId)) {
+        newBattingOrder.push(strikerId);
+      }
+      if (!newBattingOrder.includes(nonStrikerId)) {
+        newBattingOrder.push(nonStrikerId);
+      }
+      
+      const updateData: any = {
+        strikerId,
+        nonStrikerId,
+      };
+      
+      if (isFirstInnings) {
+        updateData.innings1BattingOrder = newBattingOrder;
+      } else {
+        updateData.innings2BattingOrder = newBattingOrder;
+      }
+      
+      // Create/update player match stats for batsmen
+      for (const playerId of [strikerId, nonStrikerId]) {
+        const existingStats = await storage.getPlayerMatchStats(match.id, playerId, match.currentInnings!);
+        if (!existingStats) {
+          await storage.createPlayerMatchStats({
+            matchId: match.id,
+            playerId,
+            innings: match.currentInnings!,
+            battingPosition: newBattingOrder.indexOf(playerId) + 1,
+          });
+        }
+      }
+      
+      const updatedMatch = await storage.updateMatch(req.params.id, updateData);
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to set batsmen" });
+    }
+  });
+
+  // Set current bowler
+  app.post("/api/matches/:id/set-bowler", async (req, res) => {
+    try {
+      const match = await storage.getMatch(req.params.id);
+      if (!match || match.status !== "live") {
+        return res.status(400).json({ error: "Match not live" });
+      }
+      
+      const { bowlerId } = req.body;
+      
+      if (!bowlerId) {
+        return res.status(400).json({ error: "Bowler ID required" });
+      }
+      
+      const isFirstInnings = match.currentInnings === 1;
+      const bowlingOrder = isFirstInnings ? (match.innings1BowlingOrder || []) : (match.innings2BowlingOrder || []);
+      
+      // Add bowler to bowling order if not already there
+      const newBowlingOrder = [...bowlingOrder];
+      if (!newBowlingOrder.includes(bowlerId)) {
+        newBowlingOrder.push(bowlerId);
+      }
+      
+      const updateData: any = {
+        currentBowlerId: bowlerId,
+      };
+      
+      if (isFirstInnings) {
+        updateData.innings1BowlingOrder = newBowlingOrder;
+      } else {
+        updateData.innings2BowlingOrder = newBowlingOrder;
+      }
+      
+      // Create/update player match stats for bowler
+      const existingStats = await storage.getPlayerMatchStats(match.id, bowlerId, match.currentInnings!);
+      if (!existingStats) {
+        await storage.createPlayerMatchStats({
+          matchId: match.id,
+          playerId: bowlerId,
+          innings: match.currentInnings!,
+        });
+      }
+      
+      const updatedMatch = await storage.updateMatch(req.params.id, updateData);
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to set bowler" });
+    }
+  });
+
+  // Bring in new batsman after wicket
+  app.post("/api/matches/:id/new-batsman", async (req, res) => {
+    try {
+      const match = await storage.getMatch(req.params.id);
+      if (!match || match.status !== "live") {
+        return res.status(400).json({ error: "Match not live" });
+      }
+      
+      const { newBatsmanId, replaceStriker } = req.body;
+      
+      if (!newBatsmanId) {
+        return res.status(400).json({ error: "New batsman ID required" });
+      }
+      
+      const isFirstInnings = match.currentInnings === 1;
+      const battingOrder = isFirstInnings ? (match.innings1BattingOrder || []) : (match.innings2BattingOrder || []);
+      
+      // Add new batsman to batting order
+      const newBattingOrder = [...battingOrder];
+      if (!newBattingOrder.includes(newBatsmanId)) {
+        newBattingOrder.push(newBatsmanId);
+      }
+      
+      const updateData: any = {};
+      
+      if (replaceStriker) {
+        updateData.strikerId = newBatsmanId;
+      } else {
+        updateData.nonStrikerId = newBatsmanId;
+      }
+      
+      if (isFirstInnings) {
+        updateData.innings1BattingOrder = newBattingOrder;
+      } else {
+        updateData.innings2BattingOrder = newBattingOrder;
+      }
+      
+      // Create player match stats for new batsman
+      const existingStats = await storage.getPlayerMatchStats(match.id, newBatsmanId, match.currentInnings!);
+      if (!existingStats) {
+        await storage.createPlayerMatchStats({
+          matchId: match.id,
+          playerId: newBatsmanId,
+          innings: match.currentInnings!,
+          battingPosition: newBattingOrder.indexOf(newBatsmanId) + 1,
+        });
+      }
+      
+      const updatedMatch = await storage.updateMatch(req.params.id, updateData);
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to add new batsman" });
+    }
+  });
+
   app.post("/api/matches/:id/ball", async (req, res) => {
     try {
       const match = await storage.getMatch(req.params.id);
@@ -926,7 +1095,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Match not live" });
       }
       
-      const { runs, extraType, isWicket, wicketType } = req.body;
+      const { runs, extraType, isWicket, wicketType, dismissedPlayerId } = req.body;
+      
+      // Validate batsmen and bowler are set
+      if (!match.strikerId || !match.currentBowlerId) {
+        return res.status(400).json({ error: "Batsmen and bowler must be selected first" });
+      }
       
       const isFirstInnings = match.currentInnings === 1;
       const currentScore = isFirstInnings ? match.team1Score : match.team2Score;
@@ -934,10 +1108,14 @@ export async function registerRoutes(
       const currentOvers = isFirstInnings ? match.team1Overs : match.team2Overs;
       
       const [overs, balls] = (currentOvers || "0.0").split(".").map(Number);
-      let newBalls = balls + 1;
+      let newBalls = balls;
       let newOvers = overs;
       
-      if (!extraType || extraType !== "wide") {
+      // Wide and No-ball: DON'T count as legal delivery (reball required)
+      const isLegalDelivery = !extraType || (extraType !== "wide" && extraType !== "no_ball");
+      
+      if (isLegalDelivery) {
+        newBalls += 1;
         if (newBalls >= 6) {
           newOvers += 1;
           newBalls = 0;
@@ -951,8 +1129,11 @@ export async function registerRoutes(
                           match.powerOverNumber === overs + 1 && 
                           match.powerOverInnings === match.currentInnings;
       
+      // Calculate runs
+      let actualRuns = runs || 0;
+      let effectiveRuns = actualRuns;
+      
       // Power Over: Runs are doubled
-      let effectiveRuns = runs || 0;
       if (isPowerOver && effectiveRuns > 0) {
         effectiveRuns = effectiveRuns * 2;
       }
@@ -960,7 +1141,8 @@ export async function registerRoutes(
       let newScore = (currentScore || 0) + effectiveRuns;
       let newWickets = currentWickets || 0;
       
-      if (extraType) {
+      // Wide and No-ball: Add exactly 1 extra run
+      if (extraType === "wide" || extraType === "no_ball") {
         newScore += 1;
       }
       
@@ -972,26 +1154,129 @@ export async function registerRoutes(
         }
       }
       
-      const isInningsOver = newOvers >= 6 || newWickets >= 10;
+      // 8 players per team = max 7 wickets (last man standing)
+      const MAX_WICKETS = 7;
+      const isInningsOver = newOvers >= 6 || newWickets >= MAX_WICKETS;
+      
+      // Determine strike rotation
+      // Strike changes on: odd runs, end of over (unless last man standing)
+      let shouldRotateStrike = false;
+      const isLastManStanding = newWickets >= MAX_WICKETS - 1; // 6 wickets = last 2 batsmen
+      
+      if (!isWicket && !extraType) {
+        // Normal ball - rotate on odd runs
+        if (actualRuns % 2 === 1) {
+          shouldRotateStrike = true;
+        }
+      }
+      
+      // End of over rotation (only if NOT last man standing)
+      const isEndOfOver = isLegalDelivery && newBalls === 0 && newOvers > overs;
+      if (isEndOfOver && !isLastManStanding && match.nonStrikerId) {
+        shouldRotateStrike = !shouldRotateStrike; // Toggle - since we may have already rotated for odd runs
+      }
+      
+      // Create ball event
+      await storage.createBallEvent({
+        matchId: match.id,
+        innings: match.currentInnings!,
+        overNumber: overs + 1,
+        ballNumber: isLegalDelivery ? balls + 1 : balls,
+        batsmanId: match.strikerId,
+        bowlerId: match.currentBowlerId,
+        runs: effectiveRuns,
+        extras: extraType ? 1 : 0,
+        extraType: extraType || null,
+        isWicket: isWicket || false,
+        wicketType: wicketType || null,
+        dismissedPlayerId: dismissedPlayerId || null,
+        isPowerOver,
+        actualRuns,
+      });
+      
+      // Update batsman stats
+      if (isLegalDelivery) {
+        const batsmanStats = await storage.getPlayerMatchStats(match.id, match.strikerId, match.currentInnings!);
+        if (batsmanStats) {
+          await storage.updatePlayerStats(match.id, match.strikerId, {
+            runsScored: (batsmanStats.runsScored || 0) + actualRuns,
+            ballsFaced: (batsmanStats.ballsFaced || 0) + 1,
+            fours: (batsmanStats.fours || 0) + (actualRuns === 4 ? 1 : 0),
+            sixes: (batsmanStats.sixes || 0) + (actualRuns === 6 ? 1 : 0),
+            innings: match.currentInnings!,
+          });
+        }
+      }
+      
+      // Update bowler stats
+      if (isLegalDelivery) {
+        const bowlerStats = await storage.getPlayerMatchStats(match.id, match.currentBowlerId, match.currentInnings!);
+        const currentBowlerOvers = bowlerStats?.oversBowled || "0.0";
+        const [bOvers, bBalls] = currentBowlerOvers.split(".").map(Number);
+        let newBBalls = bBalls + 1;
+        let newBOvers = bOvers;
+        if (newBBalls >= 6) {
+          newBOvers += 1;
+          newBBalls = 0;
+        }
+        
+        await storage.updatePlayerStats(match.id, match.currentBowlerId, {
+          runsConceded: (bowlerStats?.runsConceded || 0) + effectiveRuns + (extraType ? 1 : 0),
+          oversBowled: `${newBOvers}.${newBBalls}`,
+          wicketsTaken: (bowlerStats?.wicketsTaken || 0) + (isWicket ? 1 : 0),
+          innings: match.currentInnings!,
+        });
+      } else {
+        // Extras still count against bowler
+        const bowlerStats = await storage.getPlayerMatchStats(match.id, match.currentBowlerId, match.currentInnings!);
+        await storage.updatePlayerStats(match.id, match.currentBowlerId, {
+          runsConceded: (bowlerStats?.runsConceded || 0) + 1,
+          innings: match.currentInnings!,
+        });
+      }
+      
+      // Mark dismissed batsman as out
+      if (isWicket && dismissedPlayerId) {
+        await storage.updatePlayerStats(match.id, dismissedPlayerId, {
+          isOut: true,
+          dismissalType: wicketType,
+          dismissedBy: match.currentBowlerId,
+        });
+      }
       
       let updateData: any = {};
       
+      // Handle strike rotation
+      if (shouldRotateStrike && match.nonStrikerId) {
+        updateData.strikerId = match.nonStrikerId;
+        updateData.nonStrikerId = match.strikerId;
+      }
+      
+      // If wicket, clear striker (new batsman needed) - but keep non-striker
+      if (isWicket) {
+        updateData.strikerId = null;
+      }
+      
+      // End of over - need new bowler
+      if (isEndOfOver) {
+        updateData.currentBowlerId = null;
+      }
+      
       if (isFirstInnings) {
-        updateData = {
-          team1Score: newScore,
-          team1Wickets: newWickets,
-          team1Overs: newOversStr,
-        };
+        updateData.team1Score = newScore;
+        updateData.team1Wickets = newWickets;
+        updateData.team1Overs = newOversStr;
         
         if (isInningsOver) {
           updateData.currentInnings = 2;
+          updateData.strikerId = null;
+          updateData.nonStrikerId = null;
+          updateData.currentBowlerId = null;
         }
       } else {
-        updateData = {
-          team2Score: newScore,
-          team2Wickets: newWickets,
-          team2Overs: newOversStr,
-        };
+        updateData.team2Score = newScore;
+        updateData.team2Wickets = newWickets;
+        updateData.team2Overs = newOversStr;
         
         const target = (match.team1Score || 0) + 1;
         if (newScore >= target) {
@@ -1181,6 +1466,15 @@ export async function registerRoutes(
       res.json(events);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch ball events" });
+    }
+  });
+
+  app.get("/api/matches/:id/player-stats", async (req, res) => {
+    try {
+      const stats = await storage.getMatchPlayerStats(req.params.id);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch match player stats" });
     }
   });
 
