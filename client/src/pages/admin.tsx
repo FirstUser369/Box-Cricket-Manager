@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Shield, Users, Gavel, Play, Settings, Plus, Trash2, Edit, Lock, Unlock, Check, X, CircleDot, Target, Loader2, QrCode, RotateCcw, Trophy, Upload, Zap, Star, Award, TrendingUp } from "lucide-react";
+import { Shield, Users, Gavel, Play, Settings, Plus, Trash2, Edit, Lock, Unlock, Check, X, CircleDot, Target, Loader2, QrCode, RotateCcw, Trophy, Upload, Zap, Star, Award, TrendingUp, DollarSign, CreditCard, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Player, Team, Match, AuctionState } from "@shared/schema";
+import type { Player, Team, Match, AuctionState, TournamentSettings } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -312,7 +312,7 @@ function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="registration" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-4xl">
+          <TabsList className="grid w-full grid-cols-7 max-w-5xl">
             <TabsTrigger value="registration" className="gap-2" data-testid="admin-tab-registration">
               <QrCode className="w-4 h-4" />
               Registration
@@ -336,6 +336,10 @@ function AdminDashboard() {
             <TabsTrigger value="scoring" className="gap-2" data-testid="admin-tab-scoring">
               <Play className="w-4 h-4" />
               Scoring
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2" data-testid="admin-tab-settings">
+              <Settings className="w-4 h-4" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -936,6 +940,10 @@ function AdminDashboard() {
               })}
             </div>
           </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <TournamentSettingsPanel />
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1313,5 +1321,296 @@ function LiveScoringPanel({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function TournamentSettingsPanel() {
+  const { toast } = useToast();
+  const [registrationFee, setRegistrationFee] = useState("25");
+  const [zellePhone, setZellePhone] = useState("");
+  const [zelleEmail, setZelleEmail] = useState("");
+  const [zelleQrUrl, setZelleQrUrl] = useState("");
+  const [cashappId, setCashappId] = useState("");
+  const [cashappQrUrl, setCashappQrUrl] = useState("");
+  const [venmoId, setVenmoId] = useState("");
+  const [venmoQrUrl, setVenmoQrUrl] = useState("");
+  const [auctionDate, setAuctionDate] = useState("January 25th");
+  const [tournamentDate, setTournamentDate] = useState("February 7th");
+  const [displayUsername, setDisplayUsername] = useState("Bhulku");
+  const [displayPassword, setDisplayPassword] = useState("weareone");
+
+  const { data: settings, isLoading } = useQuery<TournamentSettings>({
+    queryKey: ["/api/settings"],
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setRegistrationFee(settings.registrationFee?.toString() || "25");
+      setZellePhone(settings.zellePhone || "");
+      setZelleEmail(settings.zelleEmail || "");
+      setZelleQrUrl(settings.zelleQrUrl || "");
+      setCashappId(settings.cashappId || "");
+      setCashappQrUrl(settings.cashappQrUrl || "");
+      setVenmoId(settings.venmoId || "");
+      setVenmoQrUrl(settings.venmoQrUrl || "");
+      setAuctionDate(settings.auctionDate || "January 25th");
+      setTournamentDate(settings.tournamentDate || "February 7th");
+      setDisplayUsername(settings.displayUsername || "Bhulku");
+      setDisplayPassword(settings.displayPassword || "weareone");
+    }
+  }, [settings]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<TournamentSettings>) => {
+      return apiRequest("PATCH", "/api/settings", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Settings saved successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save settings", variant: "destructive" });
+    },
+  });
+
+  const handleSave = () => {
+    updateSettingsMutation.mutate({
+      registrationFee: parseInt(registrationFee) || 25,
+      zellePhone: zellePhone || null,
+      zelleEmail: zelleEmail || null,
+      zelleQrUrl: zelleQrUrl || null,
+      cashappId: cashappId || null,
+      cashappQrUrl: cashappQrUrl || null,
+      venmoId: venmoId || null,
+      venmoQrUrl: venmoQrUrl || null,
+      auctionDate: auctionDate || null,
+      tournamentDate: tournamentDate || null,
+      displayUsername: displayUsername || null,
+      displayPassword: displayPassword || null,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Skeleton className="h-64" />
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">Tournament Settings</h2>
+          <p className="text-sm text-muted-foreground">Configure payment methods and tournament details</p>
+        </div>
+        <Button onClick={handleSave} disabled={updateSettingsMutation.isPending} data-testid="button-save-settings">
+          {updateSettingsMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          Save Settings
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Registration Fee
+            </CardTitle>
+            <CardDescription>Set the registration fee for players</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="registrationFee">Fee Amount ($)</Label>
+              <Input
+                id="registrationFee"
+                type="number"
+                value={registrationFee}
+                onChange={(e) => setRegistrationFee(e.target.value)}
+                placeholder="25"
+                data-testid="input-registration-fee"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5" />
+              Key Dates
+            </CardTitle>
+            <CardDescription>Important tournament dates</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="auctionDate">Auction Date</Label>
+              <Input
+                id="auctionDate"
+                value={auctionDate}
+                onChange={(e) => setAuctionDate(e.target.value)}
+                placeholder="January 25th"
+                data-testid="input-auction-date"
+              />
+            </div>
+            <div>
+              <Label htmlFor="tournamentDate">Tournament Date</Label>
+              <Input
+                id="tournamentDate"
+                value={tournamentDate}
+                onChange={(e) => setTournamentDate(e.target.value)}
+                placeholder="February 7th"
+                data-testid="input-tournament-date"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Zelle Payment
+            </CardTitle>
+            <CardDescription>Configure Zelle payment details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="zellePhone">Zelle Phone</Label>
+              <Input
+                id="zellePhone"
+                value={zellePhone}
+                onChange={(e) => setZellePhone(e.target.value)}
+                placeholder="Phone number for Zelle"
+                data-testid="input-zelle-phone"
+              />
+            </div>
+            <div>
+              <Label htmlFor="zelleEmail">Zelle Email</Label>
+              <Input
+                id="zelleEmail"
+                type="email"
+                value={zelleEmail}
+                onChange={(e) => setZelleEmail(e.target.value)}
+                placeholder="Email for Zelle"
+                data-testid="input-zelle-email"
+              />
+            </div>
+            <div>
+              <Label htmlFor="zelleQrUrl">Zelle QR Code URL</Label>
+              <Input
+                id="zelleQrUrl"
+                value={zelleQrUrl}
+                onChange={(e) => setZelleQrUrl(e.target.value)}
+                placeholder="URL for QR code"
+                data-testid="input-zelle-qr"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Cash App Payment
+            </CardTitle>
+            <CardDescription>Configure Cash App payment details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="cashappId">Cash App ID</Label>
+              <Input
+                id="cashappId"
+                value={cashappId}
+                onChange={(e) => setCashappId(e.target.value)}
+                placeholder="$yourtag"
+                data-testid="input-cashapp-id"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cashappQrUrl">Cash App QR Code URL</Label>
+              <Input
+                id="cashappQrUrl"
+                value={cashappQrUrl}
+                onChange={(e) => setCashappQrUrl(e.target.value)}
+                placeholder="URL for QR code"
+                data-testid="input-cashapp-qr"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Venmo Payment
+            </CardTitle>
+            <CardDescription>Configure Venmo payment details</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="venmoId">Venmo ID</Label>
+              <Input
+                id="venmoId"
+                value={venmoId}
+                onChange={(e) => setVenmoId(e.target.value)}
+                placeholder="@yourvenmo"
+                data-testid="input-venmo-id"
+              />
+            </div>
+            <div>
+              <Label htmlFor="venmoQrUrl">Venmo QR Code URL</Label>
+              <Input
+                id="venmoQrUrl"
+                value={venmoQrUrl}
+                onChange={(e) => setVenmoQrUrl(e.target.value)}
+                placeholder="URL for QR code"
+                data-testid="input-venmo-qr"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Display Mode Credentials
+            </CardTitle>
+            <CardDescription>Login credentials for display/projector mode</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="displayUsername">Username</Label>
+              <Input
+                id="displayUsername"
+                value={displayUsername}
+                onChange={(e) => setDisplayUsername(e.target.value)}
+                placeholder="Display username"
+                data-testid="input-display-username"
+              />
+            </div>
+            <div>
+              <Label htmlFor="displayPassword">Password</Label>
+              <Input
+                id="displayPassword"
+                value={displayPassword}
+                onChange={(e) => setDisplayPassword(e.target.value)}
+                placeholder="Display password"
+                data-testid="input-display-password"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
