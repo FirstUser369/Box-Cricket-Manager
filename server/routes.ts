@@ -787,17 +787,19 @@ export async function registerRoutes(
           updateData.winnerId = match.team2Id;
           updateData.result = "win";
           
-          await updatePointsAfterMatch(match.team2Id, match.team1Id, match);
+          await updatePointsAfterMatch(match.team2Id, match.team1Id, { ...match, team2Score: newScore, team2Overs: newOversStr });
         } else if (isInningsOver) {
           if (newScore === match.team1Score) {
             updateData.status = "completed";
             updateData.result = "tie";
+            
+            await updatePointsAfterMatch(null, null, { ...match, team2Score: newScore, team2Overs: newOversStr }, true);
           } else {
             updateData.status = "completed";
             updateData.winnerId = match.team1Id;
             updateData.result = "win";
             
-            await updatePointsAfterMatch(match.team1Id, match.team2Id, match);
+            await updatePointsAfterMatch(match.team1Id, match.team2Id, { ...match, team2Score: newScore, team2Overs: newOversStr });
           }
         }
       }
@@ -845,24 +847,118 @@ export async function registerRoutes(
     }
   });
 
-  async function updatePointsAfterMatch(winnerId: string, loserId: string, match: any) {
-    const winnerPoints = await storage.getTeamPoints(winnerId);
-    const loserPoints = await storage.getTeamPoints(loserId);
+  function parseOversToDecimal(overs: string): number {
+    const parts = overs.split('.');
+    const fullOvers = parseInt(parts[0]) || 0;
+    const balls = parseInt(parts[1]) || 0;
+    return fullOvers + (balls / 6);
+  }
+
+  function addOvers(overs1: string, overs2: string): string {
+    const parts1 = overs1.split('.');
+    const parts2 = overs2.split('.');
+    let fullOvers = (parseInt(parts1[0]) || 0) + (parseInt(parts2[0]) || 0);
+    let balls = (parseInt(parts1[1]) || 0) + (parseInt(parts2[1]) || 0);
     
-    await storage.updatePointsTable(winnerId, {
-      played: (winnerPoints?.played || 0) + 1,
-      won: (winnerPoints?.won || 0) + 1,
-      points: (winnerPoints?.points || 0) + 2,
-      runsFor: (winnerPoints?.runsFor || 0) + (match.currentInnings === 1 ? match.team1Score : match.team2Score),
-      runsAgainst: (winnerPoints?.runsAgainst || 0) + (match.currentInnings === 1 ? match.team2Score : match.team1Score),
-    });
+    if (balls >= 6) {
+      fullOvers += Math.floor(balls / 6);
+      balls = balls % 6;
+    }
     
-    await storage.updatePointsTable(loserId, {
-      played: (loserPoints?.played || 0) + 1,
-      lost: (loserPoints?.lost || 0) + 1,
-      runsFor: (loserPoints?.runsFor || 0) + (match.currentInnings === 1 ? match.team2Score : match.team1Score),
-      runsAgainst: (loserPoints?.runsAgainst || 0) + (match.currentInnings === 1 ? match.team1Score : match.team2Score),
-    });
+    return `${fullOvers}.${balls}`;
+  }
+
+  function calculateNRR(runsFor: number, oversFor: string, runsAgainst: number, oversAgainst: string): string {
+    const oversForDecimal = parseOversToDecimal(oversFor);
+    const oversAgainstDecimal = parseOversToDecimal(oversAgainst);
+    
+    if (oversForDecimal === 0 || oversAgainstDecimal === 0) return "0.000";
+    const runRateFor = runsFor / oversForDecimal;
+    const runRateAgainst = runsAgainst / oversAgainstDecimal;
+    const nrr = runRateFor - runRateAgainst;
+    return nrr.toFixed(3);
+  }
+
+  async function updatePointsAfterMatch(winnerId: string | null, loserId: string | null, match: any, isTied: boolean = false) {
+    const team1Id = match.team1Id;
+    const team2Id = match.team2Id;
+    
+    const team1Points = await storage.getTeamPoints(team1Id);
+    const team2Points = await storage.getTeamPoints(team2Id);
+    
+    const team1Score = match.team1Score || 0;
+    const team2Score = match.team2Score || 0;
+    const team1Overs = match.team1Overs || "0.0";
+    const team2Overs = match.team2Overs || "0.0";
+    
+    const newTeam1RunsFor = (team1Points?.runsFor || 0) + team1Score;
+    const newTeam1RunsAgainst = (team1Points?.runsAgainst || 0) + team2Score;
+    const newTeam1OversFor = addOvers(team1Points?.oversFor || "0.0", team1Overs);
+    const newTeam1OversAgainst = addOvers(team1Points?.oversAgainst || "0.0", team2Overs);
+    
+    const newTeam2RunsFor = (team2Points?.runsFor || 0) + team2Score;
+    const newTeam2RunsAgainst = (team2Points?.runsAgainst || 0) + team1Score;
+    const newTeam2OversFor = addOvers(team2Points?.oversFor || "0.0", team2Overs);
+    const newTeam2OversAgainst = addOvers(team2Points?.oversAgainst || "0.0", team1Overs);
+    
+    if (isTied) {
+      await storage.updatePointsTable(team1Id, {
+        played: (team1Points?.played || 0) + 1,
+        tied: (team1Points?.tied || 0) + 1,
+        points: (team1Points?.points || 0) + 1,
+        runsFor: newTeam1RunsFor,
+        runsAgainst: newTeam1RunsAgainst,
+        oversFor: newTeam1OversFor,
+        oversAgainst: newTeam1OversAgainst,
+        nrr: calculateNRR(newTeam1RunsFor, newTeam1OversFor, newTeam1RunsAgainst, newTeam1OversAgainst),
+      });
+      
+      await storage.updatePointsTable(team2Id, {
+        played: (team2Points?.played || 0) + 1,
+        tied: (team2Points?.tied || 0) + 1,
+        points: (team2Points?.points || 0) + 1,
+        runsFor: newTeam2RunsFor,
+        runsAgainst: newTeam2RunsAgainst,
+        oversFor: newTeam2OversFor,
+        oversAgainst: newTeam2OversAgainst,
+        nrr: calculateNRR(newTeam2RunsFor, newTeam2OversFor, newTeam2RunsAgainst, newTeam2OversAgainst),
+      });
+    } else if (winnerId && loserId) {
+      const isTeam1Winner = winnerId === team1Id;
+      const winnerPts = isTeam1Winner ? team1Points : team2Points;
+      const loserPts = isTeam1Winner ? team2Points : team1Points;
+      
+      await storage.updatePointsTable(winnerId, {
+        played: (winnerPts?.played || 0) + 1,
+        won: (winnerPts?.won || 0) + 1,
+        points: (winnerPts?.points || 0) + 3,
+        runsFor: isTeam1Winner ? newTeam1RunsFor : newTeam2RunsFor,
+        runsAgainst: isTeam1Winner ? newTeam1RunsAgainst : newTeam2RunsAgainst,
+        oversFor: isTeam1Winner ? newTeam1OversFor : newTeam2OversFor,
+        oversAgainst: isTeam1Winner ? newTeam1OversAgainst : newTeam2OversAgainst,
+        nrr: calculateNRR(
+          isTeam1Winner ? newTeam1RunsFor : newTeam2RunsFor,
+          isTeam1Winner ? newTeam1OversFor : newTeam2OversFor,
+          isTeam1Winner ? newTeam1RunsAgainst : newTeam2RunsAgainst,
+          isTeam1Winner ? newTeam1OversAgainst : newTeam2OversAgainst
+        ),
+      });
+      
+      await storage.updatePointsTable(loserId, {
+        played: (loserPts?.played || 0) + 1,
+        lost: (loserPts?.lost || 0) + 1,
+        runsFor: isTeam1Winner ? newTeam2RunsFor : newTeam1RunsFor,
+        runsAgainst: isTeam1Winner ? newTeam2RunsAgainst : newTeam1RunsAgainst,
+        oversFor: isTeam1Winner ? newTeam2OversFor : newTeam1OversFor,
+        oversAgainst: isTeam1Winner ? newTeam2OversAgainst : newTeam1OversAgainst,
+        nrr: calculateNRR(
+          isTeam1Winner ? newTeam2RunsFor : newTeam1RunsFor,
+          isTeam1Winner ? newTeam2OversFor : newTeam1OversFor,
+          isTeam1Winner ? newTeam2RunsAgainst : newTeam1RunsAgainst,
+          isTeam1Winner ? newTeam2OversAgainst : newTeam1OversAgainst
+        ),
+      });
+    }
   }
 
   // ============ BALL EVENTS ============

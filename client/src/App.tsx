@@ -7,11 +7,13 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import Admin from "@/pages/admin";
 import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
+import DisplayLogin from "@/pages/display/login";
 import DisplayIndex from "@/pages/display/index";
 import DisplayRegister from "@/pages/display/register";
 import AuctionDisplay from "@/pages/display/auction-display";
 import MatchDisplay from "@/pages/display/match-display";
 import LeaderboardDisplay from "@/pages/display/leaderboard-display";
+import PointsTableDisplay from "@/pages/display/points-table";
 
 // TWO INTERFACES ONLY:
 // 1. /admin - Admin controls (auction, matches, approvals, scoring)
@@ -31,13 +33,27 @@ function AdminRouter() {
 }
 
 function DisplayRouter() {
+  const isAuthenticated = sessionStorage.getItem("displayAuth") === "true";
+  
   return (
     <Switch>
-      <Route path="/display" component={DisplayIndex} />
+      <Route path="/display" component={DisplayLogin} />
+      <Route path="/display/home">
+        {isAuthenticated ? <DisplayIndex /> : <Redirect to="/display" />}
+      </Route>
       <Route path="/display/register" component={DisplayRegister} />
-      <Route path="/display/auction" component={AuctionDisplay} />
-      <Route path="/display/match" component={MatchDisplay} />
-      <Route path="/display/leaderboard" component={LeaderboardDisplay} />
+      <Route path="/display/auction">
+        {isAuthenticated ? <AuctionDisplay /> : <Redirect to="/display" />}
+      </Route>
+      <Route path="/display/match">
+        {isAuthenticated ? <MatchDisplay /> : <Redirect to="/display" />}
+      </Route>
+      <Route path="/display/leaderboard">
+        {isAuthenticated ? <LeaderboardDisplay /> : <Redirect to="/display" />}
+      </Route>
+      <Route path="/display/points-table">
+        {isAuthenticated ? <PointsTableDisplay /> : <Redirect to="/display" />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Gavel, Play, Trophy, Monitor, UserPlus } from "lucide-react";
+import { Gavel, Play, Trophy, Monitor, UserPlus, Table } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const displayOptions = [
@@ -24,6 +24,13 @@ const displayOptions = [
     description: "Live scorecard with ball-by-ball updates and cricket event animations",
     icon: Play,
     gradient: "from-emerald-600 to-cyan-500",
+  },
+  {
+    href: "/display/points-table",
+    title: "Points Table",
+    description: "Group-wise standings with NRR, wins, losses, and qualification status",
+    icon: Table,
+    gradient: "from-indigo-600 to-blue-500",
   },
   {
     href: "/display/leaderboard",
