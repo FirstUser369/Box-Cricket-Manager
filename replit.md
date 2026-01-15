@@ -2,18 +2,26 @@
 
 ## Overview
 
-A comprehensive full-stack web application for managing IPL-style box cricket tournaments with PostgreSQL database persistence. Features include player registration, admin-controlled IPL-style auctions with incremental bidding, live ball-by-ball match scoring, team management with budget tracking, and auto-calculated leaderboards.
+A comprehensive full-stack web application for managing IPL-style box cricket tournaments with PostgreSQL database persistence. Features include QR-based player registration with approval workflow, 12 IPL-style teams with ₹25,000 budgets, admin-controlled category-based auctions, live ball-by-ball match scoring with power overs, team management with captain/vice-captain assignments, and auto-calculated leaderboards.
 
 ## Key Features Implemented
 
+### Player Registration & Approval
+- **Extended Registration**: Email, phone, mobile, T-shirt size, photo, address
+- **Player Categories**: 3000 (Jhakaas Superstars), 2500 (Solid Performers), 2000 (Promising Talent), 1500 (Hidden Gems)
+- **Approval Workflow**: Players start as pending, admin approves/rejects before auction
+- **Payment Tracking**: Payment status (pending/verified/rejected) managed by admin
+
 ### Auction System
-- **Incremental Bidding**: ₹200 (<5k), ₹500 (5-10k), ₹1000 (>10k)
-- **Budget Enforcement**: Teams cannot exceed their ₹30,000 budget
+- **Category-Based Flow**: Auction proceeds 3000 → 2500 → 2000 → 1500 base points
+- **Incremental Bidding**: +₹100 (up to ₹4000), +₹200 (above ₹4000)
+- **Budget Enforcement**: Teams cannot exceed their ₹25,000 budget
 - **Lost Gold Round**: Unsold players get a second chance in the Lost Gold round
-- **Real-time State**: Auction state persisted in database with bid history
+- **Real-time State**: Auction state persisted in database with bid history and current category
 
 ### Live Scoring
-- **Ball-by-Ball**: Record runs (0-6), extras (wide, no-ball), wickets (bowled, caught, lbw, run_out, stumped)
+- **Ball-by-Ball**: Record runs (0-6), extras (wide, no-ball - no free hit), wickets (bowled, caught, lbw, run_out, stumped)
+- **Power Overs**: Admin selects power over - runs doubled, wicket costs -5 points
 - **Auto-calculation**: Overs increment automatically, innings change at 6 overs or 10 wickets
 - **Match Completion**: Points table updates automatically when match ends
 
@@ -27,6 +35,17 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 - Team bidding interface with remaining budget display
 - Match creation and live scoring controls
 - Player management with lock/unlock functionality
+- **Player Approval**: Approve/reject pending registrations
+- **Payment Verification**: Mark players as payment verified
+- **Captain Assignment**: Set captain/vice-captain for each team
+- **Tournament Settings**: Configure payment methods (Zelle/CashApp/Venmo)
+- **Broadcasts**: Create announcements for display screens
+
+### Tournament Settings
+- **Payment Configuration**: Zelle (phone/email/QR), CashApp (ID/QR), Venmo (ID/QR)
+- **Registration Fee**: Configurable (default $25)
+- **Key Dates**: Auction date, tournament date
+- **Display Credentials**: Username/password for display mode
 
 ## User Preferences
 
@@ -56,12 +75,14 @@ Preferred communication style: Simple, everyday language.
 - **Migrations**: Drizzle Kit for schema management (`npm run db:push`)
 
 ### Key Data Models
-- **Players**: Registration data, ratings (batting/bowling/fielding), auction status, team assignment
-- **Teams**: Name, colors, budget management, remaining budget tracking
-- **Matches**: Scheduling, live scoring state, innings tracking
-- **Ball Events**: Ball-by-ball event logging for live scoring
-- **Auction State**: Current auction status, bidding history, active player
+- **Players**: Registration data, ratings (batting/bowling/fielding), auction status, team assignment, captain/vice-captain status, payment/approval status, category (1500-3000)
+- **Teams**: Name, colors, budget management, remaining budget tracking, captain/vice-captain IDs
+- **Matches**: Scheduling, live scoring state, innings tracking, power over fields
+- **Ball Events**: Ball-by-ball event logging for live scoring, power over tracking
+- **Auction State**: Current auction status, bidding history, active player, current category
 - **Points Table**: Team standings with NRR calculations
+- **Tournament Settings**: Payment configuration (Zelle/CashApp/Venmo), registration fee, key dates
+- **Broadcasts**: Admin announcements with priority and active status
 
 ### Project Structure
 ```

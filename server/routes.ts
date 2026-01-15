@@ -1,7 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { playerRegistrationSchema } from "@shared/schema";
+import { 
+  playerRegistrationSchema, 
+  insertTournamentSettingsSchema,
+  insertBroadcastSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -17,6 +21,16 @@ export async function registerRoutes(
       res.json(players);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch players" });
+    }
+  });
+
+  // Pending players route MUST come before /:id to avoid conflicts
+  app.get("/api/players/pending", async (req, res) => {
+    try {
+      const players = await storage.getPendingPlayers();
+      res.json(players);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch pending players" });
     }
   });
 
@@ -39,9 +53,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: validation.error.errors[0].message });
       }
 
-      const existing = await storage.getPlayerByMobile(validation.data.mobile);
-      if (existing) {
+      const existingMobile = await storage.getPlayerByMobile(validation.data.mobile);
+      if (existingMobile) {
         return res.status(400).json({ error: "Mobile number already registered" });
+      }
+
+      const existingEmail = await storage.getPlayerByEmail(validation.data.email);
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email already registered" });
       }
 
       const player = await storage.createPlayer(validation.data);
@@ -135,7 +154,19 @@ export async function registerRoutes(
       switch (action) {
         case "start": {
           const players = await storage.getAllPlayers();
-          const availablePlayer = players.find(p => p.status === "registered");
+          // Start with category 3000 (Jhakaas Superstars) first
+          const categories = ["3000", "2500", "2000", "1500"];
+          let availablePlayer = null;
+          let currentCategory = "3000";
+          
+          // Find first available player in category order
+          for (const cat of categories) {
+            availablePlayer = players.find(p => p.status === "registered" && p.category === cat);
+            if (availablePlayer) {
+              currentCategory = cat;
+              break;
+            }
+          }
           
           if (!availablePlayer) {
             return res.status(400).json({ error: "No players available for auction" });
@@ -143,12 +174,16 @@ export async function registerRoutes(
           
           await storage.updatePlayer(availablePlayer.id, { status: "in_auction" });
           
+          // Use category base price instead of calculated basePoints
+          const categoryBasePrice = parseInt(currentCategory);
+          
           const state = await storage.updateAuctionState({
             status: "in_progress",
             currentPlayerId: availablePlayer.id,
-            currentBid: availablePlayer.basePoints,
+            currentBid: categoryBasePrice,
             currentBiddingTeamId: null,
             bidHistory: [],
+            currentCategory,
           });
           
           res.json(state);
@@ -169,19 +204,39 @@ export async function registerRoutes(
         
         case "next": {
           const players = await storage.getAllPlayers();
-          const nextPlayer = players.find(p => p.status === "registered");
+          const categories = ["3000", "2500", "2000", "1500"];
+          let nextPlayer = null;
+          let currentCategory = currentState?.currentCategory || "3000";
+          
+          // First try to find player in current category
+          nextPlayer = players.find(p => p.status === "registered" && p.category === currentCategory);
+          
+          // If no player in current category, move to next category
+          if (!nextPlayer) {
+            const currentCatIndex = categories.indexOf(currentCategory);
+            for (let i = currentCatIndex + 1; i < categories.length; i++) {
+              nextPlayer = players.find(p => p.status === "registered" && p.category === categories[i]);
+              if (nextPlayer) {
+                currentCategory = categories[i];
+                break;
+              }
+            }
+          }
           
           if (!nextPlayer) {
+            // All categories exhausted, try lost gold round
             const lostGoldPlayers = players.filter(p => p.status === "lost_gold");
             if (lostGoldPlayers.length > 0) {
               const player = lostGoldPlayers[0];
               await storage.updatePlayer(player.id, { status: "in_auction" });
+              const categoryBasePrice = parseInt(player.category || "1500");
               const state = await storage.updateAuctionState({
                 status: "lost_gold_round",
                 currentPlayerId: player.id,
-                currentBid: player.basePoints,
+                currentBid: categoryBasePrice,
                 currentBiddingTeamId: null,
                 bidHistory: [],
+                currentCategory: player.category || "1500",
               });
               return res.json(state);
             }
@@ -197,11 +252,13 @@ export async function registerRoutes(
           
           await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
           
+          const categoryBasePrice = parseInt(currentCategory);
           const state = await storage.updateAuctionState({
             currentPlayerId: nextPlayer.id,
-            currentBid: nextPlayer.basePoints,
+            currentBid: categoryBasePrice,
             currentBiddingTeamId: null,
             bidHistory: [],
+            currentCategory,
           });
           
           res.json(state);
@@ -242,9 +299,8 @@ export async function registerRoutes(
       }
       
       const currentBid = state.currentBid || 0;
-      let increment = 200;
-      if (currentBid > 10000) increment = 1000;
-      else if (currentBid > 5000) increment = 500;
+      // New bid increment rules: +100 (up to 4000), +200 (above 4000)
+      let increment = currentBid >= 4000 ? 200 : 100;
       
       const newBid = currentBid + increment;
       
@@ -754,6 +810,174 @@ export async function registerRoutes(
       res.json(leaders);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch MVP leaders" });
+    }
+  });
+
+  // ============ TOURNAMENT SETTINGS ============
+  
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getTournamentSettings();
+      res.json(settings || {
+        registrationFee: 25,
+        auctionDate: "January 25th",
+        tournamentDate: "February 7th",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.patch("/api/settings", async (req, res) => {
+    try {
+      const validation = insertTournamentSettingsSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors[0].message });
+      }
+      const settings = await storage.updateTournamentSettings(validation.data);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // ============ PLAYER APPROVAL WORKFLOW ============
+  
+  app.post("/api/players/:id/approve", async (req, res) => {
+    try {
+      const player = await storage.updatePlayer(req.params.id, {
+        approvalStatus: "approved",
+        status: "registered",
+      });
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      res.json(player);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to approve player" });
+    }
+  });
+
+  app.post("/api/players/:id/reject", async (req, res) => {
+    try {
+      const player = await storage.updatePlayer(req.params.id, {
+        approvalStatus: "rejected",
+        status: "rejected",
+      });
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      res.json(player);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reject player" });
+    }
+  });
+
+  app.post("/api/players/:id/verify-payment", async (req, res) => {
+    try {
+      const player = await storage.updatePlayer(req.params.id, {
+        paymentStatus: "verified",
+      });
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      res.json(player);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to verify payment" });
+    }
+  });
+
+  // ============ BROADCASTS ============
+  
+  app.get("/api/broadcasts", async (req, res) => {
+    try {
+      const allBroadcasts = await storage.getAllBroadcasts();
+      res.json(allBroadcasts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch broadcasts" });
+    }
+  });
+
+  app.get("/api/broadcasts/active", async (req, res) => {
+    try {
+      const activeBroadcasts = await storage.getActiveBroadcasts();
+      res.json(activeBroadcasts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch active broadcasts" });
+    }
+  });
+
+  app.post("/api/broadcasts", async (req, res) => {
+    try {
+      const validation = insertBroadcastSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors[0].message });
+      }
+      const broadcast = await storage.createBroadcast(validation.data);
+      res.status(201).json(broadcast);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create broadcast" });
+    }
+  });
+
+  app.patch("/api/broadcasts/:id", async (req, res) => {
+    try {
+      const validation = insertBroadcastSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors[0].message });
+      }
+      const broadcast = await storage.updateBroadcast(req.params.id, validation.data);
+      if (!broadcast) {
+        return res.status(404).json({ error: "Broadcast not found" });
+      }
+      res.json(broadcast);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update broadcast" });
+    }
+  });
+
+  app.delete("/api/broadcasts/:id", async (req, res) => {
+    try {
+      await storage.deleteBroadcast(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete broadcast" });
+    }
+  });
+
+  // ============ CAPTAIN / VICE-CAPTAIN ASSIGNMENT ============
+  
+  app.post("/api/teams/:id/set-captain", async (req, res) => {
+    try {
+      const { captainId, viceCaptainId } = req.body;
+      
+      const team = await storage.getTeam(req.params.id);
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+
+      if (team.captainId) {
+        await storage.updatePlayer(team.captainId, { isCaptain: false });
+      }
+      if (team.viceCaptainId) {
+        await storage.updatePlayer(team.viceCaptainId, { isViceCaptain: false });
+      }
+
+      if (captainId) {
+        await storage.updatePlayer(captainId, { isCaptain: true });
+      }
+      if (viceCaptainId) {
+        await storage.updatePlayer(viceCaptainId, { isViceCaptain: true });
+      }
+
+      const updatedTeam = await storage.updateTeam(req.params.id, {
+        captainId: captainId || null,
+        viceCaptainId: viceCaptainId || null,
+      });
+
+      res.json(updatedTeam);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to set captain" });
     }
   });
 

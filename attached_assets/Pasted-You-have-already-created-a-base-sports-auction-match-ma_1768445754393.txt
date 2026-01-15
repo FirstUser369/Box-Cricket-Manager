@@ -1,0 +1,349 @@
+You have already created a base sports auction + match management web app.
+Now DO NOT rebuild from scratch.
+You must refactor, modularize, and enhance the existing app according to the specifications below.
+
+The goal is to create a professional, IPL-style live auction + live match experience with three clearly separated but connected interfaces.
+
+1️⃣ AUTHENTICATION & INTERFACES (CRITICAL)
+A. Login System
+
+Implement authentication and role-based access.
+
+There will be 3 roles:
+
+Admin
+
+Display Interface (Public / Audience View)
+
+Registered Users (View-only during auction & matches)
+
+All roles use the same backend but different UI layouts and permissions.
+
+B. Interface Separation
+
+Admin Interface
+
+Full control (auction, teams, matches, approvals, edits)
+
+Display Interface
+
+Large-screen, TV-style UI
+
+Live animations, scorecards, auction flow
+
+User Interface
+
+Same as Display Interface but responsive for mobile/web
+
+View-only (no control actions)
+
+2️⃣ REGISTRATION FLOW (QR + PAYMENT + APPROVAL)
+Registration Form Fields
+
+Add the following mandatory fields:
+
+Full Name
+
+Phone Number
+
+Email Address
+
+Player Ratings (existing)
+
+T-Shirt Size (US Sizes)
+Options: S, M, L, XL
+
+Photo Upload
+
+Payment Integration (MANUAL VERIFICATION)
+
+Registration Fee: $25
+
+Admin can configure on Admin Home Screen:
+
+Zelle (phone / email / QR)
+
+CashApp (ID / QR)
+
+Venmo (ID / QR)
+
+After Registration (Thank You Screen)
+
+Show 3 clickable payment options:
+
+Zelle
+
+CashApp
+
+Venmo
+
+These must dynamically reflect Admin-configured details.
+
+Admin Approval Workflow
+
+Every new registration goes into Pending State
+
+Admin Dashboard shows:
+
+Player details
+
+Ratings
+
+Payment status
+
+Admin actions:
+
+✅ Admit Player
+
+✏️ Edit Player Ratings (fraud prevention)
+
+❌ Reject if needed
+
+After Admin Admits Player
+
+Automatically:
+
+Send email to the user containing:
+
+Thank you message
+
+Auction Date: 25th January
+
+Tournament Date: 7th February
+
+Display Interface Credentials:
+
+Username: Bhulku
+
+Password: weareone
+
+Activate user visibility everywhere in the system
+
+3️⃣ ADMIN INTERFACE – TEAMS & AUCTION SETUP
+Teams
+
+Admin can:
+
+Add teams (minimum 12, expandable to 16)
+
+Set team names
+
+Upload team logos
+
+Auction cannot start unless teams are created
+
+Captains & Vice-Captains
+
+Admin assigns:
+
+Captain
+
+Vice-Captain
+
+These are locked players
+
+Only after this step:
+
+Teams can auction remaining 6 players
+
+4️⃣ AUCTION LOGIC (VERY IMPORTANT)
+Player Base Points (Normalization)
+
+DO NOT multiply ratings by 100 anymore.
+
+Normalize players into 4 base categories only:
+
+1500
+
+2000
+
+2500
+
+3000
+
+Category Order (Auction Flow)
+
+Auction must proceed top to bottom:
+
+3000 category
+
+2500 category
+
+2000 category
+
+1500 category
+
+Each category must have fun, Hinglish names
+(example tone: funny, desi, cricket-street style — not corporate)
+
+Bidding Rules
+
+Every team starts with 25,000 points max
+
+Cannot exceed this limit
+
+Bid increment rules:
+
+Up to 4000 → +100 increments
+
+Above 4000 → +200 increments
+
+Admin Controls
+
+Start / Pause / Resume Auction
+
+Undo last bid
+
+Undo player sold
+
+Force-sell player
+
+Reassign player if error occurs
+
+Auction Animation (Display Interface)
+
+When a player is sold:
+
+Player card animates visually
+
+Photo moves into the team’s group container
+
+Smooth, celebratory animation (IPL broadcast style)
+
+5️⃣ DISPLAY INTERFACE – LIVE & INTERACTIVE
+
+Design this like Cricbuzz + IPL TV Broadcast:
+
+Teams panel
+
+Squad lists
+
+Player ratings
+
+Auction purse left
+
+Sold / Unsold indicators
+
+Smooth transitions
+
+No static UI. Everything should feel alive.
+
+6️⃣ MATCH DAY SYSTEM
+Match Scheduling
+
+Admin Interface:
+
+Select Team A vs Team B
+
+System warns if:
+
+Same teams repeated in same group
+
+Admin can override with warning confirmation
+
+Match Rules
+
+Wide / No-Ball:
+
+Re-ball
+
++1 run
+
+❌ No Free Hit
+
+Power Over:
+
+Admin selects before each over
+
+All runs in that over are DOUBLED
+
+If wicket falls → –5 runs penalty
+
+Ball-by-Ball Tracking
+
+Store every single ball
+
+Persistent match history
+
+Viewable per match
+
+Animations (Display Interface)
+
+Six → Big animation
+
+Four → Boundary animation
+
+Wicket → Wicket animation
+
+Duck out → Special animation
+
+Power Over active → Visual indicator
+
+7️⃣ ADMIN BROADCAST / RULES PAGE
+
+Admin has a Broadcast Editor
+
+Can write announcements, rules, notices
+
+These appear instantly on:
+
+Display Interface
+
+User Interface
+
+Treated like a live ticker / notice board
+
+8️⃣ UI / UX – IPL-STYLE LOOK (DO NOT JUST SAY “IPL STYLE”)
+
+Design Guidelines:
+
+Bold gradients
+
+Dark backgrounds with neon accents
+
+High-contrast scorecards
+
+Team colors reflected dynamically
+
+Big typography
+
+Stadium / spotlight vibe
+
+Smooth micro-animations
+
+Card-based layouts
+
+TV-broadcast feel, not admin-dashboard feel
+
+No minimalism.
+This is cricket entertainment software, not a finance app.
+
+9️⃣ TECHNICAL EXPECTATIONS
+
+Use existing database & models; extend them
+
+Modularize:
+
+Auction Engine
+
+Match Engine
+
+Animation Layer
+
+Ensure real-time updates (WebSockets or equivalent)
+
+Responsive for mobile & large screens
+
+Clean state handling (undo, rollback, resume)
+
+10️⃣ FINAL NOTE (IMPORTANT)
+
+DO NOT MISS ANY FEATURE ABOVE
+
+DO NOT SIMPLIFY LOGIC
+
+DO NOT REMOVE EXISTING WORK
+
+ONLY IMPROVE AND EXTEND
+
+This is a live sports tournament system, not a demo.

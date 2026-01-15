@@ -9,6 +9,8 @@ import {
   pointsTable,
   playerMatchStats,
   auctionState,
+  tournamentSettings,
+  broadcasts,
   type Player, type InsertPlayer,
   type Team, type InsertTeam,
   type Match, type InsertMatch,
@@ -16,13 +18,17 @@ import {
   type BallEvent, type InsertBallEvent,
   type PointsTable,
   type PlayerMatchStats,
-  type OrangeCapLeader, type PurpleCapLeader, type MVPLeader
+  type OrangeCapLeader, type PurpleCapLeader, type MVPLeader,
+  type TournamentSettings, type InsertTournamentSettings,
+  type Broadcast, type InsertBroadcast
 } from "@shared/schema";
 
 export interface IStorage {
   getAllPlayers(): Promise<Player[]>;
   getPlayer(id: string): Promise<Player | undefined>;
   getPlayerByMobile(mobile: string): Promise<Player | undefined>;
+  getPlayerByEmail(email: string): Promise<Player | undefined>;
+  getPendingPlayers(): Promise<Player[]>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
   deletePlayer(id: string): Promise<void>;
@@ -56,6 +62,17 @@ export interface IStorage {
   getOrangeCapLeaders(): Promise<OrangeCapLeader[]>;
   getPurpleCapLeaders(): Promise<PurpleCapLeader[]>;
   getMVPLeaders(): Promise<MVPLeader[]>;
+
+  // Tournament Settings
+  getTournamentSettings(): Promise<TournamentSettings | undefined>;
+  updateTournamentSettings(data: Partial<TournamentSettings>): Promise<TournamentSettings>;
+
+  // Broadcasts
+  getAllBroadcasts(): Promise<Broadcast[]>;
+  getActiveBroadcasts(): Promise<Broadcast[]>;
+  createBroadcast(broadcast: InsertBroadcast): Promise<Broadcast>;
+  updateBroadcast(id: string, data: Partial<Broadcast>): Promise<Broadcast | undefined>;
+  deleteBroadcast(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -88,8 +105,10 @@ export class DatabaseStorage implements IStorage {
         id: randomUUID(),
         ...team,
         logoUrl: null,
-        budget: 30000,
-        remainingBudget: 30000,
+        budget: 25000,
+        remainingBudget: 25000,
+        captainId: null,
+        viceCaptainId: null,
       });
     }
   }
@@ -112,6 +131,15 @@ export class DatabaseStorage implements IStorage {
     return player || undefined;
   }
 
+  async getPlayerByEmail(email: string): Promise<Player | undefined> {
+    const [player] = await db.select().from(players).where(eq(players.email, email));
+    return player || undefined;
+  }
+
+  async getPendingPlayers(): Promise<Player[]> {
+    return db.select().from(players).where(eq(players.approvalStatus, "pending"));
+  }
+
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const id = randomUUID();
     const basePoints = this.calculateBasePoints(
@@ -120,21 +148,35 @@ export class DatabaseStorage implements IStorage {
       player.fieldingRating || 5
     );
 
+    // Determine category based on base points (total rating * 100)
+    let category = "1500"; // Hidden Gems
+    if (basePoints >= 2400) category = "3000"; // Jhakaas Superstars (8+ avg rating)
+    else if (basePoints >= 2100) category = "2500"; // Solid Performers (7+ avg rating)
+    else if (basePoints >= 1800) category = "2000"; // Promising Talent (6+ avg rating)
+
     const [newPlayer] = await db.insert(players).values({
       id,
       name: player.name,
       mobile: player.mobile,
+      email: player.email || null,
+      phone: player.phone || null,
       address: player.address,
       role: player.role,
       battingRating: player.battingRating || 5,
       bowlingRating: player.bowlingRating || 5,
       fieldingRating: player.fieldingRating || 5,
       photoUrl: player.photoUrl,
+      tshirtSize: player.tshirtSize || null,
       basePoints,
+      category,
       isLocked: false,
+      isCaptain: false,
+      isViceCaptain: false,
       teamId: null,
       soldPrice: null,
-      status: "registered",
+      status: "pending",
+      paymentStatus: "pending",
+      approvalStatus: "pending",
     }).returning();
 
     return newPlayer;
@@ -457,6 +499,75 @@ export class DatabaseStorage implements IStorage {
     });
 
     return leaders.sort((a, b) => b.mvpPoints - a.mvpPoints).slice(0, 10);
+  }
+
+  // Tournament Settings Methods
+  async getTournamentSettings(): Promise<TournamentSettings | undefined> {
+    const [settings] = await db.select().from(tournamentSettings);
+    return settings || undefined;
+  }
+
+  async updateTournamentSettings(data: Partial<TournamentSettings>): Promise<TournamentSettings> {
+    const existing = await this.getTournamentSettings();
+
+    if (!existing) {
+      const id = randomUUID();
+      const [newSettings] = await db.insert(tournamentSettings).values({
+        id,
+        registrationFee: data.registrationFee || 25,
+        zellePhone: data.zellePhone || null,
+        zelleEmail: data.zelleEmail || null,
+        zelleQrUrl: data.zelleQrUrl || null,
+        cashappId: data.cashappId || null,
+        cashappQrUrl: data.cashappQrUrl || null,
+        venmoId: data.venmoId || null,
+        venmoQrUrl: data.venmoQrUrl || null,
+        auctionDate: data.auctionDate || "January 25th",
+        tournamentDate: data.tournamentDate || "February 7th",
+        displayUsername: data.displayUsername || "Bhulku",
+        displayPassword: data.displayPassword || "weareone",
+      }).returning();
+      return newSettings;
+    }
+
+    const [updated] = await db.update(tournamentSettings).set({
+      ...data,
+      updatedAt: new Date(),
+    }).where(eq(tournamentSettings.id, existing.id)).returning();
+    return updated;
+  }
+
+  // Broadcast Methods
+  async getAllBroadcasts(): Promise<Broadcast[]> {
+    return db.select().from(broadcasts).orderBy(desc(broadcasts.priority), desc(broadcasts.createdAt));
+  }
+
+  async getActiveBroadcasts(): Promise<Broadcast[]> {
+    return db.select().from(broadcasts)
+      .where(eq(broadcasts.isActive, true))
+      .orderBy(desc(broadcasts.priority), desc(broadcasts.createdAt));
+  }
+
+  async createBroadcast(broadcast: InsertBroadcast): Promise<Broadcast> {
+    const id = randomUUID();
+    const [newBroadcast] = await db.insert(broadcasts).values({
+      id,
+      title: broadcast.title,
+      content: broadcast.content,
+      type: broadcast.type || "announcement",
+      isActive: broadcast.isActive ?? true,
+      priority: broadcast.priority || 0,
+    }).returning();
+    return newBroadcast;
+  }
+
+  async updateBroadcast(id: string, data: Partial<Broadcast>): Promise<Broadcast | undefined> {
+    const [updated] = await db.update(broadcasts).set(data).where(eq(broadcasts.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteBroadcast(id: string): Promise<void> {
+    await db.delete(broadcasts).where(eq(broadcasts.id, id));
   }
 }
 

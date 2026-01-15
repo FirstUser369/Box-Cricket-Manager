@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,20 +7,42 @@ export const players = pgTable("players", {
   id: varchar("id", { length: 36 }).primaryKey(),
   name: text("name").notNull(),
   mobile: text("mobile").notNull().unique(),
+  email: text("email"),
+  phone: text("phone"),
   address: text("address").notNull(),
   role: text("role").notNull(), // Batsman, Bowler, All-rounder
   battingRating: integer("batting_rating").notNull(),
   bowlingRating: integer("bowling_rating").notNull(),
   fieldingRating: integer("fielding_rating").notNull(),
   photoUrl: text("photo_url").notNull(),
+  tshirtSize: text("tshirt_size"), // S, M, L, XL
   basePoints: integer("base_points").notNull(),
+  category: text("category").default("1500"), // 1500, 2000, 2500, 3000
   isLocked: boolean("is_locked").default(false),
+  isCaptain: boolean("is_captain").default(false),
+  isViceCaptain: boolean("is_vice_captain").default(false),
   teamId: varchar("team_id", { length: 36 }),
   soldPrice: integer("sold_price"),
-  status: text("status").default("registered"), // registered, in_auction, sold, unsold, lost_gold
+  status: text("status").default("pending"), // pending, approved, rejected, registered, in_auction, sold, unsold, lost_gold
+  paymentStatus: text("payment_status").default("pending"), // pending, verified, rejected
+  approvalStatus: text("approval_status").default("pending"), // pending, approved, rejected
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertPlayerSchema = createInsertSchema(players).omit({ id: true });
+export const insertPlayerSchema = createInsertSchema(players).omit({ 
+  id: true, 
+  basePoints: true,
+  status: true,
+  paymentStatus: true,
+  approvalStatus: true,
+  category: true,
+  isLocked: true,
+  isCaptain: true,
+  isViceCaptain: true,
+  teamId: true,
+  soldPrice: true,
+  createdAt: true,
+});
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Player = typeof players.$inferSelect;
 
@@ -32,9 +54,11 @@ export const teams = pgTable("teams", {
   primaryColor: text("primary_color").notNull(),
   secondaryColor: text("secondary_color").notNull(),
   logoUrl: text("logo_url"),
-  budget: integer("budget").notNull().default(30000),
-  remainingBudget: integer("remaining_budget").notNull().default(30000),
+  budget: integer("budget").notNull().default(25000), // Updated to 25,000 as per new spec
+  remainingBudget: integer("remaining_budget").notNull().default(25000),
   groupName: text("group_name"), // A, B, C, D
+  captainId: varchar("captain_id", { length: 36 }),
+  viceCaptainId: varchar("vice_captain_id", { length: 36 }),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).omit({ id: true });
@@ -49,6 +73,7 @@ export const auctionState = pgTable("auction_state", {
   currentBid: integer("current_bid"),
   currentBiddingTeamId: varchar("current_bidding_team_id", { length: 36 }),
   bidHistory: jsonb("bid_history").$type<Array<{ teamId: string; amount: number; timestamp: number }>>(),
+  currentCategory: text("current_category").default("3000"), // Tracks current auction category (3000 -> 2500 -> 2000 -> 1500)
 });
 
 export const insertAuctionStateSchema = createInsertSchema(auctionState).omit({ id: true });
@@ -79,6 +104,10 @@ export const matches = pgTable("matches", {
   superOverTeam1Wickets: integer("super_over_team1_wickets"),
   superOverTeam2Score: integer("super_over_team2_score"),
   superOverTeam2Wickets: integer("super_over_team2_wickets"),
+  // Power Over fields
+  powerOverActive: boolean("power_over_active").default(false),
+  powerOverNumber: integer("power_over_number"), // Which over is power over
+  powerOverInnings: integer("power_over_innings"), // 1 or 2
 });
 
 export const insertMatchSchema = createInsertSchema(matches).omit({ id: true });
@@ -96,11 +125,13 @@ export const ballEvents = pgTable("ball_events", {
   bowlerId: varchar("bowler_id", { length: 36 }).notNull(),
   runs: integer("runs").notNull().default(0),
   extras: integer("extras").default(0),
-  extraType: text("extra_type"), // wide, no_ball
+  extraType: text("extra_type"), // wide, no_ball (no free hit as per spec)
   isWicket: boolean("is_wicket").default(false),
   wicketType: text("wicket_type"), // bowled, caught, lbw, run_out, stumped
   dismissedPlayerId: varchar("dismissed_player_id", { length: 36 }),
   isSuperOver: boolean("is_super_over").default(false),
+  isPowerOver: boolean("is_power_over").default(false), // If this ball was during power over
+  actualRuns: integer("actual_runs").default(0), // Runs before power over doubling
 });
 
 export const insertBallEventSchema = createInsertSchema(ballEvents).omit({ id: true });
@@ -152,6 +183,7 @@ export const admins = pgTable("admins", {
   id: varchar("id", { length: 36 }).primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").default("admin"), // admin, display, user
 });
 
 export const insertAdminSchema = createInsertSchema(admins).omit({ id: true });
@@ -164,12 +196,52 @@ export const insertUserSchema = insertAdminSchema;
 export type InsertUser = InsertAdmin;
 export type User = Admin;
 
+// Tournament Settings (Payment Configuration, etc.)
+export const tournamentSettings = pgTable("tournament_settings", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  registrationFee: integer("registration_fee").default(25),
+  zellePhone: text("zelle_phone"),
+  zelleEmail: text("zelle_email"),
+  zelleQrUrl: text("zelle_qr_url"),
+  cashappId: text("cashapp_id"),
+  cashappQrUrl: text("cashapp_qr_url"),
+  venmoId: text("venmo_id"),
+  venmoQrUrl: text("venmo_qr_url"),
+  auctionDate: text("auction_date").default("January 25th"),
+  tournamentDate: text("tournament_date").default("February 7th"),
+  displayUsername: text("display_username").default("Bhulku"),
+  displayPassword: text("display_password").default("weareone"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTournamentSettingsSchema = createInsertSchema(tournamentSettings).omit({ id: true });
+export type InsertTournamentSettings = z.infer<typeof insertTournamentSettingsSchema>;
+export type TournamentSettings = typeof tournamentSettings.$inferSelect;
+
+// Admin Broadcasts / Announcements
+export const broadcasts = pgTable("broadcasts", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  type: text("type").default("announcement"), // announcement, rule, ticker
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertBroadcastSchema = createInsertSchema(broadcasts).omit({ id: true });
+export type InsertBroadcast = z.infer<typeof insertBroadcastSchema>;
+export type Broadcast = typeof broadcasts.$inferSelect;
+
 // Validation schemas for forms
 export const playerRegistrationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
   mobile: z.string().regex(/^\d{10}$/, "Mobile must be 10 digits"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   role: z.enum(["Batsman", "Bowler", "All-rounder"]),
+  tshirtSize: z.enum(["S", "M", "L", "XL"]),
   battingRating: z.number().min(1).max(10),
   bowlingRating: z.number().min(1).max(10),
   fieldingRating: z.number().min(1).max(10),
@@ -177,6 +249,16 @@ export const playerRegistrationSchema = z.object({
 });
 
 export type PlayerRegistration = z.infer<typeof playerRegistrationSchema>;
+
+// Auction Category Names (Hinglish fun names)
+export const AUCTION_CATEGORIES = {
+  "3000": "Jhakaas Superstars",
+  "2500": "Solid Performers",
+  "2000": "Promising Talent",
+  "1500": "Hidden Gems",
+} as const;
+
+export type AuctionCategory = keyof typeof AUCTION_CATEGORIES;
 
 // Leaderboard types
 export interface OrangeCapLeader {
