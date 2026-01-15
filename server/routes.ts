@@ -1548,16 +1548,36 @@ export async function registerRoutes(
         updateData.team2Overs = newOversStr;
       }
       
-      // Restore batsmen/bowler state
+      // Restore batsmen/bowler state from the ball event
       updateData.strikerId = lastBall.batsmanId;
       updateData.currentBowlerId = lastBall.bowlerId;
       
-      // If wicket was undone, restore dismissed player
+      // If wicket was undone, restore dismissed player to their position
       if (lastBall.isWicket && lastBall.dismissedPlayerId) {
         if (lastBall.dismissedPlayerId === lastBall.batsmanId) {
+          // Striker was dismissed - restore striker, keep current non-striker
           updateData.strikerId = lastBall.batsmanId;
+          // The non-striker should be whoever is currently set (they became striker after wicket)
+          // But if the current striker is someone else, that person was the non-striker
+          if (match.strikerId && match.strikerId !== lastBall.batsmanId) {
+            updateData.nonStrikerId = match.strikerId;
+          }
         } else {
+          // Non-striker was run out - restore them as non-striker
           updateData.nonStrikerId = lastBall.dismissedPlayerId;
+        }
+      } else if (!lastBall.isWicket) {
+        // No wicket - check if strike was rotated and restore
+        // For odd runs, strike would have rotated, so we need to reverse it
+        const actualRuns = lastBall.actualRuns || 0;
+        const wasLegalDelivery = !lastBall.extraType || (lastBall.extraType !== "wide" && lastBall.extraType !== "no_ball");
+        const wasEndOfOver = wasLegalDelivery && newBalls === 5 && newOvers < overs;
+        
+        // If strike rotated due to odd runs or end of over, reverse it
+        if (actualRuns % 2 === 1 && match.nonStrikerId) {
+          // Strike rotated due to odd runs - swap back
+          updateData.strikerId = match.strikerId; // Current striker was non-striker before
+          updateData.nonStrikerId = lastBall.batsmanId; // Ball's batsman was striker before
         }
       }
       

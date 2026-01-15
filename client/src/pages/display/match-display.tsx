@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
-import { Play, Circle, Target, TrendingUp, Trophy, User, Zap } from "lucide-react";
+import { Play, Circle, Target, TrendingUp, Trophy, User, Zap, ChevronRight, ArrowLeft, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { CricketEventAnimation, BallIndicator } from "@/components/cricket-animations";
 import type { Team, Match, BallEvent, Player, PlayerMatchStats } from "@shared/schema";
 
@@ -13,6 +16,7 @@ type CricketEventType = "wicket" | "six" | "four" | "no-ball" | "wide" | "dot" |
 export default function MatchDisplay() {
   const [currentEvent, setCurrentEvent] = useState<CricketEventType>(null);
   const [lastBallCount, setLastBallCount] = useState(0);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const { data: matches } = useQuery<Match[]>({
     queryKey: ["/api/matches"],
@@ -35,11 +39,18 @@ export default function MatchDisplay() {
   });
 
   const liveMatch = matches?.find(m => m.status === "live");
+  const completedMatches = matches?.filter(m => m.status === "completed") || [];
+  const selectedMatch = matches?.find(m => m.id === selectedMatchId);
 
   const { data: matchStats } = useQuery<PlayerMatchStats[]>({
     queryKey: ["/api/matches", liveMatch?.id, "player-stats"],
     enabled: !!liveMatch?.id,
     refetchInterval: 1000,
+  });
+
+  const { data: selectedMatchStats } = useQuery<PlayerMatchStats[]>({
+    queryKey: ["/api/matches", selectedMatchId, "player-stats"],
+    enabled: !!selectedMatchId,
   });
 
   const team1 = teams?.find(t => t.id === liveMatch?.team1Id);
@@ -223,20 +234,313 @@ export default function MatchDisplay() {
     return overs.slice(-4);
   };
 
+  // Helper function to get scorecard for a completed match
+  const getCompletedMatchScorecard = (match: Match, stats: PlayerMatchStats[], innings: number) => {
+    const battingTeamId = innings === 1 ? match.team1Id : match.team2Id;
+    const bowlingTeamId = innings === 1 ? match.team2Id : match.team1Id;
+    const battingPlayers = players?.filter(p => p.teamId === battingTeamId) || [];
+    const bowlingPlayers = players?.filter(p => p.teamId === bowlingTeamId) || [];
+
+    const batters = battingPlayers
+      .map(player => {
+        const playerStats = stats.find(s => s.playerId === player.id && s.innings === innings);
+        if (!playerStats || (playerStats.ballsFaced === 0 && !playerStats.isOut)) return null;
+        return {
+          id: player.id,
+          name: getPlayerShortName(player.id),
+          runs: playerStats.runsScored || 0,
+          balls: playerStats.ballsFaced || 0,
+          fours: playerStats.fours || 0,
+          sixes: playerStats.sixes || 0,
+          strikeRate: playerStats.ballsFaced ? ((playerStats.runsScored || 0) / playerStats.ballsFaced * 100).toFixed(1) : "0.0",
+          isOut: playerStats.isOut || false,
+          dismissal: playerStats.dismissalType || "not out",
+          dismissedBy: playerStats.dismissedBy ? getPlayerShortName(playerStats.dismissedBy) : null,
+        };
+      })
+      .filter(Boolean);
+
+    const bowlers = bowlingPlayers
+      .map(player => {
+        const playerStats = stats.find(s => s.playerId === player.id && s.innings === innings);
+        if (!playerStats || playerStats.oversBowled === "0.0") return null;
+        const overs = parseFloat(playerStats.oversBowled || "0.0");
+        return {
+          id: player.id,
+          name: getPlayerShortName(player.id),
+          overs: playerStats.oversBowled || "0.0",
+          runs: playerStats.runsConceded || 0,
+          wickets: playerStats.wicketsTaken || 0,
+          economy: overs > 0 ? ((playerStats.runsConceded || 0) / overs).toFixed(2) : "0.00",
+        };
+      })
+      .filter(Boolean);
+
+    return { batters, bowlers };
+  };
+
   if (!liveMatch) {
+    const selectedMatchTeam1 = selectedMatch ? teams?.find(t => t.id === selectedMatch.team1Id) : null;
+    const selectedMatchTeam2 = selectedMatch ? teams?.find(t => t.id === selectedMatch.team2Id) : null;
+
     return (
-      <div className="min-h-screen bg-[#0a0e1a] text-white flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-[#0a0e1a] text-white">
+        <div className="absolute inset-0 auction-spotlight opacity-20" />
+        
+        <div className="relative max-w-4xl mx-auto px-4 py-8">
           <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-purple-600 to-orange-500 flex items-center justify-center mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
           >
-            <Play className="w-16 h-16 text-white" />
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-emerald-600 to-cyan-500 flex items-center justify-center mb-6">
+              <Clock className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="font-display text-4xl text-glow-purple mb-2">MATCH HISTORY</h1>
+            <p className="text-gray-400">No live match. View completed match scorecards below.</p>
           </motion.div>
-          <h2 className="font-display text-5xl text-glow-purple mb-4">NO LIVE MATCH</h2>
-          <p className="text-xl text-gray-400">Waiting for the next match to begin...</p>
+
+          {completedMatches.length === 0 ? (
+            <div className="text-center py-16">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-purple-600 to-orange-500 flex items-center justify-center mb-6"
+              >
+                <Play className="w-12 h-12 text-white" />
+              </motion.div>
+              <p className="text-xl text-gray-400">No completed matches yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedMatches.map((match, idx) => {
+                const matchTeam1 = teams?.find(t => t.id === match.team1Id);
+                const matchTeam2 = teams?.find(t => t.id === match.team2Id);
+                const winnerTeam = match.winnerId ? teams?.find(t => t.id === match.winnerId) : null;
+                
+                return (
+                  <motion.div
+                    key={match.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <Card 
+                      className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer overflow-hidden"
+                      onClick={() => setSelectedMatchId(match.id)}
+                      data-testid={`match-history-${match.id}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <Badge variant="outline" className="text-gray-400 border-gray-600">
+                              Match #{match.matchNumber}
+                            </Badge>
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-display text-sm"
+                                style={{ backgroundColor: matchTeam1?.primaryColor }}
+                              >
+                                {matchTeam1?.shortName}
+                              </div>
+                              <div className="text-center">
+                                <p className="font-display text-lg">
+                                  {match.team1Score}/{match.team1Wickets}
+                                </p>
+                                <p className="text-xs text-gray-500">({match.team1Overs})</p>
+                              </div>
+                              <span className="text-gray-500 text-sm">vs</span>
+                              <div className="text-center">
+                                <p className="font-display text-lg">
+                                  {match.team2Score}/{match.team2Wickets}
+                                </p>
+                                <p className="text-xs text-gray-500">({match.team2Overs})</p>
+                              </div>
+                              <div 
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-display text-sm"
+                                style={{ backgroundColor: matchTeam2?.primaryColor }}
+                              >
+                                {matchTeam2?.shortName}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {winnerTeam ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                <Trophy className="w-3 h-3 mr-1" />
+                                {winnerTeam.shortName} won
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                Tie
+                              </Badge>
+                            )}
+                            <ChevronRight className="w-5 h-5 text-gray-500" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* Match Scorecard Dialog */}
+        <Dialog open={!!selectedMatchId} onOpenChange={(open) => !open && setSelectedMatchId(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] bg-[#0d1117] border-white/10 text-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setSelectedMatchId(null)}
+                    className="hover:bg-white/10"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                  <span className="font-display text-xl">
+                    Match #{selectedMatch?.matchNumber} Scorecard
+                  </span>
+                </div>
+                {selectedMatch?.winnerId ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                    <Trophy className="w-3 h-3 mr-1" />
+                    {teams?.find(t => t.id === selectedMatch.winnerId)?.shortName} won
+                  </Badge>
+                ) : (
+                  <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                    Tie
+                  </Badge>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <ScrollArea className="max-h-[70vh]">
+              {selectedMatch && selectedMatchStats && (
+                <Tabs defaultValue="innings1" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-white/5">
+                    <TabsTrigger value="innings1" className="data-[state=active]:bg-white/10">
+                      {selectedMatchTeam1?.shortName} - {selectedMatch.team1Score}/{selectedMatch.team1Wickets} ({selectedMatch.team1Overs})
+                    </TabsTrigger>
+                    <TabsTrigger value="innings2" className="data-[state=active]:bg-white/10">
+                      {selectedMatchTeam2?.shortName} - {selectedMatch.team2Score}/{selectedMatch.team2Wickets} ({selectedMatch.team2Overs})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {[1, 2].map(innings => {
+                    const scorecard = getCompletedMatchScorecard(selectedMatch, selectedMatchStats, innings);
+                    const battingTeam = innings === 1 ? selectedMatchTeam1 : selectedMatchTeam2;
+                    const bowlingTeam = innings === 1 ? selectedMatchTeam2 : selectedMatchTeam1;
+                    
+                    return (
+                      <TabsContent key={innings} value={`innings${innings}`} className="space-y-4 mt-4">
+                        <Card className="bg-white/5 border-white/10">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div 
+                                className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
+                                style={{ backgroundColor: battingTeam?.primaryColor }}
+                              >
+                                {battingTeam?.shortName?.[0]}
+                              </div>
+                              {battingTeam?.name} - Batting
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-gray-400 text-xs border-b border-white/10">
+                                    <th className="text-left py-2 px-3">Batter</th>
+                                    <th className="text-center py-2 px-2">R</th>
+                                    <th className="text-center py-2 px-2">B</th>
+                                    <th className="text-center py-2 px-2">4s</th>
+                                    <th className="text-center py-2 px-2">6s</th>
+                                    <th className="text-center py-2 px-2">SR</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {scorecard.batters.map((batter) => (
+                                    <tr key={batter!.id} className="border-b border-white/5">
+                                      <td className="py-2 px-3">
+                                        <span className={batter!.isOut ? 'text-gray-500' : 'text-white'}>{batter!.name}</span>
+                                        {batter!.isOut && (
+                                          <p className="text-xs text-gray-500">{batter!.dismissal} {batter!.dismissedBy && `b ${batter!.dismissedBy}`}</p>
+                                        )}
+                                      </td>
+                                      <td className="text-center py-2 px-2 font-medium">{batter!.runs}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{batter!.balls}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{batter!.fours}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{batter!.sixes}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{batter!.strikeRate}</td>
+                                    </tr>
+                                  ))}
+                                  {scorecard.batters.length === 0 && (
+                                    <tr>
+                                      <td colSpan={6} className="text-center py-4 text-gray-500">No batting data</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-white/5 border-white/10">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div 
+                                className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
+                                style={{ backgroundColor: bowlingTeam?.primaryColor }}
+                              >
+                                {bowlingTeam?.shortName?.[0]}
+                              </div>
+                              {bowlingTeam?.name} - Bowling
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-gray-400 text-xs border-b border-white/10">
+                                    <th className="text-left py-2 px-3">Bowler</th>
+                                    <th className="text-center py-2 px-2">O</th>
+                                    <th className="text-center py-2 px-2">R</th>
+                                    <th className="text-center py-2 px-2">W</th>
+                                    <th className="text-center py-2 px-2">Eco</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {scorecard.bowlers.map((bowler) => (
+                                    <tr key={bowler!.id} className="border-b border-white/5">
+                                      <td className="py-2 px-3 text-white">{bowler!.name}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{bowler!.overs}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{bowler!.runs}</td>
+                                      <td className="text-center py-2 px-2 font-medium text-purple-300">{bowler!.wickets}</td>
+                                      <td className="text-center py-2 px-2 text-gray-400">{bowler!.economy}</td>
+                                    </tr>
+                                  ))}
+                                  {scorecard.bowlers.length === 0 && (
+                                    <tr>
+                                      <td colSpan={5} className="text-center py-4 text-gray-500">No bowling data</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )}
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

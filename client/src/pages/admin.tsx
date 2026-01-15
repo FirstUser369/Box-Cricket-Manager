@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -291,12 +291,40 @@ function AdminDashboard() {
   });
 
   const recordBallMutation = useMutation({
-    mutationFn: async ({ matchId, ...data }: { matchId: string; runs: number; extraType?: string; isWicket?: boolean; wicketType?: string }) => {
+    mutationFn: async ({ matchId, ...data }: { matchId: string; runs: number; extraType?: string; isWicket?: boolean; wicketType?: string; fielderId?: string }) => {
       return apiRequest("POST", `/api/matches/${matchId}/ball`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/ball-events"] });
+    },
+  });
+
+  const undoBallMutation = useMutation({
+    mutationFn: async (matchId: string) => {
+      return apiRequest("POST", `/api/matches/${matchId}/undo-ball`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ball-events"] });
+      toast({ title: "Last ball undone" });
+    },
+    onError: () => {
+      toast({ title: "Failed to undo ball", variant: "destructive" });
+    },
+  });
+
+  const resetMatchMutation = useMutation({
+    mutationFn: async (matchId: string) => {
+      return apiRequest("POST", `/api/matches/${matchId}/reset`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ball-events"] });
+      toast({ title: "Match reset successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to reset match", variant: "destructive" });
     },
   });
 
@@ -1051,6 +1079,10 @@ function AdminDashboard() {
                 })}
                 onSetBowler={(bowlerId) => setBowlerMutation.mutate({ matchId: liveMatch.id, bowlerId })}
                 onNewBatsman={(batsmanId) => newBatsmanMutation.mutate({ matchId: liveMatch.id, batsmanId })}
+                onUndoBall={() => undoBallMutation.mutate(liveMatch.id)}
+                onResetMatch={() => resetMatchMutation.mutate(liveMatch.id)}
+                isUndoing={undoBallMutation.isPending}
+                isResetting={resetMatchMutation.isPending}
               />
             ) : (
               <Card>
@@ -1359,23 +1391,34 @@ function LiveScoringPanel({
   onSetPowerOver,
   onSetBatsmen,
   onSetBowler,
-  onNewBatsman
+  onNewBatsman,
+  onUndoBall,
+  onResetMatch,
+  isUndoing,
+  isResetting
 }: { 
   match: Match; 
   teams: Team[];
   players: Player[];
-  onRecordBall: (data: { runs: number; extraType?: string; isWicket?: boolean; wicketType?: string; dismissedPlayerId?: string }) => void;
+  onRecordBall: (data: { runs: number; extraType?: string; isWicket?: boolean; wicketType?: string; dismissedPlayerId?: string; fielderId?: string }) => void;
   isRecording: boolean;
   onSetPowerOver: (overNumber: number) => void;
   onSetBatsmen: (strikerId: string, nonStrikerId: string) => void;
   onSetBowler: (bowlerId: string) => void;
   onNewBatsman: (batsmanId: string) => void;
+  onUndoBall: () => void;
+  onResetMatch: () => void;
+  isUndoing: boolean;
+  isResetting: boolean;
 }) {
   const [selectedStriker, setSelectedStriker] = useState<string>("");
   const [selectedNonStriker, setSelectedNonStriker] = useState<string>("");
   const [selectedBowler, setSelectedBowler] = useState<string>("");
   const [selectedNewBatsman, setSelectedNewBatsman] = useState<string>("");
   const [selectedDismissedPlayer, setSelectedDismissedPlayer] = useState<string>("");
+  const [showFielderDialog, setShowFielderDialog] = useState(false);
+  const [pendingWicketType, setPendingWicketType] = useState<string>("");
+  const [selectedFielder, setSelectedFielder] = useState<string>("");
 
   const team1 = teams.find(t => t.id === match.team1Id);
   const team2 = teams.find(t => t.id === match.team2Id);
@@ -1425,7 +1468,28 @@ function LiveScoringPanel({
   };
 
   const recordWicket = (type: string) => {
-    onRecordBall({ runs: 0, isWicket: true, wicketType: type, dismissedPlayerId: match.strikerId || undefined });
+    // For caught, stumped, run_out - show fielder selection dialog
+    if (type === "caught" || type === "stumped" || type === "run_out") {
+      setPendingWicketType(type);
+      setSelectedFielder("");
+      setShowFielderDialog(true);
+    } else {
+      // For bowled, lbw - no fielder needed
+      onRecordBall({ runs: 0, isWicket: true, wicketType: type, dismissedPlayerId: match.strikerId || undefined });
+    }
+  };
+
+  const confirmWicketWithFielder = () => {
+    onRecordBall({ 
+      runs: 0, 
+      isWicket: true, 
+      wicketType: pendingWicketType, 
+      dismissedPlayerId: match.strikerId || undefined,
+      fielderId: selectedFielder || undefined
+    });
+    setShowFielderDialog(false);
+    setPendingWicketType("");
+    setSelectedFielder("");
   };
 
   return (
@@ -1725,6 +1789,47 @@ function LiveScoringPanel({
                 ))}
               </div>
             </div>
+
+            {/* Undo and Reset buttons */}
+            <div className="flex gap-2 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2"
+                onClick={onUndoBall}
+                disabled={isUndoing || isRecording}
+                data-testid="button-undo-ball"
+              >
+                {isUndoing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                Undo Last Ball
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    className="gap-2"
+                    disabled={isResetting || isRecording}
+                    data-testid="button-reset-match"
+                  >
+                    {isResetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Reset Match
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Match?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete all ball events and reset scores to 0. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onResetMatch} data-testid="button-confirm-reset">
+                      Reset Match
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         ) : (
           <div className="p-6 text-center bg-muted/30 rounded-md">
@@ -1737,6 +1842,48 @@ function LiveScoringPanel({
             </p>
           </div>
         )}
+
+        {/* Fielder Selection Dialog */}
+        <Dialog open={showFielderDialog} onOpenChange={setShowFielderDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="capitalize">
+                {pendingWicketType === "caught" ? "Select Catcher" : 
+                 pendingWicketType === "stumped" ? "Select Wicketkeeper" :
+                 "Select Fielder (Run Out)"}
+              </DialogTitle>
+              <DialogDescription>
+                Choose the fielder who made the {pendingWicketType === "caught" ? "catch" : 
+                pendingWicketType === "stumped" ? "stumping" : "run out"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Fielder</Label>
+                <Select value={selectedFielder} onValueChange={setSelectedFielder}>
+                  <SelectTrigger data-testid="select-fielder">
+                    <SelectValue placeholder="Select fielder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bowlingTeamPlayers.map(player => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {player.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowFielderDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmWicketWithFielder} data-testid="button-confirm-wicket">
+                Confirm Wicket
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

@@ -22,13 +22,17 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 ### Live Scoring
 - **Ball-by-Ball**: Record runs (0-6), extras (wide, no-ball - no free hit), wickets (bowled, caught, lbw, run_out, stumped)
 - **Batsman/Bowler Selection**: Admin must select opening batsmen and bowler before scoring; wicket requires new batsman selection; end of over requires new bowler selection
+- **Fielder Selection**: For catches, stumpings, and run outs, admin selects the fielder who made the dismissal
 - **8-Player Teams**: Max 7 wickets per innings; last-man-standing rule allows solo batting
 - **Strike Rotation**: Changes on odd runs and end of over (unless last-man-standing)
 - **Extras Handling**: Wide and no-ball add 1 run, ball doesn't count (reball required)
 - **Power Overs**: Admin selects power over - runs doubled, wicket costs -5 points
 - **Auto-calculation**: Overs increment automatically, innings change at 6 overs
 - **Match Completion**: Points table updates automatically when match ends
+- **Undo Last Ball**: Admin can undo the last recorded ball (reverses all stats)
+- **Reset Match**: Admin can reset a match to start fresh (requires confirmation)
 - **Cricbuzz-Style Display**: Live batsmen stats (runs, balls, 4s, 6s, SR), bowler stats (overs, runs, wickets, economy), full scorecards
+- **Match History**: Display interface shows completed matches; clicking opens full Cricbuzz-style scorecard with both innings
 
 ### Leaderboards
 - **Orange Cap**: Top run scorers with strike rate and average
