@@ -768,67 +768,124 @@ function AdminDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5" />
-                  Tournament Structure
+                  Team Group Assignment
                 </CardTitle>
                 <CardDescription>
-                  4 Groups of 3 Teams each. Top team from each group advances to Semi-Finals.
+                  Assign teams to 4 groups (3 teams each). Click (+) to add a team, (X) to remove. Top team from each group advances to Semi-Finals.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex flex-wrap gap-3">
-                  <Button 
-                    onClick={() => assignGroupsMutation.mutate()}
-                    disabled={assignGroupsMutation.isPending}
-                    data-testid="button-assign-groups"
-                  >
-                    {assignGroupsMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Randomly Assign Groups
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => generateFixturesMutation.mutate()}
-                    disabled={generateFixturesMutation.isPending}
-                    data-testid="button-generate-fixtures"
-                  >
-                    {generateFixturesMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Generate Group Fixtures
-                  </Button>
-                </div>
+                {(() => {
+                  const unassignedTeams = teams?.filter(t => !t.groupName) || [];
+                  const allGroupsFull = ["A", "B", "C", "D"].every(g => (teams?.filter(t => t.groupName === g) || []).length >= 3);
+                  
+                  return (
+                    <>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Badge variant="outline" className="text-sm">
+                          Unassigned Teams: {unassignedTeams.length}
+                        </Badge>
+                        {allGroupsFull && (
+                          <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">
+                            All Groups Complete
+                          </Badge>
+                        )}
+                        <Button 
+                          variant="outline"
+                          onClick={() => generateFixturesMutation.mutate()}
+                          disabled={generateFixturesMutation.isPending || !allGroupsFull}
+                          data-testid="button-generate-fixtures"
+                        >
+                          {generateFixturesMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          Generate Group Fixtures
+                        </Button>
+                      </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {["A", "B", "C", "D"].map((groupName) => {
-                    const groupTeams = teams?.filter(t => t.groupName === groupName) || [];
-                    return (
-                      <Card key={groupName} className="bg-muted/30">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Group {groupName}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {groupTeams.length > 0 ? (
-                            <div className="space-y-2">
-                              {groupTeams.map((team, index) => (
-                                <div key={team.id} className="flex items-center gap-2 p-2 rounded-md bg-card">
-                                  <span className="text-sm font-medium text-muted-foreground">{index + 1}.</span>
-                                  <div 
-                                    className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display"
-                                    style={{ backgroundColor: team.primaryColor }}
-                                  >
-                                    {team.shortName}
-                                  </div>
-                                  <span className="text-sm truncate">{team.name}</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {["A", "B", "C", "D"].map((groupName) => {
+                          const groupTeams = teams?.filter(t => t.groupName === groupName) || [];
+                          const slotsNeeded = 3 - groupTeams.length;
+                          
+                          return (
+                            <Card key={groupName} className="bg-muted/30">
+                              <CardHeader className="pb-2">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className="text-lg">Group {groupName}</CardTitle>
+                                  <Badge variant={groupTeams.length >= 3 ? "default" : "secondary"} className="text-xs">
+                                    {groupTeams.length}/3
+                                  </Badge>
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                              No teams assigned
-                            </p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                {groupTeams.map((team, index) => (
+                                  <div key={team.id} className="flex items-center gap-2 p-2 rounded-md bg-card" data-testid={`group-team-${team.id}`}>
+                                    <span className="text-sm font-medium text-muted-foreground w-4">{index + 1}.</span>
+                                    <div 
+                                      className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
+                                      style={{ backgroundColor: team.primaryColor }}
+                                    >
+                                      {team.shortName}
+                                    </div>
+                                    <span className="text-sm truncate flex-1">{team.name}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => updateTeamMutation.mutate({ id: team.id, groupName: null as unknown as string })}
+                                      data-testid={`button-remove-team-${team.id}`}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                
+                                {Array.from({ length: slotsNeeded }).map((_, slotIndex) => (
+                                  <Select
+                                    key={`slot-${groupName}-${slotIndex}`}
+                                    onValueChange={(teamId) => {
+                                      updateTeamMutation.mutate({ id: teamId, groupName });
+                                    }}
+                                  >
+                                    <SelectTrigger 
+                                      className="w-full border-dashed border-2 bg-transparent hover:bg-muted/50"
+                                      data-testid={`select-team-group-${groupName}-${slotIndex}`}
+                                    >
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Plus className="h-4 w-4" />
+                                        <span>Add Team</span>
+                                      </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {unassignedTeams.length > 0 ? (
+                                        unassignedTeams.map((team) => (
+                                          <SelectItem key={team.id} value={team.id}>
+                                            <div className="flex items-center gap-2">
+                                              <div 
+                                                className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display"
+                                                style={{ backgroundColor: team.primaryColor }}
+                                              >
+                                                {team.shortName}
+                                              </div>
+                                              <span>{team.name}</span>
+                                            </div>
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                                          No teams available
+                                        </div>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                ))}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
 
                 <Card className="bg-muted/30">
                   <CardHeader>
