@@ -938,6 +938,15 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/players/:id", async (req, res) => {
+    try {
+      await storage.deletePlayer(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete player" });
+    }
+  });
+
   // ============ BROADCASTS ============
   
   app.get("/api/broadcasts", async (req, res) => {

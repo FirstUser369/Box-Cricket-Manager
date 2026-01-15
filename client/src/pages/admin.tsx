@@ -1421,6 +1421,19 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
     },
   });
 
+  const deletePlayerMutation = useMutation({
+    mutationFn: async (playerId: string) => {
+      return apiRequest("DELETE", `/api/players/${playerId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      toast({ title: "Player deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete player", variant: "destructive" });
+    },
+  });
+
   const renderPlayerCard = (player: Player, showActions: boolean = true) => (
     <Card key={player.id} className="p-4" data-testid={`approval-player-${player.id}`}>
       <div className="flex items-start gap-4">
@@ -1482,17 +1495,50 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
             </Button>
           </div>
         )}
-        {showActions && activeTab === "approved" && player.paymentStatus !== "verified" && (
-          <Button
-            size="sm"
-            className="bg-emerald-500 hover:bg-emerald-600"
-            onClick={() => verifyPaymentMutation.mutate(player.id)}
-            disabled={verifyPaymentMutation.isPending}
-            data-testid={`button-verify-payment-${player.id}`}
-          >
-            <DollarSign className="w-4 h-4 mr-1" />
-            Verify Payment
-          </Button>
+        {showActions && activeTab === "approved" && (
+          <div className="flex flex-col gap-2">
+            {player.paymentStatus !== "verified" && (
+              <Button
+                size="sm"
+                className="bg-emerald-500 hover:bg-emerald-600"
+                onClick={() => verifyPaymentMutation.mutate(player.id)}
+                disabled={verifyPaymentMutation.isPending}
+                data-testid={`button-verify-payment-${player.id}`}
+              >
+                <DollarSign className="w-4 h-4 mr-1" />
+                Verify Payment
+              </Button>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  data-testid={`button-delete-player-${player.id}`}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Player?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete {player.name} from the system. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deletePlayerMutation.mutate(player.id)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
       </div>
     </Card>
