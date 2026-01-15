@@ -41,7 +41,6 @@ export default function Register() {
     defaultValues: {
       name: "",
       email: "",
-      phone: "",
       mobile: "",
       address: "",
       role: "Batsman",
@@ -314,7 +313,7 @@ export default function Register() {
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Mail className="w-4 h-4" />
-                          Email
+                          Email (Optional)
                         </FormLabel>
                         <FormControl>
                           <Input 
@@ -331,33 +330,13 @@ export default function Register() {
 
                   <FormField
                     control={form.control}
-                    name="phone"
+                    name="mobile"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Phone className="w-4 h-4" />
-                          Phone
+                          Mobile Number *
                         </FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Contact number" 
-                            {...field}
-                            data-testid="input-phone"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="mobile"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mobile Number</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="10-digit mobile number" 
@@ -369,6 +348,9 @@ export default function Register() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                   <FormField
                     control={form.control}

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import Admin from "@/pages/admin";
+import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
 import DisplayIndex from "@/pages/display/index";
 import DisplayRegister from "@/pages/display/register";
@@ -20,6 +21,7 @@ function AdminRouter() {
   return (
     <Switch>
       <Route path="/admin" component={Admin} />
+      <Route path="/register" component={Register} />
       <Route path="/">
         <Redirect to="/admin" />
       </Route>
