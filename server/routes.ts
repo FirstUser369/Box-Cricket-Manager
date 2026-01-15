@@ -1,11 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import * as schema from "@shared/schema";
 import { 
   playerRegistrationSchema, 
   insertTournamentSettingsSchema,
   insertBroadcastSchema
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
@@ -1095,7 +1098,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Match not live" });
       }
       
-      const { runs, extraType, isWicket, wicketType, dismissedPlayerId } = req.body;
+      const { runs, extraType, isWicket, wicketType, dismissedPlayerId, fielderId } = req.body;
       
       // Validate batsmen and bowler are set
       // Allow scoring with just striker if 7 wickets (last man standing - only 1 batsman remains)
@@ -1212,9 +1215,26 @@ export async function registerRoutes(
         isWicket: isWicket || false,
         wicketType: wicketType || null,
         dismissedPlayerId: dismissedPlayerId || null,
+        fielderId: fielderId || null,
         isPowerOver,
         actualRuns,
       });
+      
+      // Update fielder stats (catches, run outs)
+      if (isWicket && fielderId) {
+        const fielderStats = await storage.getPlayerMatchStats(match.id, fielderId, match.currentInnings!);
+        if (fielderStats) {
+          if (wicketType === 'caught' || wicketType === 'stumped') {
+            await storage.updatePlayerStats(match.id, fielderId, {
+              catches: (fielderStats.catches || 0) + 1,
+            });
+          } else if (wicketType === 'run_out') {
+            await storage.updatePlayerStats(match.id, fielderId, {
+              runOuts: (fielderStats.runOuts || 0) + 1,
+            });
+          }
+        }
+      }
       
       // Update batsman stats
       if (isLegalDelivery) {
@@ -1391,6 +1411,207 @@ export async function registerRoutes(
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Failed to set power over" });
+    }
+  });
+
+  // Undo last ball
+  app.post("/api/matches/:id/undo-ball", async (req, res) => {
+    try {
+      const match = await storage.getMatch(req.params.id);
+      if (!match || match.status !== "live") {
+        return res.status(400).json({ error: "Match not live" });
+      }
+      
+      const ballEvents = await storage.getMatchBallEvents(match.id);
+      const currentInningsBalls = ballEvents.filter(e => e.innings === match.currentInnings);
+      
+      if (currentInningsBalls.length === 0) {
+        return res.status(400).json({ error: "No balls to undo" });
+      }
+      
+      // Get the last ball event for current innings
+      const lastBall = currentInningsBalls[currentInningsBalls.length - 1];
+      
+      const isFirstInnings = match.currentInnings === 1;
+      const currentScore = isFirstInnings ? match.team1Score : match.team2Score;
+      const currentWickets = isFirstInnings ? match.team1Wickets : match.team2Wickets;
+      const currentOvers = isFirstInnings ? match.team1Overs : match.team2Overs;
+      
+      // Calculate new score (subtract the runs from last ball)
+      let newScore = (currentScore || 0) - (lastBall.runs || 0);
+      if (lastBall.extras) {
+        newScore -= lastBall.extras;
+      }
+      newScore = Math.max(0, newScore);
+      
+      // Calculate new wickets
+      let newWickets = currentWickets || 0;
+      if (lastBall.isWicket) {
+        newWickets = Math.max(0, newWickets - 1);
+        
+        // Restore dismissed player stats
+        if (lastBall.dismissedPlayerId) {
+          await storage.updatePlayerStats(match.id, lastBall.dismissedPlayerId, {
+            isOut: false,
+            dismissalType: null,
+            dismissedBy: null,
+          });
+        }
+        
+        // Undo fielder stats
+        if (lastBall.fielderId) {
+          const fielderStats = await storage.getPlayerMatchStats(match.id, lastBall.fielderId, match.currentInnings!);
+          if (fielderStats) {
+            if (lastBall.wicketType === 'caught' || lastBall.wicketType === 'stumped') {
+              await storage.updatePlayerStats(match.id, lastBall.fielderId, {
+                catches: Math.max(0, (fielderStats.catches || 0) - 1),
+              });
+            } else if (lastBall.wicketType === 'run_out') {
+              await storage.updatePlayerStats(match.id, lastBall.fielderId, {
+                runOuts: Math.max(0, (fielderStats.runOuts || 0) - 1),
+              });
+            }
+          }
+        }
+      }
+      
+      // Calculate new overs
+      const [overs, balls] = (currentOvers || "0.0").split(".").map(Number);
+      let newBalls = balls;
+      let newOvers = overs;
+      
+      // Only decrement if it was a legal delivery
+      const wasLegalDelivery = !lastBall.extraType || (lastBall.extraType !== "wide" && lastBall.extraType !== "no_ball");
+      if (wasLegalDelivery) {
+        if (balls === 0 && overs > 0) {
+          newOvers -= 1;
+          newBalls = 5;
+        } else if (balls > 0) {
+          newBalls -= 1;
+        }
+      }
+      
+      const newOversStr = `${newOvers}.${newBalls}`;
+      
+      // Undo batsman stats
+      if (wasLegalDelivery) {
+        const batsmanStats = await storage.getPlayerMatchStats(match.id, lastBall.batsmanId, match.currentInnings!);
+        if (batsmanStats) {
+          await storage.updatePlayerStats(match.id, lastBall.batsmanId, {
+            runsScored: Math.max(0, (batsmanStats.runsScored || 0) - (lastBall.actualRuns || 0)),
+            ballsFaced: Math.max(0, (batsmanStats.ballsFaced || 0) - 1),
+            fours: Math.max(0, (batsmanStats.fours || 0) - ((lastBall.actualRuns || 0) === 4 ? 1 : 0)),
+            sixes: Math.max(0, (batsmanStats.sixes || 0) - ((lastBall.actualRuns || 0) === 6 ? 1 : 0)),
+          });
+        }
+      }
+      
+      // Undo bowler stats
+      const bowlerStats = await storage.getPlayerMatchStats(match.id, lastBall.bowlerId, match.currentInnings!);
+      if (bowlerStats) {
+        if (wasLegalDelivery) {
+          const [bOvers, bBalls] = (bowlerStats.oversBowled || "0.0").split(".").map(Number);
+          let newBBalls = bBalls;
+          let newBOvers = bOvers;
+          if (bBalls === 0 && bOvers > 0) {
+            newBOvers -= 1;
+            newBBalls = 5;
+          } else if (bBalls > 0) {
+            newBBalls -= 1;
+          }
+          
+          await storage.updatePlayerStats(match.id, lastBall.bowlerId, {
+            runsConceded: Math.max(0, (bowlerStats.runsConceded || 0) - (lastBall.runs || 0) - (lastBall.extras || 0)),
+            oversBowled: `${newBOvers}.${newBBalls}`,
+            wicketsTaken: Math.max(0, (bowlerStats.wicketsTaken || 0) - (lastBall.isWicket ? 1 : 0)),
+          });
+        } else {
+          // Just extras
+          await storage.updatePlayerStats(match.id, lastBall.bowlerId, {
+            runsConceded: Math.max(0, (bowlerStats.runsConceded || 0) - 1),
+          });
+        }
+      }
+      
+      // Delete the last ball event
+      await storage.deleteLastBallEvent(match.id);
+      
+      // Update match
+      let updateData: any = {};
+      if (isFirstInnings) {
+        updateData.team1Score = newScore;
+        updateData.team1Wickets = newWickets;
+        updateData.team1Overs = newOversStr;
+      } else {
+        updateData.team2Score = newScore;
+        updateData.team2Wickets = newWickets;
+        updateData.team2Overs = newOversStr;
+      }
+      
+      // Restore batsmen/bowler state
+      updateData.strikerId = lastBall.batsmanId;
+      updateData.currentBowlerId = lastBall.bowlerId;
+      
+      // If wicket was undone, restore dismissed player
+      if (lastBall.isWicket && lastBall.dismissedPlayerId) {
+        if (lastBall.dismissedPlayerId === lastBall.batsmanId) {
+          updateData.strikerId = lastBall.batsmanId;
+        } else {
+          updateData.nonStrikerId = lastBall.dismissedPlayerId;
+        }
+      }
+      
+      const updatedMatch = await storage.updateMatch(req.params.id, updateData);
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to undo ball" });
+    }
+  });
+
+  // Reset match
+  app.post("/api/matches/:id/reset", async (req, res) => {
+    try {
+      const match = await storage.getMatch(req.params.id);
+      if (!match) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      
+      // Delete all ball events for this match
+      const ballEvents = await storage.getMatchBallEvents(match.id);
+      for (const ball of ballEvents) {
+        await db.delete(schema.ballEvents).where(eq(schema.ballEvents.id, ball.id));
+      }
+      
+      // Delete all player match stats for this match
+      await db.delete(schema.playerMatchStats).where(eq(schema.playerMatchStats.matchId, match.id));
+      
+      // Reset match to scheduled state
+      const updatedMatch = await storage.updateMatch(req.params.id, {
+        status: "scheduled",
+        team1Score: 0,
+        team2Score: 0,
+        team1Wickets: 0,
+        team2Wickets: 0,
+        team1Overs: "0.0",
+        team2Overs: "0.0",
+        currentInnings: 1,
+        strikerId: null,
+        nonStrikerId: null,
+        currentBowlerId: null,
+        innings1BattingOrder: [],
+        innings2BattingOrder: [],
+        powerOverActive: false,
+        powerOverNumber: null,
+        powerOverInnings: null,
+        winnerId: null,
+        result: null,
+      });
+      
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to reset match" });
     }
   });
 

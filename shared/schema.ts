@@ -139,6 +139,7 @@ export const ballEvents = pgTable("ball_events", {
   isWicket: boolean("is_wicket").default(false),
   wicketType: text("wicket_type"), // bowled, caught, lbw, run_out, stumped
   dismissedPlayerId: varchar("dismissed_player_id", { length: 36 }),
+  fielderId: varchar("fielder_id", { length: 36 }), // Who caught/stumped/ran out
   isSuperOver: boolean("is_super_over").default(false),
   isPowerOver: boolean("is_power_over").default(false), // If this ball was during power over
   actualRuns: integer("actual_runs").default(0), // Runs before power over doubling
