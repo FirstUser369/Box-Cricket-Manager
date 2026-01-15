@@ -7,6 +7,123 @@ import {
   insertBroadcastSchema
 } from "@shared/schema";
 import { z } from "zod";
+import nodemailer from "nodemailer";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
+
+async function sendPaymentConfirmationEmail(playerEmail: string, playerName: string) {
+  const displayUrl = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://your-app-url.replit.app'}/display`;
+  
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: #ffffff; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .header h1 { margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; }
+    .content { background-color: #16213e; padding: 30px; border-radius: 0 0 10px 10px; }
+    .highlight { color: #ffd700; font-weight: bold; }
+    .event-details { background-color: #0f3460; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    .event-details h2 { color: #e94560; margin-top: 0; border-bottom: 2px solid #e94560; padding-bottom: 10px; }
+    .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #1a1a2e; }
+    .detail-label { color: #a0a0a0; width: 140px; }
+    .detail-value { color: #ffffff; font-weight: 500; }
+    .rides-banner { background: linear-gradient(90deg, #e94560, #ff6b6b); padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0; }
+    .rides-banner p { margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+    .credentials-box { background-color: #0f3460; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+    .credentials-box h3 { color: #667eea; margin-top: 0; }
+    .credential { background-color: #1a1a2e; padding: 10px 15px; border-radius: 5px; margin: 10px 0; font-family: monospace; font-size: 16px; }
+    .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; }
+    .footer { text-align: center; padding: 20px; color: #a0a0a0; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>You're In! 🏏</h1>
+    </div>
+    <div class="content">
+      <p style="font-size: 18px;">Hey <span class="highlight">${playerName}</span>,</p>
+      
+      <p style="font-size: 16px; line-height: 1.6;">
+        <strong>CONGRATULATIONS!</strong> Your payment has been verified and you're officially registered for the most exciting cricket event of the year!
+      </p>
+      
+      <p style="font-size: 16px; line-height: 1.6;">
+        Get ready to showcase your skills in the <span class="highlight">Points-Based Auction</span> where teams will compete to get YOU on their squad!
+      </p>
+
+      <div class="event-details">
+        <h2>Event Details</h2>
+        <div class="detail-row">
+          <span class="detail-label">Event Name:</span>
+          <span class="detail-value highlight">Samanvay Premier League Season 2</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Location:</span>
+          <span class="detail-value">839 Upper Union Street, Franklin - MA - 02038</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Auction Date:</span>
+          <span class="detail-value highlight">25th January</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Tournament Date:</span>
+          <span class="detail-value highlight">7th February</span>
+        </div>
+      </div>
+
+      <div class="rides-banner">
+        <p>🚗 RIDES WILL BE PROVIDED IF NEEDED! 🚗</p>
+      </div>
+
+      <div class="credentials-box">
+        <h3>📺 Watch Live Display</h3>
+        <p>Use these credentials to access the live auction and match displays:</p>
+        <div class="credential"><strong>Username:</strong> Bhulku</div>
+        <div class="credential"><strong>Password:</strong> weareone</div>
+        <a href="${displayUrl}" class="cta-button" style="color: #ffffff;">Access Display Mode</a>
+      </div>
+
+      <p style="font-size: 16px; line-height: 1.6; margin-top: 30px;">
+        We can't wait to see you at the auction! May the best team grab you! 💪
+      </p>
+      
+      <p style="color: #a0a0a0; margin-top: 30px;">
+        See you on the pitch,<br>
+        <strong style="color: #ffffff;">Team Samanvay Premier League</strong>
+      </p>
+    </div>
+    <div class="footer">
+      <p>This is an automated confirmation email. Please do not reply.</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Samanvay Premier League" <${process.env.GMAIL_USER}>`,
+      to: playerEmail,
+      subject: "🏏 You're IN! Payment Confirmed - Samanvay Premier League Season 2",
+      html: emailHtml,
+    });
+    console.log(`Confirmation email sent to ${playerEmail}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to send confirmation email:", error);
+    return false;
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1102,6 +1219,17 @@ export async function registerRoutes(
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
+      
+      if (player.email) {
+        sendPaymentConfirmationEmail(player.email, player.name)
+          .then(sent => {
+            if (sent) {
+              console.log(`Payment confirmation email sent to ${player.name}`);
+            }
+          })
+          .catch(err => console.error("Email send error:", err));
+      }
+      
       res.json(player);
     } catch (error) {
       res.status(500).json({ error: "Failed to verify payment" });
