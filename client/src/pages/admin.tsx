@@ -143,7 +143,17 @@ function AdminDashboard() {
       }
     },
     onError: (error: any) => {
-      const message = error?.message || "Auction control failed";
+      let message = "Auction control failed";
+      try {
+        const errorStr = error?.message || "";
+        const jsonMatch = errorStr.match(/\{.*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          message = parsed.error || message;
+        }
+      } catch {
+        message = error?.message || message;
+      }
       toast({ title: message, variant: "destructive" });
     },
   });
@@ -172,8 +182,19 @@ function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
       toast({ title: "Auction reset successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to reset auction", variant: "destructive" });
+    onError: (error: any) => {
+      let message = "Failed to reset auction";
+      try {
+        const errorStr = error?.message || "";
+        const jsonMatch = errorStr.match(/\{.*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          message = parsed.error || message;
+        }
+      } catch {
+        message = error?.message || message;
+      }
+      toast({ title: message, variant: "destructive" });
     },
   });
 
