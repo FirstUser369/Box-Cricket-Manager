@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Monitor, Lock, User } from "lucide-react";
+import { Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
-const DISPLAY_USERNAME = "Bhulku";
-const DISPLAY_PASSWORD = "weareone";
+import { useQuery } from "@tanstack/react-query";
+import type { TournamentSettings } from "@shared/schema";
 
 export default function DisplayLogin() {
   const [, setLocation] = useLocation();
@@ -17,12 +16,19 @@ export default function DisplayLogin() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const { data: settings } = useQuery<TournamentSettings>({
+    queryKey: ["/api/tournament-settings"],
+  });
+
+  const displayUsername = settings?.displayUsername || "Bhulku";
+  const displayPassword = settings?.displayPassword || "weareone";
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     setTimeout(() => {
-      if (username === DISPLAY_USERNAME && password === DISPLAY_PASSWORD) {
+      if (username === displayUsername && password === displayPassword) {
         sessionStorage.setItem("displayAuth", "true");
         toast({
           title: "Welcome!",
@@ -51,9 +57,18 @@ export default function DisplayLogin() {
       >
         <Card className="bg-white/5 border-white/10 backdrop-blur">
           <CardHeader className="text-center">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-purple-600 to-orange-500 flex items-center justify-center mb-4">
-              <Monitor className="w-10 h-10 text-white" />
-            </div>
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring" }}
+              className="mb-4"
+            >
+              <img 
+                src="/spl-logo.png" 
+                alt="SPL Logo" 
+                className="w-32 h-32 mx-auto object-contain"
+              />
+            </motion.div>
             <CardTitle className="font-display text-3xl text-white">DISPLAY MODE</CardTitle>
             <CardDescription className="text-gray-400">
               Enter credentials to access broadcast displays

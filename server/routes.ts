@@ -21,7 +21,16 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendPaymentConfirmationEmail(playerEmail: string, playerName: string) {
-  const displayUrl = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://your-app-url.replit.app'}/display`;
+  // Get tournament settings for dynamic display credentials
+  const settings = await storage.getTournamentSettings();
+  const displayUsername = settings?.displayUsername || "Bhulku";
+  const displayPassword = settings?.displayPassword || "weareone";
+  
+  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+    : 'https://samanvay-premier-league.replit.app';
+  const displayUrl = `${baseUrl}/display`;
+  const logoUrl = `${baseUrl}/spl-logo.png`;
   
   const emailHtml = `
 <!DOCTYPE html>
@@ -31,177 +40,344 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
   <meta name="supported-color-schemes" content="light dark">
   <style>
     :root { color-scheme: light dark; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
     body { 
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-      background-color: #0d0d0d !important; 
+      background-color: #0a0e1a !important; 
       color: #f0f0f0 !important; 
       margin: 0; 
       padding: 0;
       -webkit-text-size-adjust: 100%;
     }
-    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .logo-section {
+      text-align: center;
+      padding: 24px 20px;
+      background: linear-gradient(180deg, #0a0e1a 0%, #1a1a2e 100%);
+    }
+    .logo-img {
+      width: 150px;
+      height: auto;
+      margin-bottom: 8px;
+    }
     .header { 
-      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc00 100%); 
-      padding: 28px 20px; 
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 50%, #1a365d 100%); 
+      padding: 32px 20px; 
       text-align: center; 
-      border-radius: 12px 12px 0 0;
+      border-radius: 16px 16px 0 0;
+      border: 2px solid #c9a227;
+      border-bottom: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.1), transparent);
+      animation: shimmer 3s infinite;
     }
     .header h1 { 
       margin: 0; 
-      font-size: 26px; 
-      font-weight: 800; 
+      font-size: 32px; 
+      font-weight: 900; 
       text-transform: uppercase; 
-      letter-spacing: 2px; 
-      color: #000000 !important;
-      text-shadow: none;
+      letter-spacing: 3px; 
+      color: #c9a227 !important;
+      text-shadow: 0 2px 10px rgba(201, 162, 39, 0.5);
+      position: relative;
+      z-index: 1;
+    }
+    .header-subtitle {
+      color: #ffffff !important;
+      font-size: 14px;
+      letter-spacing: 2px;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+    .confetti {
+      font-size: 24px;
+      margin: 0 8px;
     }
     .content { 
-      background-color: #1a1a1a !important; 
-      padding: 28px 24px; 
-      border-radius: 0 0 12px 12px;
-      border: 1px solid #333;
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important; 
+      padding: 32px 28px; 
+      border-radius: 0 0 16px 16px;
+      border: 2px solid #c9a227;
       border-top: none;
     }
-    .greeting { font-size: 20px; color: #ffffff !important; margin-bottom: 16px; }
-    .player-name { color: #ffcc00 !important; font-weight: 700; }
-    .body-text { font-size: 16px; line-height: 1.7; color: #e0e0e0 !important; margin-bottom: 16px; }
-    .highlight { color: #ffcc00 !important; font-weight: 600; }
+    .greeting { font-size: 22px; color: #ffffff !important; margin-bottom: 20px; }
+    .player-name { 
+      color: #c9a227 !important; 
+      font-weight: 800;
+      text-shadow: 0 1px 5px rgba(201, 162, 39, 0.3);
+    }
+    .success-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #ffffff !important;
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-weight: 800;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    }
+    .body-text { font-size: 16px; line-height: 1.8; color: #d1d5db !important; margin-bottom: 18px; }
+    .highlight { color: #c9a227 !important; font-weight: 700; }
+    .highlight-blue { color: #60a5fa !important; font-weight: 600; }
     .event-box { 
-      background-color: #262626 !important; 
-      padding: 20px; 
-      border-radius: 10px; 
-      margin: 24px 0;
-      border-left: 5px solid #ff6b35;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important; 
+      padding: 24px; 
+      border-radius: 12px; 
+      margin: 28px 0;
+      border-left: 5px solid #c9a227;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
     .event-title { 
-      color: #ff6b35 !important; 
-      font-size: 18px;
-      font-weight: 700; 
-      margin: 0 0 16px 0;
+      color: #c9a227 !important; 
+      font-size: 16px;
+      font-weight: 800; 
+      margin: 0 0 20px 0;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .detail-row { padding: 10px 0; border-bottom: 1px solid #3a3a3a; }
+    .event-icon { font-size: 20px; }
+    .detail-row { padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
     .detail-row:last-child { border-bottom: none; }
-    .detail-label { color: #999999 !important; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
-    .detail-value { color: #ffffff !important; font-size: 16px; font-weight: 600; }
-    .detail-value.gold { color: #ffcc00 !important; }
+    .detail-label { color: #9ca3af !important; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 600; }
+    .detail-value { color: #ffffff !important; font-size: 17px; font-weight: 600; }
+    .detail-value.gold { color: #c9a227 !important; font-weight: 700; }
     .rides-banner { 
-      background: linear-gradient(90deg, #22c55e, #16a34a); 
-      padding: 16px 20px; 
+      background: linear-gradient(135deg, #059669 0%, #047857 100%); 
+      padding: 18px 24px; 
       text-align: center; 
-      border-radius: 10px; 
-      margin: 24px 0;
+      border-radius: 12px; 
+      margin: 28px 0;
+      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
     }
     .rides-banner p { 
       margin: 0; 
-      font-size: 16px; 
+      font-size: 15px; 
       font-weight: 700; 
       text-transform: uppercase; 
-      letter-spacing: 1px;
+      letter-spacing: 2px;
       color: #ffffff !important;
     }
+    .rides-icon { font-size: 18px; margin-right: 8px; }
     .credentials-box { 
-      background-color: #262626 !important; 
-      padding: 20px; 
-      border-radius: 10px; 
-      margin: 24px 0;
-      border-left: 5px solid #3b82f6;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%) !important; 
+      padding: 28px; 
+      border-radius: 12px; 
+      margin: 28px 0;
+      border: 2px solid #3b82f6;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
     }
-    .credentials-title { color: #60a5fa !important; font-size: 16px; font-weight: 700; margin: 0 0 12px 0; }
-    .credentials-text { color: #cccccc !important; font-size: 14px; margin-bottom: 16px; }
+    .credentials-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .credentials-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .credentials-title { color: #60a5fa !important; font-size: 18px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+    .credentials-text { color: #9ca3af !important; font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
     .credential { 
-      background-color: #333333 !important; 
-      padding: 12px 16px; 
-      border-radius: 8px; 
-      margin: 10px 0; 
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important; 
+      padding: 16px 20px; 
+      border-radius: 10px; 
+      margin: 12px 0; 
       font-family: 'SF Mono', Menlo, Monaco, 'Courier New', monospace;
-      font-size: 15px;
+      font-size: 16px;
       color: #ffffff !important;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .credential strong { color: #999999 !important; }
+    .credential-label { color: #9ca3af !important; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .credential-value { color: #c9a227 !important; font-weight: 700; font-size: 18px; }
+    .link-box {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin: 16px 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      word-break: break-all;
+    }
+    .link-label { color: #9ca3af !important; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; }
+    .link-value { color: #60a5fa !important; font-size: 14px; font-weight: 600; text-decoration: none; }
     .cta-button { 
       display: inline-block; 
-      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); 
-      color: #000000 !important; 
-      padding: 14px 28px; 
+      background: linear-gradient(135deg, #c9a227 0%, #d4af37 50%, #c9a227 100%); 
+      color: #0a0e1a !important; 
+      padding: 16px 36px; 
       text-decoration: none; 
-      border-radius: 8px; 
-      font-weight: 700; 
+      border-radius: 10px; 
+      font-weight: 800; 
       text-transform: uppercase; 
-      letter-spacing: 1px; 
-      margin-top: 16px;
-      font-size: 14px;
+      letter-spacing: 2px; 
+      margin-top: 20px;
+      font-size: 15px;
+      box-shadow: 0 4px 20px rgba(201, 162, 39, 0.4);
+      transition: transform 0.2s;
     }
-    .closing { color: #cccccc !important; font-size: 15px; margin-top: 28px; line-height: 1.6; }
-    .signature { color: #ffffff !important; font-weight: 600; }
-    .footer { text-align: center; padding: 20px; color: #666666 !important; font-size: 12px; }
+    .cta-button:hover {
+      transform: scale(1.02);
+    }
+    .message-box {
+      background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+      padding: 20px 24px;
+      border-radius: 12px;
+      margin: 28px 0;
+      text-align: center;
+    }
+    .message-text {
+      color: #ffffff !important;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .closing { color: #d1d5db !important; font-size: 16px; margin-top: 32px; line-height: 1.7; }
+    .signature { color: #c9a227 !important; font-weight: 700; font-size: 17px; }
+    .footer { 
+      text-align: center; 
+      padding: 24px; 
+      color: #6b7280 !important; 
+      font-size: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 20px;
+    }
+    .social-icons {
+      margin-top: 16px;
+    }
+    .social-icon {
+      display: inline-block;
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      margin: 0 6px;
+      line-height: 36px;
+      font-size: 18px;
+    }
     
     @media (prefers-color-scheme: dark) {
-      body { background-color: #0d0d0d !important; }
-      .content { background-color: #1a1a1a !important; }
+      body { background-color: #0a0e1a !important; }
+      .content { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important; }
     }
   </style>
 </head>
-<body style="background-color: #0d0d0d; margin: 0; padding: 0;">
+<body style="background-color: #0a0e1a; margin: 0; padding: 0;">
   <div class="container">
-    <div class="header">
-      <h1 style="color: #000000;">YOU'RE IN!</h1>
+    <div class="logo-section">
+      <img src="${logoUrl}" alt="SPL Logo" class="logo-img" style="width: 150px; height: auto;">
     </div>
-    <div class="content" style="background-color: #1a1a1a;">
-      <p class="greeting" style="color: #ffffff;">Hey <span class="player-name" style="color: #ffcc00;">${playerName}</span>,</p>
+    <div class="header">
+      <h1 style="color: #c9a227;">YOU'RE IN!</h1>
+      <p class="header-subtitle" style="color: #ffffff;">Payment Confirmed</p>
+    </div>
+    <div class="content" style="background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);">
+      <div style="text-align: center;">
+        <span class="success-badge" style="color: #ffffff; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">VERIFIED</span>
+      </div>
       
-      <p class="body-text" style="color: #e0e0e0;">
-        <strong style="color: #22c55e;">CONGRATULATIONS!</strong> Your payment has been verified and you're officially registered for the most exciting cricket event of the year!
+      <p class="greeting" style="color: #ffffff;">Hey <span class="player-name" style="color: #c9a227;">${playerName}</span>!</p>
+      
+      <p class="body-text" style="color: #d1d5db;">
+        <strong style="color: #22c55e; font-size: 18px;">CONGRATULATIONS!</strong> Your payment has been verified and you're <strong style="color: #c9a227;">officially registered</strong> for the most exciting cricket event of the year!
       </p>
       
-      <p class="body-text" style="color: #e0e0e0;">
-        Get ready to showcase your skills in the <span class="highlight" style="color: #ffcc00;">Points-Based Auction</span> where teams will compete to get YOU on their squad!
+      <p class="body-text" style="color: #d1d5db;">
+        Get ready to showcase your skills in the <span class="highlight" style="color: #c9a227;">Points-Based Auction</span> where teams will compete to get YOU on their squad!
       </p>
 
-      <div class="event-box" style="background-color: #262626;">
-        <h2 class="event-title" style="color: #ff6b35;">EVENT DETAILS</h2>
+      <div class="event-box" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+        <h2 class="event-title" style="color: #c9a227;">EVENT DETAILS</h2>
         <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Event Name</span>
-          <span class="detail-value gold" style="color: #ffcc00;">Samanvay Premier League Season 2</span>
+          <span class="detail-label" style="color: #9ca3af;">Event Name</span>
+          <span class="detail-value gold" style="color: #c9a227;">Samanvay Premier League Season 2</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Location</span>
+          <span class="detail-label" style="color: #9ca3af;">Location</span>
           <span class="detail-value" style="color: #ffffff;">839 Upper Union Street, Franklin - MA - 02038</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Auction Date</span>
-          <span class="detail-value gold" style="color: #ffcc00;">25th January</span>
+          <span class="detail-label" style="color: #9ca3af;">Auction Date</span>
+          <span class="detail-value gold" style="color: #c9a227;">25th January 2026</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Tournament Date</span>
-          <span class="detail-value gold" style="color: #ffcc00;">7th February</span>
+          <span class="detail-label" style="color: #9ca3af;">Tournament Date</span>
+          <span class="detail-value gold" style="color: #c9a227;">7th February 2026</span>
         </div>
       </div>
 
-      <div class="rides-banner">
+      <div class="rides-banner" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
         <p style="color: #ffffff;">RIDES WILL BE PROVIDED IF NEEDED!</p>
       </div>
 
-      <div class="credentials-box" style="background-color: #262626;">
-        <h3 class="credentials-title" style="color: #60a5fa;">WATCH LIVE DISPLAY</h3>
-        <p class="credentials-text" style="color: #cccccc;">Use these credentials to access the live auction and match displays:</p>
-        <div class="credential" style="background-color: #333333; color: #ffffff;"><strong style="color: #999999;">Username:</strong> Bhulku</div>
-        <div class="credential" style="background-color: #333333; color: #ffffff;"><strong style="color: #999999;">Password:</strong> weareone</div>
-        <a href="${displayUrl}" class="cta-button" style="color: #000000; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">Access Display Mode</a>
+      <div class="credentials-box" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%); border: 2px solid #3b82f6;">
+        <div class="credentials-header">
+          <h3 class="credentials-title" style="color: #60a5fa;">WATCH LIVE DISPLAY</h3>
+        </div>
+        <p class="credentials-text" style="color: #9ca3af;">Use these credentials to access the <strong style="color: #60a5fa;">live auction</strong> and <strong style="color: #60a5fa;">match displays</strong> on any device:</p>
+        
+        <div class="credential" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+          <span class="credential-label" style="color: #9ca3af;">Username</span>
+          <span class="credential-value" style="color: #c9a227;">${displayUsername}</span>
+        </div>
+        <div class="credential" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+          <span class="credential-label" style="color: #9ca3af;">Password</span>
+          <span class="credential-value" style="color: #c9a227;">${displayPassword}</span>
+        </div>
+        
+        <div class="link-box" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+          <span class="link-label" style="color: #9ca3af;">Display Link</span>
+          <a href="${displayUrl}" class="link-value" style="color: #60a5fa;">${displayUrl}</a>
+        </div>
+        
+        <div style="text-align: center;">
+          <a href="${displayUrl}" class="cta-button" style="color: #0a0e1a; background: linear-gradient(135deg, #c9a227 0%, #d4af37 50%, #c9a227 100%);">ACCESS DISPLAY MODE</a>
+        </div>
       </div>
 
-      <p class="closing" style="color: #cccccc;">
-        We can't wait to see you at the auction! May the best team grab you!
-      </p>
-      
-      <p class="closing" style="color: #cccccc;">
-        See you on the pitch,<br>
-        <span class="signature" style="color: #ffffff;">Team Samanvay Premier League</span>
+      <div class="message-box" style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);">
+        <p class="message-text" style="color: #ffffff;">We can't wait to see you at the auction! May the best team grab you!</p>
+      </div>
+
+      <p class="closing" style="color: #d1d5db;">
+        See you on the pitch!<br><br>
+        <span class="signature" style="color: #c9a227;">Team Samanvay Premier League</span>
       </p>
     </div>
-    <div class="footer">
-      <p style="color: #666666;">This is an automated confirmation email. Please do not reply.</p>
+    <div class="footer" style="color: #6b7280;">
+      <p>© 2026 Samanvay Premier League. All rights reserved.</p>
+      <p style="color: #6b7280;">This is an automated confirmation email. Please do not reply.</p>
     </div>
   </div>
 </body>
@@ -212,7 +388,7 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
     await transporter.sendMail({
       from: `"Samanvay Premier League" <${process.env.GMAIL_USER}>`,
       to: playerEmail,
-      subject: "🏏 You're IN! Payment Confirmed - Samanvay Premier League Season 2",
+      subject: "YOU'RE IN! Payment Confirmed - SPL Season 2",
       html: emailHtml,
     });
     console.log(`Confirmation email sent to ${playerEmail}`);

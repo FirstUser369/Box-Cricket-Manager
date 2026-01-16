@@ -7,15 +7,20 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 flex items-center justify-center p-4">
       <div className="w-full max-w-3xl space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl tracking-tight">
+          <img 
+            src="/spl-logo.png" 
+            alt="SPL Logo" 
+            className="w-40 h-40 mx-auto object-contain mb-4"
+          />
+          <h1 className="font-display text-4xl md:text-5xl lg:text-6xl tracking-tight">
             <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              BOX CRICKET
+              SAMANVAY PREMIER
             </span>
             <br />
             <span className="text-foreground">LEAGUE</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            IPL-Style Tournament Management System
+            IPL-Style Box Cricket Tournament - Season 2
           </p>
         </div>
 
