@@ -37,63 +37,51 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0a0e1a; color: #f0f0f0; margin: 0; padding: 20px; }
-    .container { max-width: 500px; margin: 0 auto; }
-    .header { text-align: center; padding: 20px; background: linear-gradient(135deg, #1e3a5f, #0d2137); border-radius: 12px 12px 0 0; border: 2px solid #c9a227; border-bottom: none; }
-    .header img { width: 100px; margin-bottom: 10px; }
-    .header h1 { color: #c9a227; margin: 0; font-size: 24px; }
-    .content { background: #1a1a2e; padding: 24px; border-radius: 0 0 12px 12px; border: 2px solid #c9a227; border-top: none; }
-    .greeting { font-size: 18px; margin-bottom: 16px; }
-    .name { color: #c9a227; font-weight: bold; }
-    .section { background: #0f172a; border-radius: 8px; padding: 16px; margin: 16px 0; }
-    .section-title { color: #c9a227; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-    .detail { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .detail:last-child { border-bottom: none; }
-    .label { color: #9ca3af; font-size: 12px; }
-    .value { color: #fff; font-weight: 600; font-size: 14px; }
-    .gold { color: #c9a227; }
-    .rides { background: #059669; text-align: center; padding: 12px; border-radius: 8px; color: #fff; font-weight: bold; font-size: 13px; margin: 16px 0; }
-    .creds { background: #1e3a5f; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 16px 0; }
-    .creds-title { color: #60a5fa; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
-    .cred-row { display: flex; justify-content: space-between; background: #0f172a; padding: 10px 12px; border-radius: 6px; margin: 8px 0; }
-    .cred-label { color: #9ca3af; font-size: 11px; text-transform: uppercase; }
-    .cred-value { color: #c9a227; font-weight: bold; }
-    .link { color: #60a5fa; word-break: break-all; font-size: 13px; }
-    .btn { display: block; background: #c9a227; color: #0a0e1a; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 16px; }
-    .footer { text-align: center; color: #6b7280; font-size: 11px; margin-top: 20px; }
-  </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="${logoUrl}" alt="SPL">
-      <h1>YOU'RE IN!</h1>
+<body style="font-family: Arial, sans-serif; background: #ffffff; color: #000000; margin: 0; padding: 20px;">
+  <div style="max-width: 500px; margin: 0 auto;">
+    <div style="text-align: center; padding: 20px; border-bottom: 2px solid #000;">
+      <img src="${logoUrl}" alt="SPL" style="width: 100px; margin-bottom: 10px;">
+      <h1 style="color: #000; margin: 0; font-size: 28px;">YOU'RE IN!</h1>
     </div>
-    <div class="content">
-      <p class="greeting">Hey <span class="name">${playerName}</span>, your payment is confirmed!</p>
+    
+    <div style="padding: 24px 0;">
+      <p style="font-size: 18px; margin-bottom: 20px;">Hey <strong>${playerName}</strong>, your payment is confirmed!</p>
 
-      <div class="section">
-        <div class="section-title">Event Details</div>
-        <div class="detail"><span class="label">Event</span><span class="value gold">SPL Season 2</span></div>
-        <div class="detail"><span class="label">Location</span><span class="value">839 Upper Union St, Franklin MA</span></div>
-        <div class="detail"><span class="label">Auction</span><span class="value gold">Jan 25, 2026</span></div>
-        <div class="detail"><span class="label">Tournament</span><span class="value gold">Feb 7, 2026</span></div>
+      <div style="background: #f5f5f5; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #ddd;">
+        <h3 style="color: #000; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px 0;">Event Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px;">Event</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">SPL Season 2</td></tr>
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd;">Location</td><td style="padding: 8px 0; text-align: right; font-weight: bold; border-top: 1px solid #ddd;">839 Upper Union St, Franklin MA</td></tr>
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd;">Auction</td><td style="padding: 8px 0; text-align: right; font-weight: bold; border-top: 1px solid #ddd;">Jan 25, 2026</td></tr>
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd;">Tournament</td><td style="padding: 8px 0; text-align: right; font-weight: bold; border-top: 1px solid #ddd;">Feb 7, 2026</td></tr>
+        </table>
       </div>
 
-      <div class="rides">RIDES PROVIDED IF NEEDED</div>
-
-      <div class="creds">
-        <div class="creds-title">Live Display Access</div>
-        <div class="cred-row"><span class="cred-label">Username</span><span class="cred-value">${displayUsername}</span></div>
-        <div class="cred-row"><span class="cred-label">Password</span><span class="cred-value">${displayPassword}</span></div>
-        <p style="margin: 12px 0 0; font-size: 12px; color: #9ca3af;">Link: <a href="${displayUrl}" class="link">${displayUrl}</a></p>
-        <a href="${displayUrl}" class="btn">WATCH LIVE</a>
+      <div style="background: #000; text-align: center; padding: 14px; border-radius: 8px; margin: 20px 0;">
+        <span style="color: #fff; font-weight: bold; font-size: 14px;">RIDES PROVIDED IF NEEDED</span>
       </div>
 
-      <p style="text-align: center; color: #9ca3af; font-size: 14px; margin-top: 20px;">See you on the pitch!<br><strong style="color: #c9a227;">Team SPL</strong></p>
+      <div style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h3 style="color: #000; font-size: 14px; font-weight: bold; margin: 0 0 16px 0;">Live Display Access</h3>
+        <div style="background: #fff; padding: 12px; border-radius: 6px; margin: 10px 0; border: 1px solid #ddd;">
+          <span style="color: #666; font-size: 11px; text-transform: uppercase;">Username</span>
+          <span style="float: right; font-weight: bold;">${displayUsername}</span>
+        </div>
+        <div style="background: #fff; padding: 12px; border-radius: 6px; margin: 10px 0; border: 1px solid #ddd;">
+          <span style="color: #666; font-size: 11px; text-transform: uppercase;">Password</span>
+          <span style="float: right; font-weight: bold;">${displayPassword}</span>
+        </div>
+        <p style="margin: 16px 0 0; font-size: 13px; color: #666;">Link: <a href="${displayUrl}" style="color: #000; font-weight: bold;">${displayUrl}</a></p>
+        <a href="${displayUrl}" style="display: block; background: #000; color: #fff; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 16px;">WATCH LIVE</a>
+      </div>
+
+      <p style="text-align: center; color: #666; font-size: 14px; margin-top: 24px;">See you on the pitch!<br><strong style="color: #000;">Team SPL</strong></p>
     </div>
-    <div class="footer">© 2026 Samanvay Premier League</div>
+    
+    <div style="text-align: center; color: #999; font-size: 11px; padding-top: 20px; border-top: 1px solid #ddd;">
+      © 2026 Samanvay Premier League
+    </div>
   </div>
 </body>
 </html>
