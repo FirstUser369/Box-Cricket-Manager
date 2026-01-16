@@ -396,6 +396,88 @@ export default function AuctionDisplay() {
               <p className="text-xl text-gray-400">All players have been assigned!</p>
             </motion.div>
           )}
+
+          {auctionState?.categoryBreak && auctionState?.completedCategory && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex flex-col items-center justify-center min-h-[60vh]"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: [0, 1.2, 1] }}
+                transition={{ duration: 0.8, times: [0, 0.5, 1] }}
+                className="mb-8"
+              >
+                <motion.div
+                  animate={{ 
+                    boxShadow: [
+                      "0 0 20px rgba(157,78,221,0.3)",
+                      "0 0 60px rgba(157,78,221,0.6)",
+                      "0 0 20px rgba(157,78,221,0.3)"
+                    ]
+                  }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className={`w-40 h-40 rounded-full bg-gradient-to-r ${getCategoryColor(auctionState.completedCategory)} flex items-center justify-center`}
+                >
+                  <Trophy className="w-20 h-20 text-white" />
+                </motion.div>
+              </motion.div>
+
+              <motion.h2
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="font-display text-5xl text-glow-purple mb-4 text-center"
+              >
+                {getCategoryName(auctionState.completedCategory)}
+              </motion.h2>
+              
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-center"
+              >
+                <p className="text-3xl text-white font-display mb-2">CATEGORY COMPLETE</p>
+                <p className="text-xl text-gray-400">All players in this category have been auctioned</p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="mt-12 flex items-center gap-4"
+              >
+                <div className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" />
+                <span className="text-lg text-purple-400 font-medium uppercase tracking-wider">
+                  Break - Next Category Starting Soon
+                </span>
+                <div className="w-3 h-3 rounded-full bg-purple-500 animate-pulse" />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+                className="mt-8 flex gap-3"
+              >
+                {["3000", "2500", "2000", "1500"].map((cat) => (
+                  <div
+                    key={cat}
+                    className={`px-4 py-2 rounded-lg border-2 ${
+                      cat === auctionState.completedCategory
+                        ? "border-emerald-500 bg-emerald-500/20 text-emerald-400 line-through"
+                        : "border-gray-600 bg-white/5 text-gray-400"
+                    }`}
+                  >
+                    <span className="font-display">{cat}</span>
+                  </div>
+                ))}
+              </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 

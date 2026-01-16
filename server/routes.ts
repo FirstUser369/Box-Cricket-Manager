@@ -187,6 +187,74 @@ export async function registerRoutes(
     }
   });
 
+  // Player reassignment (post-auction)
+  app.post("/api/players/:id/reassign", async (req, res) => {
+    try {
+      const { newTeamId } = req.body;
+      
+      if (!newTeamId || typeof newTeamId !== 'string') {
+        return res.status(400).json({ error: "newTeamId is required" });
+      }
+      
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      if (!player.teamId) {
+        return res.status(400).json({ error: "Player is not assigned to any team" });
+      }
+      if (player.teamId === newTeamId) {
+        return res.status(400).json({ error: "Player is already on this team" });
+      }
+      
+      // Get all data fresh to avoid stale reads
+      const [oldTeam, newTeam, allPlayers] = await Promise.all([
+        storage.getTeam(player.teamId),
+        storage.getTeam(newTeamId),
+        storage.getAllPlayers(),
+      ]);
+      
+      if (!oldTeam || !newTeam) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Check roster limit (8 players max per team)
+      const newTeamPlayers = allPlayers.filter(p => p.teamId === newTeamId);
+      if (newTeamPlayers.length >= 8) {
+        return res.status(400).json({ error: "New team already has 8 players (maximum roster size)" });
+      }
+      
+      const soldPrice = player.soldPrice || player.basePoints;
+      
+      // Check if new team has enough budget
+      if (newTeam.remainingBudget < soldPrice) {
+        return res.status(400).json({ error: "New team does not have enough budget" });
+      }
+      
+      // Calculate correct budgets based on all players in each team
+      const oldTeamPlayersAfter = allPlayers.filter(p => p.teamId === oldTeam.id && p.id !== player.id);
+      const oldTeamSpentAfter = oldTeamPlayersAfter.reduce((sum, p) => sum + (p.soldPrice || p.basePoints), 0);
+      const oldTeamBudgetAfter = oldTeam.budget - oldTeamSpentAfter;
+      
+      const newTeamSpentAfter = newTeamPlayers.reduce((sum, p) => sum + (p.soldPrice || p.basePoints), 0) + soldPrice;
+      const newTeamBudgetAfter = newTeam.budget - newTeamSpentAfter;
+      
+      // Update player's team first
+      const updatedPlayer = await storage.updatePlayer(player.id, { teamId: newTeamId });
+      
+      // Then update team budgets atomically based on recalculated values
+      await Promise.all([
+        storage.updateTeam(oldTeam.id, { remainingBudget: oldTeamBudgetAfter }),
+        storage.updateTeam(newTeam.id, { remainingBudget: newTeamBudgetAfter }),
+      ]);
+      
+      res.json(updatedPlayer);
+    } catch (error) {
+      console.error("Reassign player error:", error);
+      res.status(500).json({ error: "Failed to reassign player" });
+    }
+  });
+
   // ============ TEAMS ============
   
   app.get("/api/teams", async (req, res) => {
@@ -302,6 +370,8 @@ export async function registerRoutes(
           
           const state = await storage.updateAuctionState({
             currentCategory: selectedCategory,
+            categoryBreak: false,
+            completedCategory: null,
           });
           
           res.json(state);
@@ -312,6 +382,12 @@ export async function registerRoutes(
           const players = await storage.getAllPlayers();
           // Admin can override category, otherwise use current
           const selectedCategory = category || currentState?.currentCategory || "3000";
+          
+          // Clear break state when moving to next player
+          await storage.updateAuctionState({
+            categoryBreak: false,
+            completedCategory: null,
+          });
           
           // IMPORTANT: Only payment-verified players can be in auction
           let nextPlayer = players.find(p => 
@@ -342,9 +418,20 @@ export async function registerRoutes(
               return res.json(state);
             }
             
-            // No players available in selected category
-            return res.status(400).json({ 
-              error: `No payment-verified players available in category ${selectedCategory}. Select a different category.`,
+            // No players available in selected category - trigger break
+            const state = await storage.updateAuctionState({
+              status: "paused",
+              currentPlayerId: null,
+              currentBid: null,
+              currentBiddingTeamId: null,
+              bidHistory: [],
+              categoryBreak: true,
+              completedCategory: selectedCategory,
+            });
+            
+            return res.json({ 
+              ...state,
+              message: `Category ${selectedCategory} completed! Select a different category.`,
               noPlayersInCategory: true
             });
           }

@@ -129,10 +129,18 @@ function AdminDashboard() {
     mutationFn: async (params: { action: string; category?: string }) => {
       return apiRequest("POST", "/api/auction/control", params);
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      
+      // Show toast when category break is triggered
+      if (data?.categoryBreak && data?.completedCategory) {
+        toast({ 
+          title: `Category ${data.completedCategory} Complete`,
+          description: "Select a different category to continue the auction"
+        });
+      }
     },
     onError: (error: any) => {
       const message = error?.message || "Auction control failed";
@@ -336,6 +344,21 @@ function AdminDashboard() {
     },
     onError: () => {
       toast({ title: "Failed to add batsman", variant: "destructive" });
+    },
+  });
+
+  const reassignPlayerMutation = useMutation({
+    mutationFn: async ({ playerId, newTeamId }: { playerId: string; newTeamId: string }) => {
+      return apiRequest("POST", `/api/players/${playerId}/reassign`, { newTeamId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      toast({ title: "Player reassigned successfully" });
+    },
+    onError: (error: any) => {
+      const message = error?.message || "Failed to reassign player";
+      toast({ title: message, variant: "destructive" });
     },
   });
 
@@ -773,14 +796,64 @@ function AdminDashboard() {
                         )}
                         {teamPlayers.length > 0 && (
                           <div className="mt-2 pt-2 border-t">
-                            <p className="text-xs text-muted-foreground mb-1">Players ({teamPlayers.length})</p>
-                            <div className="flex flex-wrap gap-1">
-                              {teamPlayers.slice(0, 3).map(p => (
-                                <Badge key={p.id} variant="secondary" className="text-xs">{p.name.split(' ')[0]}</Badge>
+                            <p className="text-xs text-muted-foreground mb-2">Players ({teamPlayers.length})</p>
+                            <div className="space-y-2">
+                              {teamPlayers.map(p => (
+                                <div key={p.id} className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded-md">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <Avatar className="w-6 h-6">
+                                      <AvatarImage src={p.photoUrl} />
+                                      <AvatarFallback className="text-xs">{p.name.slice(0,2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm truncate">{p.name}</span>
+                                    <Badge variant="outline" className="text-xs shrink-0">{p.soldPrice?.toLocaleString() || p.basePoints}</Badge>
+                                  </div>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" data-testid={`button-reassign-${p.id}`}>
+                                        <TrendingUp className="w-3 h-3" />
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Reassign {p.name}</DialogTitle>
+                                        <DialogDescription>
+                                          Move this player to another team. Budget will be transferred accordingly.
+                                          Player price: {(p.soldPrice || p.basePoints).toLocaleString()} pts
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="grid grid-cols-2 gap-2 mt-4">
+                                        {teams?.filter(t => t.id !== team.id).map(otherTeam => {
+                                          const canAfford = otherTeam.remainingBudget >= (p.soldPrice || p.basePoints);
+                                          return (
+                                            <Button
+                                              key={otherTeam.id}
+                                              variant={canAfford ? "outline" : "ghost"}
+                                              disabled={!canAfford || reassignPlayerMutation.isPending}
+                                              className="justify-start gap-2"
+                                              onClick={() => reassignPlayerMutation.mutate({ playerId: p.id, newTeamId: otherTeam.id })}
+                                              data-testid={`button-reassign-to-${otherTeam.id}`}
+                                            >
+                                              <div 
+                                                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
+                                                style={{ backgroundColor: otherTeam.primaryColor }}
+                                              >
+                                                {otherTeam.shortName}
+                                              </div>
+                                              <div className="text-left flex-1 min-w-0">
+                                                <p className="text-xs truncate">{otherTeam.name}</p>
+                                                <p className={cn("text-xs", canAfford ? "text-muted-foreground" : "text-destructive")}>
+                                                  {otherTeam.remainingBudget.toLocaleString()} pts
+                                                </p>
+                                              </div>
+                                            </Button>
+                                          );
+                                        })}
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
                               ))}
-                              {teamPlayers.length > 3 && (
-                                <Badge variant="secondary" className="text-xs">+{teamPlayers.length - 3}</Badge>
-                              )}
                             </div>
                           </div>
                         )}

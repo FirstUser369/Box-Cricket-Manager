@@ -74,6 +74,8 @@ export const auctionState = pgTable("auction_state", {
   currentBiddingTeamId: varchar("current_bidding_team_id", { length: 36 }),
   bidHistory: jsonb("bid_history").$type<Array<{ teamId: string; amount: number; timestamp: number }>>(),
   currentCategory: text("current_category").default("3000"), // Tracks current auction category (3000 -> 2500 -> 2000 -> 1500)
+  categoryBreak: boolean("category_break").default(false), // True when a category is complete and break animation should show
+  completedCategory: text("completed_category"), // Which category just completed (for break display)
 });
 
 export const insertAuctionStateSchema = createInsertSchema(auctionState).omit({ id: true });
