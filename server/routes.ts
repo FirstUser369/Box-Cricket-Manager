@@ -940,6 +940,18 @@ export async function registerRoutes(
       if (!strikerId || !nonStrikerId) {
         return res.status(400).json({ error: "Both striker and non-striker required" });
       }
+
+      if (strikerId === nonStrikerId) {
+           return res.status(400).json({ error: "Striker and Non-Striker must be different players" });
+      }
+
+      // Check if players are already out
+      for (const playerId of [strikerId, nonStrikerId]) {
+         const existingStats = await storage.getPlayerMatchStats(match.id, playerId, match.currentInnings!);
+         if (existingStats && existingStats.isOut) {
+             return res.status(400).json({ error: "One or more selected players are already out" });
+         }
+      }
       
       const isFirstInnings = match.currentInnings === 1;
       const battingOrder = isFirstInnings ? (match.innings1BattingOrder || []) : (match.innings2BattingOrder || []);
@@ -1002,6 +1014,23 @@ export async function registerRoutes(
       const isFirstInnings = match.currentInnings === 1;
       const bowlingOrder = isFirstInnings ? (match.innings1BowlingOrder || []) : (match.innings2BowlingOrder || []);
       
+      // Check for consecutive overs rule
+      const ballEvents = await storage.getMatchBallEvents(match.id);
+      const currentInningsEvents = ballEvents.filter(e => e.innings === match.currentInnings);
+      
+      if (currentInningsEvents.length > 0) {
+          // Sort to find the very last ball delivered
+          currentInningsEvents.sort((a,b) => {
+              if (a.overNumber !== b.overNumber) return b.overNumber - a.overNumber;
+              return b.ballNumber - a.ballNumber;
+          });
+          const lastBall = currentInningsEvents[0];
+          
+          if (lastBall && lastBall.bowlerId === bowlerId) {
+             return res.status(400).json({ error: "Player cannot bowl two consecutive overs" });
+          }
+      }
+
       // Add bowler to bowling order if not already there
       const newBowlingOrder = [...bowlingOrder];
       if (!newBowlingOrder.includes(bowlerId)) {
@@ -1043,11 +1072,18 @@ export async function registerRoutes(
       if (!match || match.status !== "live") {
         return res.status(400).json({ error: "Match not live" });
       }
-      
-      const { newBatsmanId, replaceStriker } = req.body;
+      console.log("Adding new batsman:", req.body);
+      const { newBatsmanId: paramNewBatsmanId, batsmanId, replaceStriker } = req.body ;
+      const newBatsmanId = paramNewBatsmanId || batsmanId;
       
       if (!newBatsmanId) {
         return res.status(400).json({ error: "New batsman ID required" });
+      }
+
+      // Check if player is already out in this innings
+      const existingStats = await storage.getPlayerMatchStats(match.id, newBatsmanId, match.currentInnings!);
+      if (existingStats && existingStats.isOut) {
+          return res.status(400).json({ error: "Player is already out in this innings" });
       }
       
       const isFirstInnings = match.currentInnings === 1;
@@ -1061,10 +1097,29 @@ export async function registerRoutes(
       
       const updateData: any = {};
       
-      if (replaceStriker) {
-        updateData.strikerId = newBatsmanId;
+      // If replaceStriker is explicitly provided, respect it.
+      // Otherwise, fill the empty slot.
+      if (typeof replaceStriker !== 'undefined') {
+        if (replaceStriker) {
+            updateData.strikerId = newBatsmanId;
+        } else {
+            updateData.nonStrikerId = newBatsmanId;
+        }
       } else {
-        updateData.nonStrikerId = newBatsmanId;
+        // Auto-detect empty slot
+        if (!match.strikerId) {
+             updateData.strikerId = newBatsmanId;
+        } else if (!match.nonStrikerId) {
+             updateData.nonStrikerId = newBatsmanId;
+        } else {
+             // Fallback if both are somehow set (shouldn't happen in this flow usually)
+             // Default to non-striker as per original logic, or maybe striker? 
+             // Let's stick to filling the logical empty slot.
+             // If both are full, we might be forcing a replacement. 
+             // Let's default to replacing striker if both are full? No, that's risky.
+             // But usually one should be null here.
+             updateData.nonStrikerId = newBatsmanId;
+        }
       }
       
       if (isFirstInnings) {
@@ -1074,7 +1129,6 @@ export async function registerRoutes(
       }
       
       // Create player match stats for new batsman
-      const existingStats = await storage.getPlayerMatchStats(match.id, newBatsmanId, match.currentInnings!);
       if (!existingStats) {
         await storage.createPlayerMatchStats({
           matchId: match.id,
