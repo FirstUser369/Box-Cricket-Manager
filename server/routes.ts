@@ -27,7 +27,7 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
   const displayPassword = settings?.displayPassword || "weareone";
   
   // Always use the published production URL for emails
-  const baseUrl = 'https://samanvay-premier-league.replit.app';
+  const baseUrl = 'https://samanvaypremierleagues02.replit.app';
   const displayUrl = `${baseUrl}/display`;
   const logoUrl = `${baseUrl}/spl-logo.png`;
   
