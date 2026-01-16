@@ -26,9 +26,8 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
   const displayUsername = settings?.displayUsername || "Bhulku";
   const displayPassword = settings?.displayPassword || "weareone";
   
-  const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-    : 'https://samanvay-premier-league.replit.app';
+  // Always use the published production URL for emails
+  const baseUrl = 'https://samanvay-premier-league.replit.app';
   const displayUrl = `${baseUrl}/display`;
   const logoUrl = `${baseUrl}/spl-logo.png`;
   
@@ -49,7 +48,7 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
     .name { color: #c9a227; font-weight: bold; }
     .section { background: #0f172a; border-radius: 8px; padding: 16px; margin: 16px 0; }
     .section-title { color: #c9a227; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-    .detail { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .detail { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .detail:last-child { border-bottom: none; }
     .label { color: #9ca3af; font-size: 12px; }
     .value { color: #fff; font-weight: 600; font-size: 14px; }
