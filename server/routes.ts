@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendPaymentConfirmationEmail(playerEmail: string, playerName: string) {
-  const displayUrl = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://your-app-url.replit.app'}/display`;
+  const displayUrl = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.PROD_DOMAIN}` : 'https://spl-app-prod.onrender.com'}/display`;
   
   const emailHtml = `
 <!DOCTYPE html>
@@ -1924,6 +1924,11 @@ export async function registerRoutes(
         status: "registered",
         category: category,
       });
+
+      if (player && player.email) {
+        sendPaymentConfirmationEmail(player.email, player.name)
+          .catch(err => console.error("Failed to send approval email:", err));
+      }
       
       res.json(player);
     } catch (error) {

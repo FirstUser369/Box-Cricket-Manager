@@ -10,3 +10,7 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_PASS
+        sync: false
