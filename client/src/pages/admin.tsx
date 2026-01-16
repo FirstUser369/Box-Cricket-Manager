@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Shield, Users, Gavel, Play, Settings, Plus, Trash2, Edit, Lock, Unlock, Check, X, CircleDot, Target, Loader2, QrCode, RotateCcw, Trophy, Upload, Zap, Star, Award, TrendingUp, DollarSign, CreditCard, Save, Megaphone, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import { AUCTION_CATEGORIES, type Player, type Team, type Match, type AuctionSta
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,33 +85,6 @@ export default function Admin() {
 
 function AdminDashboard() {
   const { toast } = useToast();
-  const [showSoldCelebration, setShowSoldCelebration] = useState(false);
-  const [soldPlayerName, setSoldPlayerName] = useState("");
-  const [soldTeamName, setSoldTeamName] = useState("");
-  const [soldAmount, setSoldAmount] = useState(0);
-
-  const triggerConfetti = useCallback(() => {
-    const duration = 2000;
-    const animationEnd = Date.now() + duration;
-
-    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-    const interval = setInterval(() => {
-      const timeLeft = animationEnd - Date.now();
-      if (timeLeft <= 0) {
-        return clearInterval(interval);
-      }
-      const particleCount = 50 * (timeLeft / duration);
-
-      confetti({
-        particleCount,
-        startVelocity: 30,
-        spread: 360,
-        origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
-        colors: ['#ff6b35', '#9d4edd', '#ffd60a', '#00f5ff', '#10b981'],
-      });
-    }, 250);
-  }, []);
 
   const { data: players, isLoading: playersLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
@@ -240,16 +212,6 @@ function AdminDashboard() {
   const sellPlayerMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", "/api/auction/sell", {});
-    },
-    onMutate: () => {
-      if (currentPlayer && currentBiddingTeam && auctionState) {
-        setSoldPlayerName(currentPlayer.name);
-        setSoldTeamName(currentBiddingTeam.name);
-        setSoldAmount(auctionState.currentBid || currentPlayer.basePoints);
-        setShowSoldCelebration(true);
-        triggerConfetti();
-        setTimeout(() => setShowSoldCelebration(false), 3000);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
@@ -1130,48 +1092,6 @@ function AdminDashboard() {
         </Tabs>
       </div>
 
-      <AnimatePresence>
-        {showSoldCelebration && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
-          >
-            <div className="absolute inset-0 bg-black/60" />
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="relative text-center"
-            >
-              <motion.div
-                initial={{ y: -100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="mb-4"
-              >
-                <span className="font-display text-8xl md:text-9xl text-glow-gold bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  SOLD!
-                </span>
-              </motion.div>
-              <motion.div
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-2"
-              >
-                <p className="font-display text-4xl text-white">{soldPlayerName}</p>
-                <p className="text-2xl text-purple-400">to {soldTeamName}</p>
-                <p className="font-display text-5xl text-emerald-400 text-glow-gold">
-                  {soldAmount.toLocaleString()}
-                </p>
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -2402,7 +2322,7 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-tshirt">T-Shirt Size</Label>
+                  <Label htmlFor="edit-tshirt">T-Shirt Size (US)</Label>
                   <Select value={editTshirtSize} onValueChange={(v) => setEditTshirtSize(v as typeof editTshirtSize)}>
                     <SelectTrigger data-testid="input-edit-tshirt">
                       <SelectValue />

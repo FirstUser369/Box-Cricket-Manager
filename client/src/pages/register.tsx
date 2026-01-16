@@ -359,7 +359,7 @@ export default function Register() {
                       <FormItem>
                         <FormLabel className="flex items-center gap-2">
                           <Shirt className="w-4 h-4" />
-                          T-Shirt Size
+                          T-Shirt Size (US)
                         </FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
