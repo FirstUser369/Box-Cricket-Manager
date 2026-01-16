@@ -36,349 +36,65 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    :root { color-scheme: light dark; }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-    }
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-      background-color: #0a0e1a !important; 
-      color: #f0f0f0 !important; 
-      margin: 0; 
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-    }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .logo-section {
-      text-align: center;
-      padding: 24px 20px;
-      background: linear-gradient(180deg, #0a0e1a 0%, #1a1a2e 100%);
-    }
-    .logo-img {
-      width: 150px;
-      height: auto;
-      margin-bottom: 8px;
-    }
-    .header { 
-      background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 50%, #1a365d 100%); 
-      padding: 32px 20px; 
-      text-align: center; 
-      border-radius: 16px 16px 0 0;
-      border: 2px solid #c9a227;
-      border-bottom: none;
-      position: relative;
-      overflow: hidden;
-    }
-    .header::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 200%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.1), transparent);
-      animation: shimmer 3s infinite;
-    }
-    .header h1 { 
-      margin: 0; 
-      font-size: 32px; 
-      font-weight: 900; 
-      text-transform: uppercase; 
-      letter-spacing: 3px; 
-      color: #c9a227 !important;
-      text-shadow: 0 2px 10px rgba(201, 162, 39, 0.5);
-      position: relative;
-      z-index: 1;
-    }
-    .header-subtitle {
-      color: #ffffff !important;
-      font-size: 14px;
-      letter-spacing: 2px;
-      margin-top: 8px;
-      text-transform: uppercase;
-    }
-    .confetti {
-      font-size: 24px;
-      margin: 0 8px;
-    }
-    .content { 
-      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important; 
-      padding: 32px 28px; 
-      border-radius: 0 0 16px 16px;
-      border: 2px solid #c9a227;
-      border-top: none;
-    }
-    .greeting { font-size: 22px; color: #ffffff !important; margin-bottom: 20px; }
-    .player-name { 
-      color: #c9a227 !important; 
-      font-weight: 800;
-      text-shadow: 0 1px 5px rgba(201, 162, 39, 0.3);
-    }
-    .success-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      color: #ffffff !important;
-      padding: 8px 20px;
-      border-radius: 30px;
-      font-weight: 800;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-    }
-    .body-text { font-size: 16px; line-height: 1.8; color: #d1d5db !important; margin-bottom: 18px; }
-    .highlight { color: #c9a227 !important; font-weight: 700; }
-    .highlight-blue { color: #60a5fa !important; font-weight: 600; }
-    .event-box { 
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important; 
-      padding: 24px; 
-      border-radius: 12px; 
-      margin: 28px 0;
-      border-left: 5px solid #c9a227;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    }
-    .event-title { 
-      color: #c9a227 !important; 
-      font-size: 16px;
-      font-weight: 800; 
-      margin: 0 0 20px 0;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .event-icon { font-size: 20px; }
-    .detail-row { padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-label { color: #9ca3af !important; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 600; }
-    .detail-value { color: #ffffff !important; font-size: 17px; font-weight: 600; }
-    .detail-value.gold { color: #c9a227 !important; font-weight: 700; }
-    .rides-banner { 
-      background: linear-gradient(135deg, #059669 0%, #047857 100%); 
-      padding: 18px 24px; 
-      text-align: center; 
-      border-radius: 12px; 
-      margin: 28px 0;
-      box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
-    }
-    .rides-banner p { 
-      margin: 0; 
-      font-size: 15px; 
-      font-weight: 700; 
-      text-transform: uppercase; 
-      letter-spacing: 2px;
-      color: #ffffff !important;
-    }
-    .rides-icon { font-size: 18px; margin-right: 8px; }
-    .credentials-box { 
-      background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%) !important; 
-      padding: 28px; 
-      border-radius: 12px; 
-      margin: 28px 0;
-      border: 2px solid #3b82f6;
-      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
-    }
-    .credentials-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .credentials-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-    .credentials-title { color: #60a5fa !important; font-size: 18px; font-weight: 800; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
-    .credentials-text { color: #9ca3af !important; font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
-    .credential { 
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important; 
-      padding: 16px 20px; 
-      border-radius: 10px; 
-      margin: 12px 0; 
-      font-family: 'SF Mono', Menlo, Monaco, 'Courier New', monospace;
-      font-size: 16px;
-      color: #ffffff !important;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .credential-label { color: #9ca3af !important; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-    .credential-value { color: #c9a227 !important; font-weight: 700; font-size: 18px; }
-    .link-box {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-      padding: 16px 20px;
-      border-radius: 10px;
-      margin: 16px 0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      word-break: break-all;
-    }
-    .link-label { color: #9ca3af !important; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; }
-    .link-value { color: #60a5fa !important; font-size: 14px; font-weight: 600; text-decoration: none; }
-    .cta-button { 
-      display: inline-block; 
-      background: linear-gradient(135deg, #c9a227 0%, #d4af37 50%, #c9a227 100%); 
-      color: #0a0e1a !important; 
-      padding: 16px 36px; 
-      text-decoration: none; 
-      border-radius: 10px; 
-      font-weight: 800; 
-      text-transform: uppercase; 
-      letter-spacing: 2px; 
-      margin-top: 20px;
-      font-size: 15px;
-      box-shadow: 0 4px 20px rgba(201, 162, 39, 0.4);
-      transition: transform 0.2s;
-    }
-    .cta-button:hover {
-      transform: scale(1.02);
-    }
-    .message-box {
-      background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-      padding: 20px 24px;
-      border-radius: 12px;
-      margin: 28px 0;
-      text-align: center;
-    }
-    .message-text {
-      color: #ffffff !important;
-      font-size: 16px;
-      font-weight: 600;
-      line-height: 1.6;
-      margin: 0;
-    }
-    .closing { color: #d1d5db !important; font-size: 16px; margin-top: 32px; line-height: 1.7; }
-    .signature { color: #c9a227 !important; font-weight: 700; font-size: 17px; }
-    .footer { 
-      text-align: center; 
-      padding: 24px; 
-      color: #6b7280 !important; 
-      font-size: 12px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      margin-top: 20px;
-    }
-    .social-icons {
-      margin-top: 16px;
-    }
-    .social-icon {
-      display: inline-block;
-      width: 36px;
-      height: 36px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-      margin: 0 6px;
-      line-height: 36px;
-      font-size: 18px;
-    }
-    
-    @media (prefers-color-scheme: dark) {
-      body { background-color: #0a0e1a !important; }
-      .content { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important; }
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #0a0e1a; color: #f0f0f0; margin: 0; padding: 20px; }
+    .container { max-width: 500px; margin: 0 auto; }
+    .header { text-align: center; padding: 20px; background: linear-gradient(135deg, #1e3a5f, #0d2137); border-radius: 12px 12px 0 0; border: 2px solid #c9a227; border-bottom: none; }
+    .header img { width: 100px; margin-bottom: 10px; }
+    .header h1 { color: #c9a227; margin: 0; font-size: 24px; }
+    .content { background: #1a1a2e; padding: 24px; border-radius: 0 0 12px 12px; border: 2px solid #c9a227; border-top: none; }
+    .greeting { font-size: 18px; margin-bottom: 16px; }
+    .name { color: #c9a227; font-weight: bold; }
+    .section { background: #0f172a; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .section-title { color: #c9a227; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .detail { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .detail:last-child { border-bottom: none; }
+    .label { color: #9ca3af; font-size: 12px; }
+    .value { color: #fff; font-weight: 600; font-size: 14px; }
+    .gold { color: #c9a227; }
+    .rides { background: #059669; text-align: center; padding: 12px; border-radius: 8px; color: #fff; font-weight: bold; font-size: 13px; margin: 16px 0; }
+    .creds { background: #1e3a5f; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .creds-title { color: #60a5fa; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
+    .cred-row { display: flex; justify-content: space-between; background: #0f172a; padding: 10px 12px; border-radius: 6px; margin: 8px 0; }
+    .cred-label { color: #9ca3af; font-size: 11px; text-transform: uppercase; }
+    .cred-value { color: #c9a227; font-weight: bold; }
+    .link { color: #60a5fa; word-break: break-all; font-size: 13px; }
+    .btn { display: block; background: #c9a227; color: #0a0e1a; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 16px; }
+    .footer { text-align: center; color: #6b7280; font-size: 11px; margin-top: 20px; }
   </style>
 </head>
-<body style="background-color: #0a0e1a; margin: 0; padding: 0;">
+<body>
   <div class="container">
-    <div class="logo-section">
-      <img src="${logoUrl}" alt="SPL Logo" class="logo-img" style="width: 150px; height: auto;">
-    </div>
     <div class="header">
-      <h1 style="color: #c9a227;">YOU'RE IN!</h1>
-      <p class="header-subtitle" style="color: #ffffff;">Payment Confirmed</p>
+      <img src="${logoUrl}" alt="SPL">
+      <h1>YOU'RE IN!</h1>
     </div>
-    <div class="content" style="background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);">
-      <div style="text-align: center;">
-        <span class="success-badge" style="color: #ffffff; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">VERIFIED</span>
-      </div>
-      
-      <p class="greeting" style="color: #ffffff;">Hey <span class="player-name" style="color: #c9a227;">${playerName}</span>!</p>
-      
-      <p class="body-text" style="color: #d1d5db;">
-        <strong style="color: #22c55e; font-size: 18px;">CONGRATULATIONS!</strong> Your payment has been verified and you're <strong style="color: #c9a227;">officially registered</strong> for the most exciting cricket event of the year!
-      </p>
-      
-      <p class="body-text" style="color: #d1d5db;">
-        Get ready to showcase your skills in the <span class="highlight" style="color: #c9a227;">Points-Based Auction</span> where teams will compete to get YOU on their squad!
-      </p>
+    <div class="content">
+      <p class="greeting">Hey <span class="name">${playerName}</span>, your payment is confirmed!</p>
 
-      <div class="event-box" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-        <h2 class="event-title" style="color: #c9a227;">EVENT DETAILS</h2>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #9ca3af;">Event Name</span>
-          <span class="detail-value gold" style="color: #c9a227;">Samanvay Premier League Season 2</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #9ca3af;">Location</span>
-          <span class="detail-value" style="color: #ffffff;">839 Upper Union Street, Franklin - MA - 02038</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #9ca3af;">Auction Date</span>
-          <span class="detail-value gold" style="color: #c9a227;">25th January 2026</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #9ca3af;">Tournament Date</span>
-          <span class="detail-value gold" style="color: #c9a227;">7th February 2026</span>
-        </div>
+      <div class="section">
+        <div class="section-title">Event Details</div>
+        <div class="detail"><span class="label">Event</span><span class="value gold">SPL Season 2</span></div>
+        <div class="detail"><span class="label">Location</span><span class="value">839 Upper Union St, Franklin MA</span></div>
+        <div class="detail"><span class="label">Auction</span><span class="value gold">Jan 25, 2026</span></div>
+        <div class="detail"><span class="label">Tournament</span><span class="value gold">Feb 7, 2026</span></div>
       </div>
 
-      <div class="rides-banner" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
-        <p style="color: #ffffff;">RIDES WILL BE PROVIDED IF NEEDED!</p>
+      <div class="rides">RIDES PROVIDED IF NEEDED</div>
+
+      <div class="creds">
+        <div class="creds-title">Live Display Access</div>
+        <div class="cred-row"><span class="cred-label">Username</span><span class="cred-value">${displayUsername}</span></div>
+        <div class="cred-row"><span class="cred-label">Password</span><span class="cred-value">${displayPassword}</span></div>
+        <p style="margin: 12px 0 0; font-size: 12px; color: #9ca3af;">Link: <a href="${displayUrl}" class="link">${displayUrl}</a></p>
+        <a href="${displayUrl}" class="btn">WATCH LIVE</a>
       </div>
 
-      <div class="credentials-box" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 100%); border: 2px solid #3b82f6;">
-        <div class="credentials-header">
-          <h3 class="credentials-title" style="color: #60a5fa;">WATCH LIVE DISPLAY</h3>
-        </div>
-        <p class="credentials-text" style="color: #9ca3af;">Use these credentials to access the <strong style="color: #60a5fa;">live auction</strong> and <strong style="color: #60a5fa;">match displays</strong> on any device:</p>
-        
-        <div class="credential" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-          <span class="credential-label" style="color: #9ca3af;">Username</span>
-          <span class="credential-value" style="color: #c9a227;">${displayUsername}</span>
-        </div>
-        <div class="credential" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-          <span class="credential-label" style="color: #9ca3af;">Password</span>
-          <span class="credential-value" style="color: #c9a227;">${displayPassword}</span>
-        </div>
-        
-        <div class="link-box" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
-          <span class="link-label" style="color: #9ca3af;">Display Link</span>
-          <a href="${displayUrl}" class="link-value" style="color: #60a5fa;">${displayUrl}</a>
-        </div>
-        
-        <div style="text-align: center;">
-          <a href="${displayUrl}" class="cta-button" style="color: #0a0e1a; background: linear-gradient(135deg, #c9a227 0%, #d4af37 50%, #c9a227 100%);">ACCESS DISPLAY MODE</a>
-        </div>
-      </div>
-
-      <div class="message-box" style="background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);">
-        <p class="message-text" style="color: #ffffff;">We can't wait to see you at the auction! May the best team grab you!</p>
-      </div>
-
-      <p class="closing" style="color: #d1d5db;">
-        See you on the pitch!<br><br>
-        <span class="signature" style="color: #c9a227;">Team Samanvay Premier League</span>
-      </p>
+      <p style="text-align: center; color: #9ca3af; font-size: 14px; margin-top: 20px;">See you on the pitch!<br><strong style="color: #c9a227;">Team SPL</strong></p>
     </div>
-    <div class="footer" style="color: #6b7280;">
-      <p>© 2026 Samanvay Premier League. All rights reserved.</p>
-      <p style="color: #6b7280;">This is an automated confirmation email. Please do not reply.</p>
-    </div>
+    <div class="footer">© 2026 Samanvay Premier League</div>
   </div>
 </body>
 </html>
