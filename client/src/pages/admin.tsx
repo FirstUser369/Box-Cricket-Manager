@@ -1419,6 +1419,7 @@ function LiveScoringPanel({
   const [showFielderDialog, setShowFielderDialog] = useState(false);
   const [pendingWicketType, setPendingWicketType] = useState<string>("");
   const [selectedFielder, setSelectedFielder] = useState<string>("");
+  const [selectedDismissedBatsman, setSelectedDismissedBatsman] = useState<string>("");
 
   const team1 = teams.find(t => t.id === match.team1Id);
   const team2 = teams.find(t => t.id === match.team2Id);
@@ -1448,7 +1449,8 @@ function LiveScoringPanel({
     ? !!match.strikerId 
     : (match.strikerId && match.nonStrikerId);
   const hasBowler = match.currentBowlerId;
-  const needsNewBatsman = !match.strikerId && match.nonStrikerId && !isLastManStanding;
+  // Need new batsman when one spot is empty but the other is filled (not in last-man-standing mode)
+  const needsNewBatsman = ((!match.strikerId && !!match.nonStrikerId) || (!!match.strikerId && !match.nonStrikerId)) && !isLastManStanding;
   const needsNewBowler = !match.currentBowlerId;
   const isEndOfOver = balls === 0 && overs > 0;
   const canScore = hasBatsmen && hasBowler;
@@ -1472,24 +1474,32 @@ function LiveScoringPanel({
     if (type === "caught" || type === "stumped" || type === "run_out") {
       setPendingWicketType(type);
       setSelectedFielder("");
+      // For run outs, allow selecting which batsman was dismissed
+      setSelectedDismissedBatsman(type === "run_out" ? "" : (match.strikerId || ""));
       setShowFielderDialog(true);
     } else {
-      // For bowled, lbw - no fielder needed
+      // For bowled, lbw - no fielder needed, striker is always dismissed
       onRecordBall({ runs: 0, isWicket: true, wicketType: type, dismissedPlayerId: match.strikerId || undefined });
     }
   };
 
   const confirmWicketWithFielder = () => {
+    // For run outs, use the selected batsman; otherwise default to striker
+    const dismissedId = pendingWicketType === "run_out" 
+      ? (selectedDismissedBatsman || match.strikerId || undefined)
+      : (match.strikerId || undefined);
+    
     onRecordBall({ 
       runs: 0, 
       isWicket: true, 
       wicketType: pendingWicketType, 
-      dismissedPlayerId: match.strikerId || undefined,
+      dismissedPlayerId: dismissedId,
       fielderId: selectedFielder || undefined
     });
     setShowFielderDialog(false);
     setPendingWicketType("");
     setSelectedFielder("");
+    setSelectedDismissedBatsman("");
   };
 
   return (
@@ -1666,11 +1676,17 @@ function LiveScoringPanel({
                     <SelectValue placeholder="Select new batsman" />
                   </SelectTrigger>
                   <SelectContent>
-                    {battingTeamPlayers
-                      .filter(p => p.id !== match.nonStrikerId)
-                      .map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
+                    {(() => {
+                      const currentBattingOrder = match.currentInnings === 1 
+                        ? (match.innings1BattingOrder || []) 
+                        : (match.innings2BattingOrder || []);
+                      const remainingBatsman = match.strikerId || match.nonStrikerId;
+                      return battingTeamPlayers
+                        .filter(p => p.id !== remainingBatsman && !currentBattingOrder.includes(p.id))
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ));
+                    })()}
                   </SelectContent>
                 </Select>
                 <Button 
@@ -1701,9 +1717,23 @@ function LiveScoringPanel({
                     <SelectValue placeholder="Select bowler" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bowlingTeamPlayers.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
+                    {(() => {
+                      const currentBowlingOrder = match.currentInnings === 1 
+                        ? (match.innings1BowlingOrder || []) 
+                        : (match.innings2BowlingOrder || []);
+                      const previousBowlerId = currentBowlingOrder.length > 0 
+                        ? currentBowlingOrder[currentBowlingOrder.length - 1] 
+                        : null;
+                      return bowlingTeamPlayers.map(p => (
+                        <SelectItem 
+                          key={p.id} 
+                          value={p.id}
+                          disabled={isEndOfOver && p.id === previousBowlerId}
+                        >
+                          {p.name}{isEndOfOver && p.id === previousBowlerId ? " (bowled last over)" : ""}
+                        </SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
                 <Button 
@@ -1858,6 +1888,29 @@ function LiveScoringPanel({
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              {/* For run outs, allow selecting which batsman was dismissed */}
+              {pendingWicketType === "run_out" && (
+                <div>
+                  <Label>Dismissed Batsman</Label>
+                  <Select value={selectedDismissedBatsman} onValueChange={setSelectedDismissedBatsman}>
+                    <SelectTrigger data-testid="select-dismissed-batsman">
+                      <SelectValue placeholder="Select dismissed batsman" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {match.strikerId && (
+                        <SelectItem value={match.strikerId}>
+                          {getPlayerName(match.strikerId)} (Striker)
+                        </SelectItem>
+                      )}
+                      {match.nonStrikerId && (
+                        <SelectItem value={match.nonStrikerId}>
+                          {getPlayerName(match.nonStrikerId)} (Non-Striker)
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label>Fielder</Label>
                 <Select value={selectedFielder} onValueChange={setSelectedFielder}>
@@ -1878,7 +1931,11 @@ function LiveScoringPanel({
               <Button variant="outline" onClick={() => setShowFielderDialog(false)}>
                 Cancel
               </Button>
-              <Button onClick={confirmWicketWithFielder} data-testid="button-confirm-wicket">
+              <Button 
+                onClick={confirmWicketWithFielder} 
+                disabled={pendingWicketType === "run_out" && !selectedDismissedBatsman}
+                data-testid="button-confirm-wicket"
+              >
                 Confirm Wicket
               </Button>
             </DialogFooter>
