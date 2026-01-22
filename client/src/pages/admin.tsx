@@ -1,20 +1,78 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Shield, Users, Gavel, Play, Settings, Plus, Trash2, Edit, Lock, Unlock, Check, X, CircleDot, Target, Loader2, QrCode, RotateCcw, Trophy, Upload, Zap, Star, Award, TrendingUp, DollarSign, CreditCard, Save, Megaphone, AlertTriangle } from "lucide-react";
+import {
+  Shield,
+  Users,
+  Gavel,
+  Play,
+  Settings,
+  Plus,
+  Trash2,
+  Edit,
+  Lock,
+  Unlock,
+  Check,
+  X,
+  CircleDot,
+  Target,
+  Loader2,
+  QrCode,
+  RotateCcw,
+  Trophy,
+  Upload,
+  Zap,
+  Star,
+  Award,
+  TrendingUp,
+  DollarSign,
+  CreditCard,
+  Save,
+  Megaphone,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AUCTION_CATEGORIES, type Player, type Team, type Match, type AuctionState, type TournamentSettings, type AuctionCategory, type Broadcast } from "@shared/schema";
+import {
+  AUCTION_CATEGORIES,
+  type Player,
+  type Team,
+  type Match,
+  type AuctionState,
+  type TournamentSettings,
+  type AuctionCategory,
+  type Broadcast,
+} from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,12 +126,13 @@ export default function Admin() {
                 data-testid="input-admin-password"
               />
             </div>
-            <Button className="w-full" onClick={handleLogin} data-testid="button-admin-login">
+            <Button
+              className="w-full"
+              onClick={handleLogin}
+              data-testid="button-admin-login"
+            >
               Login
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Default password: admin123
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -98,12 +157,17 @@ function AdminDashboard() {
     queryKey: ["/api/matches"],
   });
 
-  const { data: auctionState, isLoading: auctionLoading } = useQuery<AuctionState>({
-    queryKey: ["/api/auction/state"],
-  });
+  const { data: auctionState, isLoading: auctionLoading } =
+    useQuery<AuctionState>({
+      queryKey: ["/api/auction/state"],
+    });
 
   const createTeamMutation = useMutation({
-    mutationFn: async (team: { name: string; shortName: string; primaryColor: string }) => {
+    mutationFn: async (team: {
+      name: string;
+      shortName: string;
+      primaryColor: string;
+    }) => {
       return apiRequest("POST", "/api/teams", team);
     },
     onSuccess: () => {
@@ -116,7 +180,14 @@ function AdminDashboard() {
   });
 
   const updatePlayerMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; basePoints?: number; isLocked?: boolean }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      basePoints?: number;
+      isLocked?: boolean;
+    }) => {
       return apiRequest("PATCH", `/api/players/${id}`, data);
     },
     onSuccess: () => {
@@ -133,12 +204,12 @@ function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
-      
+
       // Show toast when category break is triggered
       if (data?.categoryBreak && data?.completedCategory) {
-        toast({ 
+        toast({
           title: `Category ${data.completedCategory} Complete`,
-          description: "Select a different category to continue the auction"
+          description: "Select a different category to continue the auction",
         });
       }
     },
@@ -199,7 +270,18 @@ function AdminDashboard() {
   });
 
   const updateTeamMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; name?: string; shortName?: string; primaryColor?: string; secondaryColor?: string; logoUrl?: string; groupName?: string }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      name?: string;
+      shortName?: string;
+      primaryColor?: string;
+      secondaryColor?: string;
+      logoUrl?: string;
+      groupName?: string;
+    }) => {
       return apiRequest("PATCH", `/api/teams/${id}`, data);
     },
     onSuccess: () => {
@@ -272,7 +354,14 @@ function AdminDashboard() {
   });
 
   const startMatchMutation = useMutation({
-    mutationFn: async ({ matchId, ...data }: { matchId: string; tossWinnerId: string; tossDecision: string }) => {
+    mutationFn: async ({
+      matchId,
+      ...data
+    }: {
+      matchId: string;
+      tossWinnerId: string;
+      tossDecision: string;
+    }) => {
       return apiRequest("POST", `/api/matches/${matchId}/start`, data);
     },
     onSuccess: () => {
@@ -282,7 +371,17 @@ function AdminDashboard() {
   });
 
   const recordBallMutation = useMutation({
-    mutationFn: async ({ matchId, ...data }: { matchId: string; runs: number; extraType?: string; isWicket?: boolean; wicketType?: string; fielderId?: string }) => {
+    mutationFn: async ({
+      matchId,
+      ...data
+    }: {
+      matchId: string;
+      runs: number;
+      extraType?: string;
+      isWicket?: boolean;
+      wicketType?: string;
+      fielderId?: string;
+    }) => {
       return apiRequest("POST", `/api/matches/${matchId}/ball`, data);
     },
     onSuccess: () => {
@@ -320,8 +419,19 @@ function AdminDashboard() {
   });
 
   const setPowerOverMutation = useMutation({
-    mutationFn: async ({ matchId, overNumber, innings }: { matchId: string; overNumber: number; innings: number }) => {
-      return apiRequest("POST", `/api/matches/${matchId}/power-over`, { overNumber, innings });
+    mutationFn: async ({
+      matchId,
+      overNumber,
+      innings,
+    }: {
+      matchId: string;
+      overNumber: number;
+      innings: number;
+    }) => {
+      return apiRequest("POST", `/api/matches/${matchId}/power-over`, {
+        overNumber,
+        innings,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
@@ -330,8 +440,19 @@ function AdminDashboard() {
   });
 
   const setBatsmenMutation = useMutation({
-    mutationFn: async ({ matchId, strikerId, nonStrikerId }: { matchId: string; strikerId: string; nonStrikerId: string }) => {
-      return apiRequest("POST", `/api/matches/${matchId}/set-batsmen`, { strikerId, nonStrikerId });
+    mutationFn: async ({
+      matchId,
+      strikerId,
+      nonStrikerId,
+    }: {
+      matchId: string;
+      strikerId: string;
+      nonStrikerId: string;
+    }) => {
+      return apiRequest("POST", `/api/matches/${matchId}/set-batsmen`, {
+        strikerId,
+        nonStrikerId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
@@ -343,8 +464,16 @@ function AdminDashboard() {
   });
 
   const setBowlerMutation = useMutation({
-    mutationFn: async ({ matchId, bowlerId }: { matchId: string; bowlerId: string }) => {
-      return apiRequest("POST", `/api/matches/${matchId}/set-bowler`, { bowlerId });
+    mutationFn: async ({
+      matchId,
+      bowlerId,
+    }: {
+      matchId: string;
+      bowlerId: string;
+    }) => {
+      return apiRequest("POST", `/api/matches/${matchId}/set-bowler`, {
+        bowlerId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
@@ -356,8 +485,16 @@ function AdminDashboard() {
   });
 
   const newBatsmanMutation = useMutation({
-    mutationFn: async ({ matchId, batsmanId }: { matchId: string; batsmanId: string }) => {
-      return apiRequest("POST", `/api/matches/${matchId}/new-batsman`, { batsmanId });
+    mutationFn: async ({
+      matchId,
+      batsmanId,
+    }: {
+      matchId: string;
+      batsmanId: string;
+    }) => {
+      return apiRequest("POST", `/api/matches/${matchId}/new-batsman`, {
+        batsmanId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
@@ -369,8 +506,16 @@ function AdminDashboard() {
   });
 
   const reassignPlayerMutation = useMutation({
-    mutationFn: async ({ playerId, newTeamId }: { playerId: string; newTeamId: string }) => {
-      return apiRequest("POST", `/api/players/${playerId}/reassign`, { newTeamId });
+    mutationFn: async ({
+      playerId,
+      newTeamId,
+    }: {
+      playerId: string;
+      newTeamId: string;
+    }) => {
+      return apiRequest("POST", `/api/players/${playerId}/reassign`, {
+        newTeamId,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
@@ -383,12 +528,18 @@ function AdminDashboard() {
     },
   });
 
-  const currentPlayer = players?.find(p => p.id === auctionState?.currentPlayerId);
-  const currentBiddingTeam = teams?.find(t => t.id === auctionState?.currentBiddingTeamId);
-  const liveMatch = matches?.find(m => m.status === "live");
+  const currentPlayer = players?.find(
+    (p) => p.id === auctionState?.currentPlayerId,
+  );
+  const currentBiddingTeam = teams?.find(
+    (t) => t.id === auctionState?.currentBiddingTeamId,
+  );
+  const liveMatch = matches?.find((m) => m.status === "live");
 
   const getNextPlayer = () => {
-    const availablePlayers = players?.filter(p => p.status === "registered" || p.status === "in_auction");
+    const availablePlayers = players?.filter(
+      (p) => p.status === "registered" || p.status === "in_auction",
+    );
     return availablePlayers?.[0];
   };
 
@@ -414,35 +565,67 @@ function AdminDashboard() {
 
         <Tabs defaultValue="registration" className="space-y-6">
           <TabsList className="grid w-full grid-cols-8 max-w-6xl">
-            <TabsTrigger value="registration" className="gap-2" data-testid="admin-tab-registration">
+            <TabsTrigger
+              value="registration"
+              className="gap-2"
+              data-testid="admin-tab-registration"
+            >
               <QrCode className="w-4 h-4" />
               Registration
             </TabsTrigger>
-            <TabsTrigger value="auction" className="gap-2" data-testid="admin-tab-auction">
+            <TabsTrigger
+              value="auction"
+              className="gap-2"
+              data-testid="admin-tab-auction"
+            >
               <Gavel className="w-4 h-4" />
               Auction
             </TabsTrigger>
-            <TabsTrigger value="teams" className="gap-2" data-testid="admin-tab-teams">
+            <TabsTrigger
+              value="teams"
+              className="gap-2"
+              data-testid="admin-tab-teams"
+            >
               <Users className="w-4 h-4" />
               Teams
             </TabsTrigger>
-            <TabsTrigger value="players" className="gap-2" data-testid="admin-tab-players">
+            <TabsTrigger
+              value="players"
+              className="gap-2"
+              data-testid="admin-tab-players"
+            >
               <Target className="w-4 h-4" />
               Players
             </TabsTrigger>
-            <TabsTrigger value="tournament" className="gap-2" data-testid="admin-tab-tournament">
+            <TabsTrigger
+              value="tournament"
+              className="gap-2"
+              data-testid="admin-tab-tournament"
+            >
               <Trophy className="w-4 h-4" />
               Tournament
             </TabsTrigger>
-            <TabsTrigger value="scoring" className="gap-2" data-testid="admin-tab-scoring">
+            <TabsTrigger
+              value="scoring"
+              className="gap-2"
+              data-testid="admin-tab-scoring"
+            >
               <Play className="w-4 h-4" />
               Scoring
             </TabsTrigger>
-            <TabsTrigger value="broadcasts" className="gap-2" data-testid="admin-tab-broadcasts">
+            <TabsTrigger
+              value="broadcasts"
+              className="gap-2"
+              data-testid="admin-tab-broadcasts"
+            >
               <Megaphone className="w-4 h-4" />
               Broadcasts
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2" data-testid="admin-tab-settings">
+            <TabsTrigger
+              value="settings"
+              className="gap-2"
+              data-testid="admin-tab-settings"
+            >
               <Settings className="w-4 h-4" />
               Settings
             </TabsTrigger>
@@ -457,13 +640,18 @@ function AdminDashboard() {
                     Registration QR Code
                   </CardTitle>
                   <CardDescription>
-                    Display this QR code for players to scan and register on their phones
+                    Display this QR code for players to scan and register on
+                    their phones
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-4">
                   <div className="p-6 bg-white rounded-md">
-                    <QRCodeSVG 
-                      value={typeof window !== 'undefined' ? `${window.location.origin}/register` : '/register'}
+                    <QRCodeSVG
+                      value={
+                        typeof window !== "undefined"
+                          ? `${window.location.origin}/register`
+                          : "/register"
+                      }
                       size={200}
                       level="H"
                     />
@@ -471,8 +659,8 @@ function AdminDashboard() {
                   <p className="text-sm text-muted-foreground text-center">
                     Scan to open registration form
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       const url = `${window.location.origin}/register`;
                       navigator.clipboard.writeText(url);
@@ -485,7 +673,10 @@ function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              <PlayerApprovalPanel players={players} isLoading={playersLoading} />
+              <PlayerApprovalPanel
+                players={players}
+                isLoading={playersLoading}
+              />
             </div>
           </TabsContent>
 
@@ -495,20 +686,32 @@ function AdminDashboard() {
                 <div>
                   <CardTitle>Auction Control</CardTitle>
                   <CardDescription className="flex items-center gap-2 flex-wrap">
-                    Status: <Badge variant="outline" className="ml-2">{auctionState?.status || "not_started"}</Badge>
+                    Status:{" "}
+                    <Badge variant="outline" className="ml-2">
+                      {auctionState?.status || "not_started"}
+                    </Badge>
                     {auctionState?.currentCategory && (
-                      <Badge 
+                      <Badge
                         className="ml-2 bg-gradient-to-r from-purple-500 to-orange-500 text-white border-0"
                         data-testid="admin-category-badge"
                       >
-                        {AUCTION_CATEGORIES[auctionState.currentCategory as AuctionCategory]} ({auctionState.currentCategory} pts)
+                        {
+                          AUCTION_CATEGORIES[
+                            auctionState.currentCategory as AuctionCategory
+                          ]
+                        }{" "}
+                        ({auctionState.currentCategory} pts)
                       </Badge>
                     )}
                   </CardDescription>
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="gap-2 text-destructive border-destructive/30" data-testid="button-reset-auction">
+                    <Button
+                      variant="outline"
+                      className="gap-2 text-destructive border-destructive/30"
+                      data-testid="button-reset-auction"
+                    >
                       <RotateCcw className="w-4 h-4" />
                       Reset Auction
                     </Button>
@@ -517,12 +720,17 @@ function AdminDashboard() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Reset Auction?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will clear all player assignments, restore all team budgets to full, and reset the auction to "not started" state. This action cannot be undone.
+                        This will clear all player assignments, restore all team
+                        budgets to full, and reset the auction to "not started"
+                        state. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => auctionResetMutation.mutate()} className="bg-destructive text-destructive-foreground">
+                      <AlertDialogAction
+                        onClick={() => auctionResetMutation.mutate()}
+                        className="bg-destructive text-destructive-foreground"
+                      >
                         Reset Auction
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -533,19 +741,37 @@ function AdminDashboard() {
                 {/* Category Selector for Manual Category Selection */}
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Label className="whitespace-nowrap">Select Category:</Label>
-                    <Select 
-                      value={auctionState?.currentCategory || "3000"} 
-                      onValueChange={(value) => auctionControlMutation.mutate({ action: "select_category", category: value })}
+                    <Label className="whitespace-nowrap">
+                      Select Category:
+                    </Label>
+                    <Select
+                      value={auctionState?.currentCategory || "3000"}
+                      onValueChange={(value) =>
+                        auctionControlMutation.mutate({
+                          action: "select_category",
+                          category: value,
+                        })
+                      }
                     >
-                      <SelectTrigger className="w-64" data-testid="select-auction-category">
+                      <SelectTrigger
+                        className="w-64"
+                        data-testid="select-auction-category"
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="3000">Jhakaas Superstars (3000 pts)</SelectItem>
-                        <SelectItem value="2500">Solid Performers (2500 pts)</SelectItem>
-                        <SelectItem value="2000">Promising Talent (2000 pts)</SelectItem>
-                        <SelectItem value="1500">Hidden Gems (1500 pts)</SelectItem>
+                        <SelectItem value="3000">
+                          Jhakaas Superstars (3000 pts)
+                        </SelectItem>
+                        <SelectItem value="2500">
+                          Solid Performers (2500 pts)
+                        </SelectItem>
+                        <SelectItem value="2000">
+                          Promising Talent (2000 pts)
+                        </SelectItem>
+                        <SelectItem value="1500">
+                          Hidden Gems (1500 pts)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -553,8 +779,13 @@ function AdminDashboard() {
 
                 <div className="flex flex-wrap gap-3">
                   {auctionState?.status === "not_started" && (
-                    <Button 
-                      onClick={() => auctionControlMutation.mutate({ action: "start", category: auctionState?.currentCategory || "3000" })} 
+                    <Button
+                      onClick={() =>
+                        auctionControlMutation.mutate({
+                          action: "start",
+                          category: auctionState?.currentCategory || "3000",
+                        })
+                      }
                       data-testid="button-start-auction"
                     >
                       <Play className="w-4 h-4 mr-2" />
@@ -562,27 +793,43 @@ function AdminDashboard() {
                     </Button>
                   )}
                   {auctionState?.status === "in_progress" && (
-                    <Button variant="outline" onClick={() => auctionControlMutation.mutate({ action: "pause" })}>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        auctionControlMutation.mutate({ action: "pause" })
+                      }
+                    >
                       Pause Auction
                     </Button>
                   )}
                   {auctionState?.status === "paused" && (
-                    <Button onClick={() => auctionControlMutation.mutate({ action: "resume" })}>
+                    <Button
+                      onClick={() =>
+                        auctionControlMutation.mutate({ action: "resume" })
+                      }
+                    >
                       Resume Auction
                     </Button>
                   )}
-                  {(auctionState?.status === "in_progress" || auctionState?.status === "paused") && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => auctionControlMutation.mutate({ action: "next", category: auctionState?.currentCategory || "3000" })}
+                  {(auctionState?.status === "in_progress" ||
+                    auctionState?.status === "paused") && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        auctionControlMutation.mutate({
+                          action: "next",
+                          category: auctionState?.currentCategory || "3000",
+                        })
+                      }
                     >
                       Next Player
                     </Button>
                   )}
-                  {(auctionState?.status === "in_progress" || auctionState?.status === "lost_gold_round") && (
-                    <Button 
-                      variant="secondary" 
-                      onClick={() => undoBidMutation.mutate()} 
+                  {(auctionState?.status === "in_progress" ||
+                    auctionState?.status === "lost_gold_round") && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => undoBidMutation.mutate()}
                       disabled={!auctionState?.bidHistory?.length}
                       data-testid="button-undo-bid"
                     >
@@ -590,16 +837,22 @@ function AdminDashboard() {
                       Undo Last Bid
                     </Button>
                   )}
-                  {auctionState?.status !== "not_started" && auctionState?.status !== "completed" && (
-                    <Button variant="destructive" onClick={() => auctionControlMutation.mutate({ action: "stop" })}>
-                      Stop Auction
-                    </Button>
-                  )}
+                  {auctionState?.status !== "not_started" &&
+                    auctionState?.status !== "completed" && (
+                      <Button
+                        variant="destructive"
+                        onClick={() =>
+                          auctionControlMutation.mutate({ action: "stop" })
+                        }
+                      >
+                        Stop Auction
+                      </Button>
+                    )}
                 </div>
 
                 <AnimatePresence mode="wait">
                   {currentPlayer && auctionState?.status === "in_progress" && (
-                    <motion.div 
+                    <motion.div
                       key={currentPlayer.id}
                       initial={{ opacity: 0, y: 50, scale: 0.9 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -610,39 +863,58 @@ function AdminDashboard() {
                       <div className="absolute inset-0 auction-spotlight rounded-xl" />
                       <div className="relative p-8 rounded-xl stadium-bg border border-white/10">
                         <div className="absolute top-4 right-4">
-                          <Badge variant="outline" className="bg-red-500/20 border-red-500 text-red-400 animate-pulse">
+                          <Badge
+                            variant="outline"
+                            className="bg-red-500/20 border-red-500 text-red-400 animate-pulse"
+                          >
                             <span className="w-2 h-2 bg-red-500 rounded-full mr-2 inline-block" />
                             LIVE
                           </Badge>
                         </div>
 
                         <div className="flex flex-col lg:flex-row items-center gap-8 mb-6">
-                          <motion.div 
+                          <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                            transition={{
+                              delay: 0.2,
+                              type: "spring",
+                              stiffness: 200,
+                            }}
                             className="relative"
                           >
                             <div className="absolute inset-0 rounded-full neon-purple opacity-60" />
                             <Avatar className="h-32 w-32 border-4 border-purple-500/50 relative z-10">
-                              <AvatarImage src={currentPlayer.photoUrl} alt={currentPlayer.name} className="object-cover" />
+                              <AvatarImage
+                                src={currentPlayer.photoUrl}
+                                alt={currentPlayer.name}
+                                className="object-cover"
+                              />
                               <AvatarFallback className="text-3xl font-display bg-gradient-to-br from-purple-600 to-orange-500">
                                 {currentPlayer.name.slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
                               <Badge className="bg-gradient-to-r from-purple-600 to-orange-500 border-0 text-white px-3">
-                                {currentPlayer.role === "batsman" && <Zap className="w-3 h-3 mr-1" />}
-                                {currentPlayer.role === "bowler" && <Target className="w-3 h-3 mr-1" />}
-                                {currentPlayer.role === "all-rounder" && <Star className="w-3 h-3 mr-1" />}
-                                {currentPlayer.role === "wicket-keeper" && <Shield className="w-3 h-3 mr-1" />}
+                                {currentPlayer.role === "batsman" && (
+                                  <Zap className="w-3 h-3 mr-1" />
+                                )}
+                                {currentPlayer.role === "bowler" && (
+                                  <Target className="w-3 h-3 mr-1" />
+                                )}
+                                {currentPlayer.role === "all-rounder" && (
+                                  <Star className="w-3 h-3 mr-1" />
+                                )}
+                                {currentPlayer.role === "wicket-keeper" && (
+                                  <Shield className="w-3 h-3 mr-1" />
+                                )}
                                 {currentPlayer.role}
                               </Badge>
                             </div>
                           </motion.div>
 
                           <div className="text-center lg:text-left flex-1">
-                            <motion.h3 
+                            <motion.h3
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.3 }}
@@ -653,34 +925,48 @@ function AdminDashboard() {
                             <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-3">
                               <div className="flex items-center gap-2">
                                 <Zap className="w-4 h-4 text-orange-500" />
-                                <span className="text-sm text-orange-400">Batting: {currentPlayer.battingRating}/10</span>
+                                <span className="text-sm text-orange-400">
+                                  Batting: {currentPlayer.battingRating}/10
+                                </span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Target className="w-4 h-4 text-purple-500" />
-                                <span className="text-sm text-purple-400">Bowling: {currentPlayer.bowlingRating}/10</span>
+                                <span className="text-sm text-purple-400">
+                                  Bowling: {currentPlayer.bowlingRating}/10
+                                </span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <Award className="w-4 h-4 text-emerald-500" />
-                                <span className="text-sm text-emerald-400">Fielding: {currentPlayer.fieldingRating}/10</span>
+                                <span className="text-sm text-emerald-400">
+                                  Fielding: {currentPlayer.fieldingRating}/10
+                                </span>
                               </div>
                             </div>
                           </div>
 
-                          <motion.div 
-                            key={auctionState.currentBid || currentPlayer.basePoints}
+                          <motion.div
+                            key={
+                              auctionState.currentBid ||
+                              currentPlayer.basePoints
+                            }
                             initial={{ scale: 1.2 }}
                             animate={{ scale: 1 }}
                             className="text-center"
                           >
-                            <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">Current Bid</p>
-                            <motion.p 
+                            <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">
+                              Current Bid
+                            </p>
+                            <motion.p
                               key={auctionState.currentBid}
                               initial={{ scale: 1.3, color: "#ffd60a" }}
                               animate={{ scale: 1, color: "#ff6b35" }}
                               transition={{ duration: 0.3 }}
                               className="font-display text-6xl text-glow-gold"
                             >
-                              {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
+                              {(
+                                auctionState.currentBid ||
+                                currentPlayer.basePoints
+                              ).toLocaleString()}
                             </motion.p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Base: {currentPlayer.basePoints.toLocaleString()}
@@ -690,14 +976,14 @@ function AdminDashboard() {
 
                         <AnimatePresence>
                           {currentBiddingTeam && (
-                            <motion.div 
+                            <motion.div
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
                               className="mb-6 p-4 rounded-lg flex items-center justify-center gap-4"
-                              style={{ 
+                              style={{
                                 background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}30 0%, ${currentBiddingTeam.secondaryColor}30 100%)`,
-                                borderLeft: `4px solid ${currentBiddingTeam.primaryColor}`
+                                borderLeft: `4px solid ${currentBiddingTeam.primaryColor}`,
                               }}
                             >
                               <TrendingUp className="w-5 h-5 text-emerald-400" />
@@ -710,8 +996,16 @@ function AdminDashboard() {
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                           {teams?.map((team, index) => {
-                            const canBid = team.remainingBudget >= (auctionState.currentBid || currentPlayer.basePoints) + getBidIncrement(auctionState.currentBid || currentPlayer.basePoints);
-                            const isLeading = currentBiddingTeam?.id === team.id;
+                            const canBid =
+                              team.remainingBudget >=
+                              (auctionState.currentBid ||
+                                currentPlayer.basePoints) +
+                                getBidIncrement(
+                                  auctionState.currentBid ||
+                                    currentPlayer.basePoints,
+                                );
+                            const isLeading =
+                              currentBiddingTeam?.id === team.id;
                             return (
                               <motion.div
                                 key={team.id}
@@ -722,24 +1016,32 @@ function AdminDashboard() {
                                 <Button
                                   variant="outline"
                                   disabled={!canBid || isLeading}
-                                  onClick={() => placeBidMutation.mutate(team.id)}
+                                  onClick={() =>
+                                    placeBidMutation.mutate(team.id)
+                                  }
                                   className={cn(
                                     "w-full flex-col h-auto py-3 transition-all",
-                                    isLeading && "neon-gold animate-pulse-glow"
+                                    isLeading && "neon-gold animate-pulse-glow",
                                   )}
-                                  style={{ 
+                                  style={{
                                     borderColor: team.primaryColor,
-                                    background: isLeading ? `${team.primaryColor}30` : 'transparent'
+                                    background: isLeading
+                                      ? `${team.primaryColor}30`
+                                      : "transparent",
                                   }}
                                   data-testid={`button-bid-${team.id}`}
                                 >
-                                  <span 
+                                  <span
                                     className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-display mb-2"
-                                    style={{ backgroundColor: team.primaryColor }}
+                                    style={{
+                                      backgroundColor: team.primaryColor,
+                                    }}
                                   >
                                     {team.shortName}
                                   </span>
-                                  <span className="text-xs text-muted-foreground">{team.remainingBudget.toLocaleString()}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {team.remainingBudget.toLocaleString()}
+                                  </span>
                                 </Button>
                               </motion.div>
                             );
@@ -747,7 +1049,7 @@ function AdminDashboard() {
                         </div>
 
                         <div className="flex gap-4 mt-8">
-                          <Button 
+                          <Button
                             className="flex-1 h-14 text-lg font-display bg-gradient-to-r from-emerald-600 to-emerald-500 neon-gold"
                             onClick={() => sellPlayerMutation.mutate()}
                             disabled={!currentBiddingTeam}
@@ -756,8 +1058,8 @@ function AdminDashboard() {
                             <Check className="w-5 h-5 mr-2" />
                             SOLD!
                           </Button>
-                          <Button 
-                            variant="destructive" 
+                          <Button
+                            variant="destructive"
                             className="flex-1 h-14 text-lg font-display"
                             onClick={() => unsoldPlayerMutation.mutate()}
                             data-testid="button-unsold"
@@ -776,8 +1078,12 @@ function AdminDashboard() {
 
           <TabsContent value="teams" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Teams ({teams?.length || 0}/12)</h2>
-              <CreateTeamDialog onSubmit={(data) => createTeamMutation.mutate(data)} />
+              <h2 className="text-xl font-semibold">
+                Teams ({teams?.length || 0}/12)
+              </h2>
+              <CreateTeamDialog
+                onSubmit={(data) => createTeamMutation.mutate(data)}
+              />
             </div>
 
             {teamsLoading ? (
@@ -789,15 +1095,20 @@ function AdminDashboard() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {teams?.map((team) => {
-                  const teamPlayers = players?.filter(p => p.teamId === team.id) || [];
+                  const teamPlayers =
+                    players?.filter((p) => p.teamId === team.id) || [];
                   return (
                     <Card key={team.id} data-testid={`admin-team-${team.id}`}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3 mb-3">
                           {team.logoUrl ? (
-                            <img src={team.logoUrl} alt={team.name} className="w-12 h-12 rounded-md object-cover" />
+                            <img
+                              src={team.logoUrl}
+                              alt={team.name}
+                              className="w-12 h-12 rounded-md object-cover"
+                            />
                           ) : (
-                            <div 
+                            <div
                               className="w-12 h-12 rounded-md flex items-center justify-center text-white font-display"
                               style={{ backgroundColor: team.primaryColor }}
                             >
@@ -807,69 +1118,138 @@ function AdminDashboard() {
                           <div className="flex-1">
                             <h3 className="font-medium">{team.name}</h3>
                             <p className="text-sm text-muted-foreground">
-                              Budget: {team.remainingBudget.toLocaleString()} / {team.budget.toLocaleString()}
+                              Budget: {team.remainingBudget.toLocaleString()} /{" "}
+                              {team.budget.toLocaleString()}
                             </p>
                           </div>
-                          <EditTeamDialog team={team} onSubmit={(data) => updateTeamMutation.mutate({ id: team.id, ...data })} />
+                          <EditTeamDialog
+                            team={team}
+                            onSubmit={(data) =>
+                              updateTeamMutation.mutate({
+                                id: team.id,
+                                ...data,
+                              })
+                            }
+                          />
                         </div>
                         {team.groupName && (
-                          <Badge variant="outline" className="mb-2">Group {team.groupName}</Badge>
+                          <Badge variant="outline" className="mb-2">
+                            Group {team.groupName}
+                          </Badge>
                         )}
                         {teamPlayers.length > 0 && (
                           <div className="mt-2 pt-2 border-t">
-                            <p className="text-xs text-muted-foreground mb-2">Players ({teamPlayers.length})</p>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Players ({teamPlayers.length})
+                            </p>
                             <div className="space-y-2">
-                              {teamPlayers.map(p => (
-                                <div key={p.id} className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded-md">
+                              {teamPlayers.map((p) => (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded-md"
+                                >
                                   <div className="flex items-center gap-2 flex-1 min-w-0">
                                     <Avatar className="w-6 h-6">
                                       <AvatarImage src={p.photoUrl} />
-                                      <AvatarFallback className="text-xs">{p.name.slice(0,2).toUpperCase()}</AvatarFallback>
+                                      <AvatarFallback className="text-xs">
+                                        {p.name.slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
                                     </Avatar>
-                                    <span className="text-sm truncate">{p.name}</span>
-                                    <Badge variant="outline" className="text-xs shrink-0">{p.soldPrice?.toLocaleString() || p.basePoints}</Badge>
+                                    <span className="text-sm truncate">
+                                      {p.name}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs shrink-0"
+                                    >
+                                      {p.soldPrice?.toLocaleString() ||
+                                        p.basePoints}
+                                    </Badge>
                                   </div>
                                   <Dialog>
                                     <DialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" data-testid={`button-reassign-${p.id}`}>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 shrink-0"
+                                        data-testid={`button-reassign-${p.id}`}
+                                      >
                                         <TrendingUp className="w-3 h-3" />
                                       </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                       <DialogHeader>
-                                        <DialogTitle>Reassign {p.name}</DialogTitle>
+                                        <DialogTitle>
+                                          Reassign {p.name}
+                                        </DialogTitle>
                                         <DialogDescription>
-                                          Move this player to another team. Budget will be transferred accordingly.
-                                          Player price: {(p.soldPrice || p.basePoints).toLocaleString()} pts
+                                          Move this player to another team.
+                                          Budget will be transferred
+                                          accordingly. Player price:{" "}
+                                          {(
+                                            p.soldPrice || p.basePoints
+                                          ).toLocaleString()}{" "}
+                                          pts
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="grid grid-cols-2 gap-2 mt-4">
-                                        {teams?.filter(t => t.id !== team.id).map(otherTeam => {
-                                          const canAfford = otherTeam.remainingBudget >= (p.soldPrice || p.basePoints);
-                                          return (
-                                            <Button
-                                              key={otherTeam.id}
-                                              variant={canAfford ? "outline" : "ghost"}
-                                              disabled={!canAfford || reassignPlayerMutation.isPending}
-                                              className="justify-start gap-2"
-                                              onClick={() => reassignPlayerMutation.mutate({ playerId: p.id, newTeamId: otherTeam.id })}
-                                              data-testid={`button-reassign-to-${otherTeam.id}`}
-                                            >
-                                              <div 
-                                                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
-                                                style={{ backgroundColor: otherTeam.primaryColor }}
+                                        {teams
+                                          ?.filter((t) => t.id !== team.id)
+                                          .map((otherTeam) => {
+                                            const canAfford =
+                                              otherTeam.remainingBudget >=
+                                              (p.soldPrice || p.basePoints);
+                                            return (
+                                              <Button
+                                                key={otherTeam.id}
+                                                variant={
+                                                  canAfford
+                                                    ? "outline"
+                                                    : "ghost"
+                                                }
+                                                disabled={
+                                                  !canAfford ||
+                                                  reassignPlayerMutation.isPending
+                                                }
+                                                className="justify-start gap-2"
+                                                onClick={() =>
+                                                  reassignPlayerMutation.mutate(
+                                                    {
+                                                      playerId: p.id,
+                                                      newTeamId: otherTeam.id,
+                                                    },
+                                                  )
+                                                }
+                                                data-testid={`button-reassign-to-${otherTeam.id}`}
                                               >
-                                                {otherTeam.shortName}
-                                              </div>
-                                              <div className="text-left flex-1 min-w-0">
-                                                <p className="text-xs truncate">{otherTeam.name}</p>
-                                                <p className={cn("text-xs", canAfford ? "text-muted-foreground" : "text-destructive")}>
-                                                  {otherTeam.remainingBudget.toLocaleString()} pts
-                                                </p>
-                                              </div>
-                                            </Button>
-                                          );
-                                        })}
+                                                <div
+                                                  className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
+                                                  style={{
+                                                    backgroundColor:
+                                                      otherTeam.primaryColor,
+                                                  }}
+                                                >
+                                                  {otherTeam.shortName}
+                                                </div>
+                                                <div className="text-left flex-1 min-w-0">
+                                                  <p className="text-xs truncate">
+                                                    {otherTeam.name}
+                                                  </p>
+                                                  <p
+                                                    className={cn(
+                                                      "text-xs",
+                                                      canAfford
+                                                        ? "text-muted-foreground"
+                                                        : "text-destructive",
+                                                    )}
+                                                  >
+                                                    {otherTeam.remainingBudget.toLocaleString()}{" "}
+                                                    pts
+                                                  </p>
+                                                </div>
+                                              </Button>
+                                            );
+                                          })}
                                       </div>
                                     </DialogContent>
                                   </Dialog>
@@ -894,14 +1274,21 @@ function AdminDashboard() {
                   Team Group Assignment
                 </CardTitle>
                 <CardDescription>
-                  Assign teams to 4 groups (3 teams each). Click (+) to add a team, (X) to remove. Top team from each group advances to Semi-Finals.
+                  Assign teams to 4 groups (3 teams each). Click (+) to add a
+                  team, (X) to remove. Top team from each group advances to
+                  Semi-Finals.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {(() => {
-                  const unassignedTeams = teams?.filter(t => !t.groupName) || [];
-                  const allGroupsFull = ["A", "B", "C", "D"].every(g => (teams?.filter(t => t.groupName === g) || []).length >= 3);
-                  
+                  const unassignedTeams =
+                    teams?.filter((t) => !t.groupName) || [];
+                  const allGroupsFull = ["A", "B", "C", "D"].every(
+                    (g) =>
+                      (teams?.filter((t) => t.groupName === g) || []).length >=
+                      3,
+                  );
+
                   return (
                     <>
                       <div className="flex flex-wrap items-center gap-3">
@@ -913,94 +1300,135 @@ function AdminDashboard() {
                             All Groups Complete
                           </Badge>
                         )}
-                        <Button 
+                        <Button
                           variant="outline"
                           onClick={() => generateFixturesMutation.mutate()}
-                          disabled={generateFixturesMutation.isPending || !allGroupsFull}
+                          disabled={
+                            generateFixturesMutation.isPending || !allGroupsFull
+                          }
                           data-testid="button-generate-fixtures"
                         >
-                          {generateFixturesMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          {generateFixturesMutation.isPending && (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          )}
                           Generate Group Fixtures
                         </Button>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {["A", "B", "C", "D"].map((groupName) => {
-                          const groupTeams = teams?.filter(t => t.groupName === groupName) || [];
+                          const groupTeams =
+                            teams?.filter((t) => t.groupName === groupName) ||
+                            [];
                           const slotsNeeded = 3 - groupTeams.length;
-                          
+
                           return (
                             <Card key={groupName} className="bg-muted/30">
                               <CardHeader className="pb-2">
                                 <div className="flex items-center justify-between">
-                                  <CardTitle className="text-lg">Group {groupName}</CardTitle>
-                                  <Badge variant={groupTeams.length >= 3 ? "default" : "secondary"} className="text-xs">
+                                  <CardTitle className="text-lg">
+                                    Group {groupName}
+                                  </CardTitle>
+                                  <Badge
+                                    variant={
+                                      groupTeams.length >= 3
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className="text-xs"
+                                  >
                                     {groupTeams.length}/3
                                   </Badge>
                                 </div>
                               </CardHeader>
                               <CardContent className="space-y-2">
                                 {groupTeams.map((team, index) => (
-                                  <div key={team.id} className="flex items-center gap-2 p-2 rounded-md bg-card" data-testid={`group-team-${team.id}`}>
-                                    <span className="text-sm font-medium text-muted-foreground w-4">{index + 1}.</span>
-                                    <div 
+                                  <div
+                                    key={team.id}
+                                    className="flex items-center gap-2 p-2 rounded-md bg-card"
+                                    data-testid={`group-team-${team.id}`}
+                                  >
+                                    <span className="text-sm font-medium text-muted-foreground w-4">
+                                      {index + 1}.
+                                    </span>
+                                    <div
                                       className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
-                                      style={{ backgroundColor: team.primaryColor }}
+                                      style={{
+                                        backgroundColor: team.primaryColor,
+                                      }}
                                     >
                                       {team.shortName}
                                     </div>
-                                    <span className="text-sm truncate flex-1">{team.name}</span>
+                                    <span className="text-sm truncate flex-1">
+                                      {team.name}
+                                    </span>
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={() => updateTeamMutation.mutate({ id: team.id, groupName: null as unknown as string })}
+                                      onClick={() =>
+                                        updateTeamMutation.mutate({
+                                          id: team.id,
+                                          groupName: null as unknown as string,
+                                        })
+                                      }
                                       data-testid={`button-remove-team-${team.id}`}
                                     >
                                       <X className="h-4 w-4" />
                                     </Button>
                                   </div>
                                 ))}
-                                
-                                {Array.from({ length: slotsNeeded }).map((_, slotIndex) => (
-                                  <Select
-                                    key={`slot-${groupName}-${slotIndex}`}
-                                    onValueChange={(teamId) => {
-                                      updateTeamMutation.mutate({ id: teamId, groupName });
-                                    }}
-                                  >
-                                    <SelectTrigger 
-                                      className="w-full border-dashed border-2 bg-transparent hover:bg-muted/50"
-                                      data-testid={`select-team-group-${groupName}-${slotIndex}`}
+
+                                {Array.from({ length: slotsNeeded }).map(
+                                  (_, slotIndex) => (
+                                    <Select
+                                      key={`slot-${groupName}-${slotIndex}`}
+                                      onValueChange={(teamId) => {
+                                        updateTeamMutation.mutate({
+                                          id: teamId,
+                                          groupName,
+                                        });
+                                      }}
                                     >
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Plus className="h-4 w-4" />
-                                        <span>Add Team</span>
-                                      </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {unassignedTeams.length > 0 ? (
-                                        unassignedTeams.map((team) => (
-                                          <SelectItem key={team.id} value={team.id}>
-                                            <div className="flex items-center gap-2">
-                                              <div 
-                                                className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display"
-                                                style={{ backgroundColor: team.primaryColor }}
-                                              >
-                                                {team.shortName}
-                                              </div>
-                                              <span>{team.name}</span>
-                                            </div>
-                                          </SelectItem>
-                                        ))
-                                      ) : (
-                                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                                          No teams available
+                                      <SelectTrigger
+                                        className="w-full border-dashed border-2 bg-transparent hover:bg-muted/50"
+                                        data-testid={`select-team-group-${groupName}-${slotIndex}`}
+                                      >
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                          <Plus className="h-4 w-4" />
+                                          <span>Add Team</span>
                                         </div>
-                                      )}
-                                    </SelectContent>
-                                  </Select>
-                                ))}
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {unassignedTeams.length > 0 ? (
+                                          unassignedTeams.map((team) => (
+                                            <SelectItem
+                                              key={team.id}
+                                              value={team.id}
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                <div
+                                                  className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display"
+                                                  style={{
+                                                    backgroundColor:
+                                                      team.primaryColor,
+                                                  }}
+                                                >
+                                                  {team.shortName}
+                                                </div>
+                                                <span>{team.name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))
+                                        ) : (
+                                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                                            No teams available
+                                          </div>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                  ),
+                                )}
                               </CardContent>
                             </Card>
                           );
@@ -1017,21 +1445,37 @@ function AdminDashboard() {
                   <CardContent>
                     <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
                       <div className="flex-1 p-4 rounded-md bg-card">
-                        <p className="text-xs text-muted-foreground mb-1">GROUP STAGE</p>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          GROUP STAGE
+                        </p>
                         <p className="font-display text-2xl">12 Matches</p>
-                        <p className="text-sm text-muted-foreground">Each team plays 2 matches</p>
+                        <p className="text-sm text-muted-foreground">
+                          Each team plays 2 matches
+                        </p>
                       </div>
-                      <div className="text-2xl text-muted-foreground hidden md:block">&rarr;</div>
+                      <div className="text-2xl text-muted-foreground hidden md:block">
+                        &rarr;
+                      </div>
                       <div className="flex-1 p-4 rounded-md bg-card">
-                        <p className="text-xs text-muted-foreground mb-1">SEMI-FINALS</p>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          SEMI-FINALS
+                        </p>
                         <p className="font-display text-2xl">2 Matches</p>
-                        <p className="text-sm text-muted-foreground">Top team from each group</p>
+                        <p className="text-sm text-muted-foreground">
+                          Top team from each group
+                        </p>
                       </div>
-                      <div className="text-2xl text-muted-foreground hidden md:block">&rarr;</div>
+                      <div className="text-2xl text-muted-foreground hidden md:block">
+                        &rarr;
+                      </div>
                       <div className="flex-1 p-4 rounded-md bg-primary/10 border border-primary/20">
                         <p className="text-xs text-primary mb-1">FINAL</p>
-                        <p className="font-display text-2xl text-primary">1 Match</p>
-                        <p className="text-sm text-muted-foreground">Semi-final winners</p>
+                        <p className="font-display text-2xl text-primary">
+                          1 Match
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Semi-final winners
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -1041,7 +1485,9 @@ function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="players" className="space-y-6">
-            <h2 className="text-xl font-semibold">Registered Players ({players?.length || 0})</h2>
+            <h2 className="text-xl font-semibold">
+              Registered Players ({players?.length || 0})
+            </h2>
 
             {playersLoading ? (
               <div className="space-y-2">
@@ -1053,43 +1499,73 @@ function AdminDashboard() {
               <ScrollArea className="h-[600px]">
                 <div className="space-y-2 pr-4">
                   {players?.map((player) => (
-                    <Card key={player.id} data-testid={`admin-player-${player.id}`}>
+                    <Card
+                      key={player.id}
+                      data-testid={`admin-player-${player.id}`}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
-                            <AvatarImage src={player.photoUrl} alt={player.name} />
-                            <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarImage
+                              src={player.photoUrl}
+                              alt={player.name}
+                            />
+                            <AvatarFallback>
+                              {player.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium truncate">{player.name}</span>
-                              <Badge variant="outline" className="shrink-0">{player.role}</Badge>
-                              <Badge 
+                              <span className="font-medium truncate">
+                                {player.name}
+                              </span>
+                              <Badge variant="outline" className="shrink-0">
+                                {player.role}
+                              </Badge>
+                              <Badge
                                 className={cn(
                                   "shrink-0",
-                                  player.status === "sold" && "bg-emerald-500/20 text-emerald-600",
-                                  player.status === "unsold" && "bg-destructive/20 text-destructive",
-                                  player.status === "lost_gold" && "bg-amber-500/20 text-amber-600"
+                                  player.status === "sold" &&
+                                    "bg-emerald-500/20 text-emerald-600",
+                                  player.status === "unsold" &&
+                                    "bg-destructive/20 text-destructive",
+                                  player.status === "lost_gold" &&
+                                    "bg-amber-500/20 text-amber-600",
                                 )}
                               >
                                 {player.status}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                              <span className="text-orange-500">Bat: {player.battingRating}</span>
-                              <span className="text-purple-500">Bowl: {player.bowlingRating}</span>
-                              <span className="text-emerald-500">Field: {player.fieldingRating}</span>
+                              <span className="text-orange-500">
+                                Bat: {player.battingRating}
+                              </span>
+                              <span className="text-purple-500">
+                                Bowl: {player.bowlingRating}
+                              </span>
+                              <span className="text-emerald-500">
+                                Field: {player.fieldingRating}
+                              </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="text-right">
-                              <p className="text-xs text-muted-foreground">Base Points</p>
-                              <p className="font-display text-xl">{player.basePoints.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Base Points
+                              </p>
+                              <p className="font-display text-xl">
+                                {player.basePoints.toLocaleString()}
+                              </p>
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => updatePlayerMutation.mutate({ id: player.id, isLocked: !player.isLocked })}
+                              onClick={() =>
+                                updatePlayerMutation.mutate({
+                                  id: player.id,
+                                  isLocked: !player.isLocked,
+                                })
+                              }
                               data-testid={`button-lock-${player.id}`}
                             >
                               {player.isLocked ? (
@@ -1112,29 +1588,45 @@ function AdminDashboard() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold">Match Scoring</h2>
-                <p className="text-sm text-muted-foreground">Matches are auto-generated when groups are assigned in Tournament tab</p>
+                <p className="text-sm text-muted-foreground">
+                  Matches are auto-generated when groups are assigned in
+                  Tournament tab
+                </p>
               </div>
             </div>
 
             {liveMatch ? (
-              <LiveScoringPanel 
-                match={liveMatch} 
-                teams={teams || []} 
+              <LiveScoringPanel
+                match={liveMatch}
+                teams={teams || []}
                 players={players || []}
-                onRecordBall={(data) => recordBallMutation.mutate({ matchId: liveMatch.id, ...data })}
+                onRecordBall={(data) =>
+                  recordBallMutation.mutate({ matchId: liveMatch.id, ...data })
+                }
                 isRecording={recordBallMutation.isPending}
-                onSetPowerOver={(overNumber) => setPowerOverMutation.mutate({ 
-                  matchId: liveMatch.id, 
-                  overNumber, 
-                  innings: liveMatch.currentInnings ?? 1 
-                })}
-                onSetBatsmen={(strikerId, nonStrikerId) => setBatsmenMutation.mutate({ 
-                  matchId: liveMatch.id, 
-                  strikerId, 
-                  nonStrikerId 
-                })}
-                onSetBowler={(bowlerId) => setBowlerMutation.mutate({ matchId: liveMatch.id, bowlerId })}
-                onNewBatsman={(batsmanId) => newBatsmanMutation.mutate({ matchId: liveMatch.id, batsmanId })}
+                onSetPowerOver={(overNumber) =>
+                  setPowerOverMutation.mutate({
+                    matchId: liveMatch.id,
+                    overNumber,
+                    innings: liveMatch.currentInnings ?? 1,
+                  })
+                }
+                onSetBatsmen={(strikerId, nonStrikerId) =>
+                  setBatsmenMutation.mutate({
+                    matchId: liveMatch.id,
+                    strikerId,
+                    nonStrikerId,
+                  })
+                }
+                onSetBowler={(bowlerId) =>
+                  setBowlerMutation.mutate({ matchId: liveMatch.id, bowlerId })
+                }
+                onNewBatsman={(batsmanId) =>
+                  newBatsmanMutation.mutate({
+                    matchId: liveMatch.id,
+                    batsmanId,
+                  })
+                }
                 onUndoBall={() => undoBallMutation.mutate(liveMatch.id)}
                 onResetMatch={() => resetMatchMutation.mutate(liveMatch.id)}
                 isUndoing={undoBallMutation.isPending}
@@ -1154,25 +1646,39 @@ function AdminDashboard() {
 
             <div className="space-y-4">
               <h3 className="font-semibold">Scheduled Matches</h3>
-              {matches?.filter(m => m.status === "scheduled").map((match) => {
-                const team1 = teams?.find(t => t.id === match.team1Id);
-                const team2 = teams?.find(t => t.id === match.team2Id);
-                return (
-                  <Card key={match.id} data-testid={`admin-match-${match.id}`}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">#{match.matchNumber}</span>
-                        <span className="font-medium">{team1?.shortName} vs {team2?.shortName}</span>
-                      </div>
-                      <StartMatchDialog
-                        match={match}
-                        teams={teams || []}
-                        onStart={(data) => startMatchMutation.mutate({ matchId: match.id, ...data })}
-                      />
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              {matches
+                ?.filter((m) => m.status === "scheduled")
+                .map((match) => {
+                  const team1 = teams?.find((t) => t.id === match.team1Id);
+                  const team2 = teams?.find((t) => t.id === match.team2Id);
+                  return (
+                    <Card
+                      key={match.id}
+                      data-testid={`admin-match-${match.id}`}
+                    >
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-muted-foreground">
+                            #{match.matchNumber}
+                          </span>
+                          <span className="font-medium">
+                            {team1?.shortName} vs {team2?.shortName}
+                          </span>
+                        </div>
+                        <StartMatchDialog
+                          match={match}
+                          teams={teams || []}
+                          onStart={(data) =>
+                            startMatchMutation.mutate({
+                              matchId: match.id,
+                              ...data,
+                            })
+                          }
+                        />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           </TabsContent>
 
@@ -1185,12 +1691,19 @@ function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
-
     </div>
   );
 }
 
-function CreateTeamDialog({ onSubmit }: { onSubmit: (data: { name: string; shortName: string; primaryColor: string }) => void }) {
+function CreateTeamDialog({
+  onSubmit,
+}: {
+  onSubmit: (data: {
+    name: string;
+    shortName: string;
+    primaryColor: string;
+  }) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
@@ -1219,22 +1732,49 @@ function CreateTeamDialog({ onSubmit }: { onSubmit: (data: { name: string; short
         <div className="space-y-4">
           <div>
             <Label>Team Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Mumbai Indians" data-testid="input-team-name" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Mumbai Indians"
+              data-testid="input-team-name"
+            />
           </div>
           <div>
             <Label>Short Name</Label>
-            <Input value={shortName} onChange={(e) => setShortName(e.target.value.toUpperCase().slice(0, 3))} placeholder="MI" maxLength={3} data-testid="input-team-short" />
+            <Input
+              value={shortName}
+              onChange={(e) =>
+                setShortName(e.target.value.toUpperCase().slice(0, 3))
+              }
+              placeholder="MI"
+              maxLength={3}
+              data-testid="input-team-short"
+            />
           </div>
           <div>
             <Label>Primary Color</Label>
             <div className="flex gap-2">
-              <Input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-16 h-10 p-1" data-testid="input-team-color" />
-              <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} placeholder="#6366f1" />
+              <Input
+                type="color"
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                className="w-16 h-10 p-1"
+                data-testid="input-team-color"
+              />
+              <Input
+                value={primaryColor}
+                onChange={(e) => setPrimaryColor(e.target.value)}
+                placeholder="#6366f1"
+              />
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={!name || !shortName} data-testid="button-submit-team">
+          <Button
+            onClick={handleSubmit}
+            disabled={!name || !shortName}
+            data-testid="button-submit-team"
+          >
             Create Team
           </Button>
         </DialogFooter>
@@ -1243,7 +1783,19 @@ function CreateTeamDialog({ onSubmit }: { onSubmit: (data: { name: string; short
   );
 }
 
-function EditTeamDialog({ team, onSubmit }: { team: Team; onSubmit: (data: { name?: string; shortName?: string; primaryColor?: string; secondaryColor?: string; logoUrl?: string }) => void }) {
+function EditTeamDialog({
+  team,
+  onSubmit,
+}: {
+  team: Team;
+  onSubmit: (data: {
+    name?: string;
+    shortName?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+  }) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(team.name);
   const [shortName, setShortName] = useState(team.shortName);
@@ -1263,14 +1815,24 @@ function EditTeamDialog({ team, onSubmit }: { team: Team; onSubmit: (data: { nam
   };
 
   const handleSubmit = () => {
-    onSubmit({ name, shortName, primaryColor, secondaryColor, logoUrl: logoUrl || undefined });
+    onSubmit({
+      name,
+      shortName,
+      primaryColor,
+      secondaryColor,
+      logoUrl: logoUrl || undefined,
+    });
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" data-testid={`button-edit-team-${team.id}`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          data-testid={`button-edit-team-${team.id}`}
+        >
           <Edit className="w-4 h-4" />
         </Button>
       </DialogTrigger>
@@ -1283,9 +1845,13 @@ function EditTeamDialog({ team, onSubmit }: { team: Team; onSubmit: (data: { nam
             <Label>Team Logo</Label>
             <div className="flex items-center gap-4 mt-2">
               {logoUrl ? (
-                <img src={logoUrl} alt="Logo preview" className="w-16 h-16 rounded-md object-cover" />
+                <img
+                  src={logoUrl}
+                  alt="Logo preview"
+                  className="w-16 h-16 rounded-md object-cover"
+                />
               ) : (
-                <div 
+                <div
                   className="w-16 h-16 rounded-md flex items-center justify-center text-white font-display"
                   style={{ backgroundColor: primaryColor }}
                 >
@@ -1293,39 +1859,81 @@ function EditTeamDialog({ team, onSubmit }: { team: Team; onSubmit: (data: { nam
                 </div>
               )}
               <div className="flex-1">
-                <Input type="file" accept="image/*" onChange={handleLogoUpload} data-testid="input-team-logo" />
-                <p className="text-xs text-muted-foreground mt-1">Upload team logo (optional)</p>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  data-testid="input-team-logo"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Upload team logo (optional)
+                </p>
               </div>
             </div>
           </div>
           <div>
             <Label>Team Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} data-testid="input-edit-team-name" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="input-edit-team-name"
+            />
           </div>
           <div>
             <Label>Short Name</Label>
-            <Input value={shortName} onChange={(e) => setShortName(e.target.value.toUpperCase().slice(0, 3))} maxLength={3} data-testid="input-edit-team-short" />
+            <Input
+              value={shortName}
+              onChange={(e) =>
+                setShortName(e.target.value.toUpperCase().slice(0, 3))
+              }
+              maxLength={3}
+              data-testid="input-edit-team-short"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Primary Color</Label>
               <div className="flex gap-2">
-                <Input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-12 h-10 p-1" />
-                <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="flex-1" />
+                <Input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  className="w-12 h-10 p-1"
+                />
+                <Input
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  className="flex-1"
+                />
               </div>
             </div>
             <div>
               <Label>Secondary Color</Label>
               <div className="flex gap-2">
-                <Input type="color" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="w-12 h-10 p-1" />
-                <Input value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} className="flex-1" />
+                <Input
+                  type="color"
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  className="w-12 h-10 p-1"
+                />
+                <Input
+                  value={secondaryColor}
+                  onChange={(e) => setSecondaryColor(e.target.value)}
+                  className="flex-1"
+                />
               </div>
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!name || !shortName} data-testid="button-save-team">
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!name || !shortName}
+            data-testid="button-save-team"
+          >
             Save Changes
           </Button>
         </DialogFooter>
@@ -1334,14 +1942,21 @@ function EditTeamDialog({ team, onSubmit }: { team: Team; onSubmit: (data: { nam
   );
 }
 
-
-function StartMatchDialog({ match, teams, onStart }: { match: Match; teams: Team[]; onStart: (data: { tossWinnerId: string; tossDecision: string }) => void }) {
+function StartMatchDialog({
+  match,
+  teams,
+  onStart,
+}: {
+  match: Match;
+  teams: Team[];
+  onStart: (data: { tossWinnerId: string; tossDecision: string }) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [tossWinnerId, setTossWinnerId] = useState("");
   const [tossDecision, setTossDecision] = useState("");
 
-  const team1 = teams.find(t => t.id === match.team1Id);
-  const team2 = teams.find(t => t.id === match.team2Id);
+  const team1 = teams.find((t) => t.id === match.team1Id);
+  const team2 = teams.find((t) => t.id === match.team2Id);
 
   const handleSubmit = () => {
     onStart({ tossWinnerId, tossDecision });
@@ -1387,7 +2002,10 @@ function StartMatchDialog({ match, teams, onStart }: { match: Match; teams: Team
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={!tossWinnerId || !tossDecision}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!tossWinnerId || !tossDecision}
+          >
             Start Match
           </Button>
         </DialogFooter>
@@ -1396,8 +2014,8 @@ function StartMatchDialog({ match, teams, onStart }: { match: Match; teams: Team
   );
 }
 
-function LiveScoringPanel({ 
-  match, 
+function LiveScoringPanel({
+  match,
   teams,
   players,
   onRecordBall,
@@ -1409,12 +2027,19 @@ function LiveScoringPanel({
   onUndoBall,
   onResetMatch,
   isUndoing,
-  isResetting
-}: { 
-  match: Match; 
+  isResetting,
+}: {
+  match: Match;
   teams: Team[];
   players: Player[];
-  onRecordBall: (data: { runs: number; extraType?: string; isWicket?: boolean; wicketType?: string; dismissedPlayerId?: string; fielderId?: string }) => void;
+  onRecordBall: (data: {
+    runs: number;
+    extraType?: string;
+    isWicket?: boolean;
+    wicketType?: string;
+    dismissedPlayerId?: string;
+    fielderId?: string;
+  }) => void;
   isRecording: boolean;
   onSetPowerOver: (overNumber: number) => void;
   onSetBatsmen: (strikerId: string, nonStrikerId: string) => void;
@@ -1429,49 +2054,60 @@ function LiveScoringPanel({
   const [selectedNonStriker, setSelectedNonStriker] = useState<string>("");
   const [selectedBowler, setSelectedBowler] = useState<string>("");
   const [selectedNewBatsman, setSelectedNewBatsman] = useState<string>("");
-  const [selectedDismissedPlayer, setSelectedDismissedPlayer] = useState<string>("");
+  const [selectedDismissedPlayer, setSelectedDismissedPlayer] =
+    useState<string>("");
   const [showFielderDialog, setShowFielderDialog] = useState(false);
   const [pendingWicketType, setPendingWicketType] = useState<string>("");
   const [selectedFielder, setSelectedFielder] = useState<string>("");
-  const [selectedDismissedBatsman, setSelectedDismissedBatsman] = useState<string>("");
+  const [selectedDismissedBatsman, setSelectedDismissedBatsman] =
+    useState<string>("");
 
-  const team1 = teams.find(t => t.id === match.team1Id);
-  const team2 = teams.find(t => t.id === match.team2Id);
-  
+  const team1 = teams.find((t) => t.id === match.team1Id);
+  const team2 = teams.find((t) => t.id === match.team2Id);
+
   // Calculate current over number
-  const currentOvers = match.currentInnings === 1 ? match.team1Overs : match.team2Overs;
+  const currentOvers =
+    match.currentInnings === 1 ? match.team1Overs : match.team2Overs;
   const [overs, balls] = (currentOvers || "0.0").split(".").map(Number);
   const currentOverNumber = overs + 1;
-  
+
   // Check if power over is active for current innings
-  const isPowerOverActive = match.powerOverActive && match.powerOverInnings === match.currentInnings;
-  const isPowerOverNow = isPowerOverActive && match.powerOverNumber === currentOverNumber;
+  const isPowerOverActive =
+    match.powerOverActive && match.powerOverInnings === match.currentInnings;
+  const isPowerOverNow =
+    isPowerOverActive && match.powerOverNumber === currentOverNumber;
 
   // Get batting and bowling team players
-  const battingTeamId = match.currentInnings === 1 ? match.team1Id : match.team2Id;
-  const bowlingTeamId = match.currentInnings === 1 ? match.team2Id : match.team1Id;
-  const battingTeamPlayers = players.filter(p => p.teamId === battingTeamId);
-  const bowlingTeamPlayers = players.filter(p => p.teamId === bowlingTeamId);
+  const battingTeamId =
+    match.currentInnings === 1 ? match.team1Id : match.team2Id;
+  const bowlingTeamId =
+    match.currentInnings === 1 ? match.team2Id : match.team1Id;
+  const battingTeamPlayers = players.filter((p) => p.teamId === battingTeamId);
+  const bowlingTeamPlayers = players.filter((p) => p.teamId === bowlingTeamId);
 
   // Check current wickets for last-man-standing mode
-  const currentWickets = match.currentInnings === 1 ? match.team1Wickets : match.team2Wickets;
+  const currentWickets =
+    match.currentInnings === 1 ? match.team1Wickets : match.team2Wickets;
   const isLastManStanding = (currentWickets || 0) >= 7;
-  
+
   // Check if batsmen and bowler are set
   // In last-man-standing mode, we only need striker (no non-striker)
-  const hasBatsmen = isLastManStanding 
-    ? !!match.strikerId 
-    : (match.strikerId && match.nonStrikerId);
+  const hasBatsmen = isLastManStanding
+    ? !!match.strikerId
+    : match.strikerId && match.nonStrikerId;
   const hasBowler = match.currentBowlerId;
   // Need new batsman when one spot is empty but the other is filled (not in last-man-standing mode)
-  const needsNewBatsman = ((!match.strikerId && !!match.nonStrikerId) || (!!match.strikerId && !match.nonStrikerId)) && !isLastManStanding;
+  const needsNewBatsman =
+    ((!match.strikerId && !!match.nonStrikerId) ||
+      (!!match.strikerId && !match.nonStrikerId)) &&
+    !isLastManStanding;
   const needsNewBowler = !match.currentBowlerId;
   const isEndOfOver = balls === 0 && overs > 0;
   const canScore = hasBatsmen && hasBowler;
 
   const getPlayerName = (playerId: string | null | undefined) => {
     if (!playerId) return "Not selected";
-    const player = players.find(p => p.id === playerId);
+    const player = players.find((p) => p.id === playerId);
     return player?.name || "Unknown";
   };
 
@@ -1489,26 +2125,34 @@ function LiveScoringPanel({
       setPendingWicketType(type);
       setSelectedFielder("");
       // For run outs, allow selecting which batsman was dismissed
-      setSelectedDismissedBatsman(type === "run_out" ? "" : (match.strikerId || ""));
+      setSelectedDismissedBatsman(
+        type === "run_out" ? "" : match.strikerId || "",
+      );
       setShowFielderDialog(true);
     } else {
       // For bowled, lbw - no fielder needed, striker is always dismissed
-      onRecordBall({ runs: 0, isWicket: true, wicketType: type, dismissedPlayerId: match.strikerId || undefined });
+      onRecordBall({
+        runs: 0,
+        isWicket: true,
+        wicketType: type,
+        dismissedPlayerId: match.strikerId || undefined,
+      });
     }
   };
 
   const confirmWicketWithFielder = () => {
     // For run outs, use the selected batsman; otherwise default to striker
-    const dismissedId = pendingWicketType === "run_out" 
-      ? (selectedDismissedBatsman || match.strikerId || undefined)
-      : (match.strikerId || undefined);
-    
-    onRecordBall({ 
-      runs: 0, 
-      isWicket: true, 
-      wicketType: pendingWicketType, 
+    const dismissedId =
+      pendingWicketType === "run_out"
+        ? selectedDismissedBatsman || match.strikerId || undefined
+        : match.strikerId || undefined;
+
+    onRecordBall({
+      runs: 0,
+      isWicket: true,
+      wicketType: pendingWicketType,
       dismissedPlayerId: dismissedId,
-      fielderId: selectedFielder || undefined
+      fielderId: selectedFielder || undefined,
     });
     setShowFielderDialog(false);
     setPendingWicketType("");
@@ -1520,7 +2164,9 @@ function LiveScoringPanel({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Live: {team1?.shortName} vs {team2?.shortName}</span>
+          <span>
+            Live: {team1?.shortName} vs {team2?.shortName}
+          </span>
           <div className="flex items-center gap-2">
             {isPowerOverNow && (
               <Badge className="bg-amber-500/20 text-amber-500 animate-pulse gap-1">
@@ -1538,17 +2184,25 @@ function LiveScoringPanel({
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-md">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">{team1?.shortName}</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              {team1?.shortName}
+            </p>
             <p className="font-display text-4xl">
               {match.team1Score}/{match.team1Wickets}
-              <span className="text-lg text-muted-foreground ml-2">({match.team1Overs})</span>
+              <span className="text-lg text-muted-foreground ml-2">
+                ({match.team1Overs})
+              </span>
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground mb-1">{team2?.shortName}</p>
+            <p className="text-sm text-muted-foreground mb-1">
+              {team2?.shortName}
+            </p>
             <p className="font-display text-4xl">
               {match.team2Score}/{match.team2Wickets}
-              <span className="text-lg text-muted-foreground ml-2">({match.team2Overs})</span>
+              <span className="text-lg text-muted-foreground ml-2">
+                ({match.team2Overs})
+              </span>
             </p>
           </div>
         </div>
@@ -1577,7 +2231,7 @@ function LiveScoringPanel({
                   size="sm"
                   className={cn(
                     "h-10 w-10 border-amber-500/30",
-                    over < currentOverNumber && "opacity-50 cursor-not-allowed"
+                    over < currentOverNumber && "opacity-50 cursor-not-allowed",
                   )}
                   disabled={over < currentOverNumber}
                   onClick={() => onSetPowerOver(over)}
@@ -1604,26 +2258,41 @@ function LiveScoringPanel({
           {isLastManStanding && (
             <div className="flex items-center gap-2 p-2 rounded-md bg-orange-500/10 border border-orange-500/30">
               <AlertTriangle className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-600">Last Man Standing (7 wickets)</span>
+              <span className="text-sm font-medium text-orange-600">
+                Last Man Standing (7 wickets)
+              </span>
             </div>
           )}
 
           {/* Show current batsmen and bowler if set */}
           {hasBatsmen && hasBowler ? (
-            <div className={cn("grid gap-3", isLastManStanding ? "grid-cols-2" : "grid-cols-3")}>
+            <div
+              className={cn(
+                "grid gap-3",
+                isLastManStanding ? "grid-cols-2" : "grid-cols-3",
+              )}
+            >
               <div className="p-3 rounded-md bg-emerald-500/10 border border-emerald-500/30">
                 <p className="text-xs text-emerald-600 mb-1">Striker *</p>
-                <p className="font-medium text-emerald-700">{getPlayerName(match.strikerId)}</p>
+                <p className="font-medium text-emerald-700">
+                  {getPlayerName(match.strikerId)}
+                </p>
               </div>
               {!isLastManStanding && (
                 <div className="p-3 rounded-md bg-white/50 border dark:bg-white/5">
-                  <p className="text-xs text-muted-foreground mb-1">Non-Striker</p>
-                  <p className="font-medium">{getPlayerName(match.nonStrikerId)}</p>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Non-Striker
+                  </p>
+                  <p className="font-medium">
+                    {getPlayerName(match.nonStrikerId)}
+                  </p>
                 </div>
               )}
               <div className="p-3 rounded-md bg-purple-500/10 border border-purple-500/30">
                 <p className="text-xs text-purple-600 mb-1">Bowler</p>
-                <p className="font-medium text-purple-700">{getPlayerName(match.currentBowlerId)}</p>
+                <p className="font-medium text-purple-700">
+                  {getPlayerName(match.currentBowlerId)}
+                </p>
               </div>
             </div>
           ) : null}
@@ -1631,17 +2300,26 @@ function LiveScoringPanel({
           {/* Opening batsmen selection */}
           {!hasBatsmen && !match.strikerId && !match.nonStrikerId && (
             <div className="space-y-3">
-              <p className="text-sm text-blue-600 font-medium">Select Opening Batsmen</p>
+              <p className="text-sm text-blue-600 font-medium">
+                Select Opening Batsmen
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs mb-1 block">Striker</Label>
-                  <Select value={selectedStriker} onValueChange={setSelectedStriker}>
+                  <Select
+                    value={selectedStriker}
+                    onValueChange={setSelectedStriker}
+                  >
                     <SelectTrigger data-testid="select-striker">
                       <SelectValue placeholder="Select striker" />
                     </SelectTrigger>
                     <SelectContent>
-                      {battingTeamPlayers.map(p => (
-                        <SelectItem key={p.id} value={p.id} disabled={p.id === selectedNonStriker}>
+                      {battingTeamPlayers.map((p) => (
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          disabled={p.id === selectedNonStriker}
+                        >
                           {p.name}
                         </SelectItem>
                       ))}
@@ -1650,13 +2328,20 @@ function LiveScoringPanel({
                 </div>
                 <div>
                   <Label className="text-xs mb-1 block">Non-Striker</Label>
-                  <Select value={selectedNonStriker} onValueChange={setSelectedNonStriker}>
+                  <Select
+                    value={selectedNonStriker}
+                    onValueChange={setSelectedNonStriker}
+                  >
                     <SelectTrigger data-testid="select-nonstriker">
                       <SelectValue placeholder="Select non-striker" />
                     </SelectTrigger>
                     <SelectContent>
-                      {battingTeamPlayers.map(p => (
-                        <SelectItem key={p.id} value={p.id} disabled={p.id === selectedStriker}>
+                      {battingTeamPlayers.map((p) => (
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          disabled={p.id === selectedStriker}
+                        >
                           {p.name}
                         </SelectItem>
                       ))}
@@ -1664,7 +2349,7 @@ function LiveScoringPanel({
                   </Select>
                 </div>
               </div>
-              <Button 
+              <Button
                 onClick={() => {
                   if (selectedStriker && selectedNonStriker) {
                     onSetBatsmen(selectedStriker, selectedNonStriker);
@@ -1683,27 +2368,43 @@ function LiveScoringPanel({
           {/* New batsman selection after wicket */}
           {needsNewBatsman && (
             <div className="space-y-3 p-3 rounded-md bg-orange-500/10 border border-orange-500/30">
-              <p className="text-sm text-orange-600 font-medium">Wicket! Select New Batsman</p>
+              <p className="text-sm text-orange-600 font-medium">
+                Wicket! Select New Batsman
+              </p>
               <div className="flex gap-3">
-                <Select value={selectedNewBatsman} onValueChange={setSelectedNewBatsman}>
-                  <SelectTrigger className="flex-1" data-testid="select-new-batsman">
+                <Select
+                  value={selectedNewBatsman}
+                  onValueChange={setSelectedNewBatsman}
+                >
+                  <SelectTrigger
+                    className="flex-1"
+                    data-testid="select-new-batsman"
+                  >
                     <SelectValue placeholder="Select new batsman" />
                   </SelectTrigger>
                   <SelectContent>
                     {(() => {
-                      const currentBattingOrder = match.currentInnings === 1 
-                        ? (match.innings1BattingOrder || []) 
-                        : (match.innings2BattingOrder || []);
-                      const remainingBatsman = match.strikerId || match.nonStrikerId;
+                      const currentBattingOrder =
+                        match.currentInnings === 1
+                          ? match.innings1BattingOrder || []
+                          : match.innings2BattingOrder || [];
+                      const remainingBatsman =
+                        match.strikerId || match.nonStrikerId;
                       return battingTeamPlayers
-                        .filter(p => p.id !== remainingBatsman && !currentBattingOrder.includes(p.id))
-                        .map(p => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        .filter(
+                          (p) =>
+                            p.id !== remainingBatsman &&
+                            !currentBattingOrder.includes(p.id),
+                        )
+                        .map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
                         ));
                     })()}
                   </SelectContent>
                 </Select>
-                <Button 
+                <Button
                   onClick={() => {
                     if (selectedNewBatsman) {
                       onNewBatsman(selectedNewBatsman);
@@ -1723,34 +2424,44 @@ function LiveScoringPanel({
           {needsNewBowler && hasBatsmen && (
             <div className="space-y-3 p-3 rounded-md bg-purple-500/10 border border-purple-500/30">
               <p className="text-sm text-purple-600 font-medium">
-                {isEndOfOver ? "End of Over! Select Next Bowler" : "Select Bowler"}
+                {isEndOfOver
+                  ? "End of Over! Select Next Bowler"
+                  : "Select Bowler"}
               </p>
               <div className="flex gap-3">
-                <Select value={selectedBowler} onValueChange={setSelectedBowler}>
+                <Select
+                  value={selectedBowler}
+                  onValueChange={setSelectedBowler}
+                >
                   <SelectTrigger className="flex-1" data-testid="select-bowler">
                     <SelectValue placeholder="Select bowler" />
                   </SelectTrigger>
                   <SelectContent>
                     {(() => {
-                      const currentBowlingOrder = match.currentInnings === 1 
-                        ? (match.innings1BowlingOrder || []) 
-                        : (match.innings2BowlingOrder || []);
-                      const previousBowlerId = currentBowlingOrder.length > 0 
-                        ? currentBowlingOrder[currentBowlingOrder.length - 1] 
-                        : null;
-                      return bowlingTeamPlayers.map(p => (
-                        <SelectItem 
-                          key={p.id} 
+                      const currentBowlingOrder =
+                        match.currentInnings === 1
+                          ? match.innings1BowlingOrder || []
+                          : match.innings2BowlingOrder || [];
+                      const previousBowlerId =
+                        currentBowlingOrder.length > 0
+                          ? currentBowlingOrder[currentBowlingOrder.length - 1]
+                          : null;
+                      return bowlingTeamPlayers.map((p) => (
+                        <SelectItem
+                          key={p.id}
                           value={p.id}
                           disabled={isEndOfOver && p.id === previousBowlerId}
                         >
-                          {p.name}{isEndOfOver && p.id === previousBowlerId ? " (bowled last over)" : ""}
+                          {p.name}
+                          {isEndOfOver && p.id === previousBowlerId
+                            ? " (bowled last over)"
+                            : ""}
                         </SelectItem>
                       ));
                     })()}
                   </SelectContent>
                 </Select>
-                <Button 
+                <Button
                   onClick={() => {
                     if (selectedBowler) {
                       onSetBowler(selectedBowler);
@@ -1771,32 +2482,46 @@ function LiveScoringPanel({
         {canScore ? (
           <div className="space-y-4">
             <div>
-              <Label className="text-sm text-muted-foreground mb-2 block">Runs</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">
+                Runs
+              </Label>
               <div className="grid grid-cols-7 gap-2">
                 {[0, 1, 2, 3, 4, 5, 6].map((runs) => (
                   <Button
                     key={runs}
-                    variant={runs === 4 ? "default" : runs === 6 ? "default" : "outline"}
+                    variant={
+                      runs === 4
+                        ? "default"
+                        : runs === 6
+                          ? "default"
+                          : "outline"
+                    }
                     className={cn(
                       "h-14 font-display text-2xl",
                       runs === 4 && "bg-blue-500 hover:bg-blue-600",
-                      runs === 6 && "bg-emerald-500 hover:bg-emerald-600"
+                      runs === 6 && "bg-emerald-500 hover:bg-emerald-600",
                     )}
                     onClick={() => recordRuns(runs)}
                     disabled={isRecording}
                     data-testid={`button-runs-${runs}`}
                   >
-                    {isRecording ? <Loader2 className="w-4 h-4 animate-spin" /> : runs}
+                    {isRecording ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      runs
+                    )}
                   </Button>
                 ))}
               </div>
             </div>
 
             <div>
-              <Label className="text-sm text-muted-foreground mb-2 block">Extras</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">
+                Extras
+              </Label>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1 h-12 bg-amber-500/10 border-amber-500/30 text-amber-600"
                   onClick={() => recordExtra("wide")}
                   disabled={isRecording}
@@ -1804,8 +2529,8 @@ function LiveScoringPanel({
                 >
                   Wide (+1)
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1 h-12 bg-amber-500/10 border-amber-500/30 text-amber-600"
                   onClick={() => recordExtra("no_ball")}
                   disabled={isRecording}
@@ -1817,44 +2542,56 @@ function LiveScoringPanel({
             </div>
 
             <div>
-              <Label className="text-sm text-muted-foreground mb-2 block">Wicket</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">
+                Wicket
+              </Label>
               <div className="grid grid-cols-3 gap-2">
-                {["bowled", "caught", "lbw", "run_out", "stumped"].map((type) => (
-                  <Button
-                    key={type}
-                    variant="outline"
-                    className="h-12 bg-destructive/10 border-destructive/30 text-destructive capitalize"
-                    onClick={() => recordWicket(type)}
-                    disabled={isRecording}
-                    data-testid={`button-wicket-${type}`}
-                  >
-                    {type.replace("_", " ")}
-                  </Button>
-                ))}
+                {["bowled", "caught", "lbw", "run_out", "stumped"].map(
+                  (type) => (
+                    <Button
+                      key={type}
+                      variant="outline"
+                      className="h-12 bg-destructive/10 border-destructive/30 text-destructive capitalize"
+                      onClick={() => recordWicket(type)}
+                      disabled={isRecording}
+                      data-testid={`button-wicket-${type}`}
+                    >
+                      {type.replace("_", " ")}
+                    </Button>
+                  ),
+                )}
               </div>
             </div>
 
             {/* Undo and Reset buttons */}
             <div className="flex gap-2 pt-4 border-t">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex-1 gap-2"
                 onClick={onUndoBall}
                 disabled={isUndoing || isRecording}
                 data-testid="button-undo-ball"
               >
-                {isUndoing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                {isUndoing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4" />
+                )}
                 Undo Last Ball
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     className="gap-2"
                     disabled={isResetting || isRecording}
                     data-testid="button-reset-match"
                   >
-                    {isResetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {isResetting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                     Reset Match
                   </Button>
                 </AlertDialogTrigger>
@@ -1862,12 +2599,16 @@ function LiveScoringPanel({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Reset Match?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will delete all ball events and reset scores to 0. This action cannot be undone.
+                      This will delete all ball events and reset scores to 0.
+                      This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onResetMatch} data-testid="button-confirm-reset">
+                    <AlertDialogAction
+                      onClick={onResetMatch}
+                      data-testid="button-confirm-reset"
+                    >
                       Reset Match
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -1878,9 +2619,9 @@ function LiveScoringPanel({
         ) : (
           <div className="p-6 text-center bg-muted/30 rounded-md">
             <p className="text-muted-foreground">
-              {!hasBatsmen 
-                ? "Select opening batsmen to start scoring" 
-                : !hasBowler 
+              {!hasBatsmen
+                ? "Select opening batsmen to start scoring"
+                : !hasBowler
                   ? "Select a bowler to start scoring"
                   : "Ready to score"}
             </p>
@@ -1892,13 +2633,19 @@ function LiveScoringPanel({
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="capitalize">
-                {pendingWicketType === "caught" ? "Select Catcher" : 
-                 pendingWicketType === "stumped" ? "Select Wicketkeeper" :
-                 "Select Fielder (Run Out)"}
+                {pendingWicketType === "caught"
+                  ? "Select Catcher"
+                  : pendingWicketType === "stumped"
+                    ? "Select Wicketkeeper"
+                    : "Select Fielder (Run Out)"}
               </DialogTitle>
               <DialogDescription>
-                Choose the fielder who made the {pendingWicketType === "caught" ? "catch" : 
-                pendingWicketType === "stumped" ? "stumping" : "run out"}
+                Choose the fielder who made the{" "}
+                {pendingWicketType === "caught"
+                  ? "catch"
+                  : pendingWicketType === "stumped"
+                    ? "stumping"
+                    : "run out"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -1906,7 +2653,10 @@ function LiveScoringPanel({
               {pendingWicketType === "run_out" && (
                 <div>
                   <Label>Dismissed Batsman</Label>
-                  <Select value={selectedDismissedBatsman} onValueChange={setSelectedDismissedBatsman}>
+                  <Select
+                    value={selectedDismissedBatsman}
+                    onValueChange={setSelectedDismissedBatsman}
+                  >
                     <SelectTrigger data-testid="select-dismissed-batsman">
                       <SelectValue placeholder="Select dismissed batsman" />
                     </SelectTrigger>
@@ -1927,12 +2677,15 @@ function LiveScoringPanel({
               )}
               <div>
                 <Label>Fielder</Label>
-                <Select value={selectedFielder} onValueChange={setSelectedFielder}>
+                <Select
+                  value={selectedFielder}
+                  onValueChange={setSelectedFielder}
+                >
                   <SelectTrigger data-testid="select-fielder">
                     <SelectValue placeholder="Select fielder" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bowlingTeamPlayers.map(player => (
+                    {bowlingTeamPlayers.map((player) => (
                       <SelectItem key={player.id} value={player.id}>
                         {player.name}
                       </SelectItem>
@@ -1942,12 +2695,17 @@ function LiveScoringPanel({
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowFielderDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowFielderDialog(false)}
+              >
                 Cancel
               </Button>
-              <Button 
-                onClick={confirmWicketWithFielder} 
-                disabled={pendingWicketType === "run_out" && !selectedDismissedBatsman}
+              <Button
+                onClick={confirmWicketWithFielder}
+                disabled={
+                  pendingWicketType === "run_out" && !selectedDismissedBatsman
+                }
                 data-testid="button-confirm-wicket"
               >
                 Confirm Wicket
@@ -1960,25 +2718,40 @@ function LiveScoringPanel({
   );
 }
 
-function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoading: boolean }) {
+function PlayerApprovalPanel({
+  players,
+  isLoading,
+}: {
+  players?: Player[];
+  isLoading: boolean;
+}) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const [activeTab, setActiveTab] = useState<
+    "pending" | "approved" | "rejected"
+  >("pending");
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editMobile, setEditMobile] = useState("");
   const [editAddress, setEditAddress] = useState("");
-  const [editRole, setEditRole] = useState<"Batsman" | "Bowler" | "All-rounder">("Batsman");
-  const [editTshirtSize, setEditTshirtSize] = useState<"S" | "M" | "L" | "XL">("M");
+  const [editRole, setEditRole] = useState<
+    "Batsman" | "Bowler" | "All-rounder"
+  >("Batsman");
+  const [editTshirtSize, setEditTshirtSize] = useState<"S" | "M" | "L" | "XL">(
+    "M",
+  );
   const [editBatting, setEditBatting] = useState("5");
   const [editBowling, setEditBowling] = useState("5");
   const [editFielding, setEditFielding] = useState("5");
   const [editPhotoUrl, setEditPhotoUrl] = useState("");
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
 
-  const pendingPlayers = players?.filter(p => p.approvalStatus === "pending") || [];
-  const approvedPlayers = players?.filter(p => p.approvalStatus === "approved") || [];
-  const rejectedPlayers = players?.filter(p => p.approvalStatus === "rejected") || [];
+  const pendingPlayers =
+    players?.filter((p) => p.approvalStatus === "pending") || [];
+  const approvedPlayers =
+    players?.filter((p) => p.approvalStatus === "approved") || [];
+  const rejectedPlayers =
+    players?.filter((p) => p.approvalStatus === "rejected") || [];
 
   const approveMutation = useMutation({
     mutationFn: async (playerId: string) => {
@@ -2033,16 +2806,19 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
   });
 
   const editPlayerMutation = useMutation({
-    mutationFn: async ({ playerId, ...data }: { 
-      playerId: string; 
+    mutationFn: async ({
+      playerId,
+      ...data
+    }: {
+      playerId: string;
       name?: string;
       email?: string;
       mobile?: string;
       address?: string;
       role?: string;
       tshirtSize?: string;
-      battingRating?: number; 
-      bowlingRating?: number; 
+      battingRating?: number;
+      bowlingRating?: number;
       fieldingRating?: number;
       photoUrl?: string;
     }) => {
@@ -2064,20 +2840,25 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
     setEditEmail(player.email || "");
     setEditMobile(player.mobile || "");
     setEditAddress(player.address || "");
-    setEditRole(player.role as "Batsman" | "Bowler" | "All-rounder" || "Batsman");
-    setEditTshirtSize(player.tshirtSize as "S" | "M" | "L" | "XL" || "M");
+    setEditRole(
+      (player.role as "Batsman" | "Bowler" | "All-rounder") || "Batsman",
+    );
+    setEditTshirtSize((player.tshirtSize as "S" | "M" | "L" | "XL") || "M");
     setEditBatting(player.battingRating?.toString() || "5");
     setEditBowling(player.bowlingRating?.toString() || "5");
     setEditFielding(player.fieldingRating?.toString() || "5");
     setEditPhotoUrl(player.photoUrl || "");
   };
 
-  const handleEditPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditPhotoChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
         setIsCompressingPhoto(true);
-        const imageCompression = (await import("browser-image-compression")).default;
+        const imageCompression = (await import("browser-image-compression"))
+          .default;
         const options = {
           maxSizeMB: 0.3,
           maxWidthOrHeight: 400,
@@ -2096,7 +2877,8 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
         setIsCompressingPhoto(false);
         toast({
           title: "Photo Error",
-          description: "Could not process the photo. Please try a smaller image.",
+          description:
+            "Could not process the photo. Please try a smaller image.",
           variant: "destructive",
         });
       }
@@ -2122,21 +2904,33 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
   };
 
   const renderPlayerCard = (player: Player, showActions: boolean = true) => (
-    <Card key={player.id} className="p-4" data-testid={`approval-player-${player.id}`}>
+    <Card
+      key={player.id}
+      className="p-4"
+      data-testid={`approval-player-${player.id}`}
+    >
       <div className="flex items-start gap-4">
         <Avatar className="h-16 w-16">
           <AvatarImage src={player.photoUrl} alt={player.name} />
-          <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          <AvatarFallback>
+            {player.name.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center gap-2">
             <p className="font-semibold">{player.name}</p>
-            <Badge variant="outline" className="text-xs">{player.role}</Badge>
+            <Badge variant="outline" className="text-xs">
+              {player.role}
+            </Badge>
             {player.paymentStatus === "verified" && (
-              <Badge className="bg-emerald-500/20 text-emerald-600 text-xs">Paid</Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-600 text-xs">
+                Paid
+              </Badge>
             )}
             {player.paymentStatus === "pending" && (
-              <Badge className="bg-amber-500/20 text-amber-600 text-xs">Payment Pending</Badge>
+              <Badge className="bg-amber-500/20 text-amber-600 text-xs">
+                Payment Pending
+              </Badge>
             )}
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -2145,7 +2939,9 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
             <p>Mobile: {player.mobile}</p>
             <p>T-Shirt: {player.tshirtSize || "N/A"}</p>
           </div>
-          <p className="text-xs text-muted-foreground truncate">Address: {player.address}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            Address: {player.address}
+          </p>
           <div className="flex items-center gap-2 pt-1">
             <Badge className="bg-orange-500/20 text-orange-600 text-xs">
               Batting: {player.battingRating}
@@ -2229,7 +3025,8 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Player?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete {player.name} from the system. This action cannot be undone.
+                    This will permanently delete {player.name} from the system.
+                    This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -2270,18 +3067,35 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
     <Card>
       <CardHeader>
         <CardTitle>Player Approval</CardTitle>
-        <CardDescription>Review and approve player registrations</CardDescription>
+        <CardDescription>
+          Review and approve player registrations
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+        >
           <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="pending" className="gap-2" data-testid="tab-pending">
+            <TabsTrigger
+              value="pending"
+              className="gap-2"
+              data-testid="tab-pending"
+            >
               Pending ({pendingPlayers.length})
             </TabsTrigger>
-            <TabsTrigger value="approved" className="gap-2" data-testid="tab-approved">
+            <TabsTrigger
+              value="approved"
+              className="gap-2"
+              data-testid="tab-approved"
+            >
               Approved ({approvedPlayers.length})
             </TabsTrigger>
-            <TabsTrigger value="rejected" className="gap-2" data-testid="tab-rejected">
+            <TabsTrigger
+              value="rejected"
+              className="gap-2"
+              data-testid="tab-rejected"
+            >
               Rejected ({rejectedPlayers.length})
             </TabsTrigger>
           </TabsList>
@@ -2320,7 +3134,9 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
             {rejectedPlayers.length > 0 ? (
               <ScrollArea className="h-[400px]">
                 <div className="space-y-3 pr-4">
-                  {rejectedPlayers.map((player) => renderPlayerCard(player, false))}
+                  {rejectedPlayers.map((player) =>
+                    renderPlayerCard(player, false),
+                  )}
                 </div>
               </ScrollArea>
             ) : (
@@ -2334,7 +3150,10 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
       </CardContent>
 
       {/* Edit Player Dialog */}
-      <Dialog open={!!editingPlayer} onOpenChange={(open) => !open && setEditingPlayer(null)}>
+      <Dialog
+        open={!!editingPlayer}
+        onOpenChange={(open) => !open && setEditingPlayer(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Player</DialogTitle>
@@ -2345,7 +3164,9 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
                 <div className="relative">
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={editPhotoUrl} alt={editName} />
-                    <AvatarFallback>{editName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>
+                      {editName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                   <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/80">
                     {isCompressingPhoto ? (
@@ -2363,7 +3184,9 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
                   </label>
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Click icon to change photo</p>
+                  <p className="text-sm text-muted-foreground">
+                    Click icon to change photo
+                  </p>
                 </div>
               </div>
 
@@ -2401,7 +3224,10 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-role">Role</Label>
-                  <Select value={editRole} onValueChange={(v) => setEditRole(v as typeof editRole)}>
+                  <Select
+                    value={editRole}
+                    onValueChange={(v) => setEditRole(v as typeof editRole)}
+                  >
                     <SelectTrigger data-testid="input-edit-role">
                       <SelectValue />
                     </SelectTrigger>
@@ -2417,7 +3243,12 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-tshirt">T-Shirt Size (US)</Label>
-                  <Select value={editTshirtSize} onValueChange={(v) => setEditTshirtSize(v as typeof editTshirtSize)}>
+                  <Select
+                    value={editTshirtSize}
+                    onValueChange={(v) =>
+                      setEditTshirtSize(v as typeof editTshirtSize)
+                    }
+                  >
                     <SelectTrigger data-testid="input-edit-tshirt">
                       <SelectValue />
                     </SelectTrigger>
@@ -2484,11 +3315,14 @@ function PlayerApprovalPanel({ players, isLoading }: { players?: Player[]; isLoa
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setEditingPlayer(null)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingPlayer(null)}
+                >
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleSavePlayer} 
+                <Button
+                  onClick={handleSavePlayer}
                   disabled={editPlayerMutation.isPending}
                   data-testid="button-save-player"
                 >
@@ -2512,7 +3346,9 @@ function BroadcastsManagementPanel() {
   const { toast } = useToast();
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
-  const [newType, setNewType] = useState<"announcement" | "rule" | "ticker">("announcement");
+  const [newType, setNewType] = useState<"announcement" | "rule" | "ticker">(
+    "announcement",
+  );
   const [newPriority, setNewPriority] = useState("0");
 
   const { data: broadcasts, isLoading } = useQuery<Broadcast[]>({
@@ -2520,7 +3356,12 @@ function BroadcastsManagementPanel() {
   });
 
   const createBroadcastMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string; type: string; priority: number }) => {
+    mutationFn: async (data: {
+      title: string;
+      content: string;
+      type: string;
+      priority: number;
+    }) => {
       return apiRequest("POST", "/api/broadcasts", data);
     },
     onSuccess: () => {
@@ -2537,7 +3378,17 @@ function BroadcastsManagementPanel() {
   });
 
   const updateBroadcastMutation = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: string; type?: string; priority?: number; isActive?: boolean }) => {
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      title?: string;
+      content?: string;
+      type?: string;
+      priority?: number;
+      isActive?: boolean;
+    }) => {
       return apiRequest("PATCH", `/api/broadcasts/${id}`, data);
     },
     onSuccess: () => {
@@ -2564,7 +3415,10 @@ function BroadcastsManagementPanel() {
 
   const handleCreate = () => {
     if (!newTitle || !newContent) {
-      toast({ title: "Please fill in title and content", variant: "destructive" });
+      toast({
+        title: "Please fill in title and content",
+        variant: "destructive",
+      });
       return;
     }
     createBroadcastMutation.mutate({
@@ -2584,15 +3438,17 @@ function BroadcastsManagementPanel() {
     );
   }
 
-  const activeBroadcasts = broadcasts?.filter(b => b.isActive) || [];
-  const inactiveBroadcasts = broadcasts?.filter(b => !b.isActive) || [];
+  const activeBroadcasts = broadcasts?.filter((b) => b.isActive) || [];
+  const inactiveBroadcasts = broadcasts?.filter((b) => !b.isActive) || [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Broadcasts & Announcements</h2>
-          <p className="text-sm text-muted-foreground">Manage announcements displayed on the tournament screens</p>
+          <p className="text-sm text-muted-foreground">
+            Manage announcements displayed on the tournament screens
+          </p>
         </div>
       </div>
 
@@ -2628,8 +3484,14 @@ function BroadcastsManagementPanel() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="broadcast-type">Type</Label>
-                <Select value={newType} onValueChange={(v) => setNewType(v as typeof newType)}>
-                  <SelectTrigger id="broadcast-type" data-testid="select-broadcast-type">
+                <Select
+                  value={newType}
+                  onValueChange={(v) => setNewType(v as typeof newType)}
+                >
+                  <SelectTrigger
+                    id="broadcast-type"
+                    data-testid="select-broadcast-type"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2651,8 +3513,8 @@ function BroadcastsManagementPanel() {
                 />
               </div>
             </div>
-            <Button 
-              onClick={handleCreate} 
+            <Button
+              onClick={handleCreate}
               disabled={createBroadcastMutation.isPending}
               className="w-full"
               data-testid="button-create-broadcast"
@@ -2689,26 +3551,39 @@ function BroadcastsManagementPanel() {
                           <Badge variant="outline" className="text-xs">
                             {broadcast.type}
                           </Badge>
-                          <span className="font-medium text-sm">{broadcast.title}</span>
+                          <span className="font-medium text-sm">
+                            {broadcast.title}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => updateBroadcastMutation.mutate({ id: broadcast.id, isActive: false })}
+                            onClick={() =>
+                              updateBroadcastMutation.mutate({
+                                id: broadcast.id,
+                                isActive: false,
+                              })
+                            }
                             data-testid={`button-deactivate-${broadcast.id}`}
                           >
                             <X className="w-4 h-4" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" data-testid={`button-delete-${broadcast.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                data-testid={`button-delete-${broadcast.id}`}
+                              >
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Broadcast?</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Delete Broadcast?
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   This will permanently delete this broadcast.
                                 </AlertDialogDescription>
@@ -2716,7 +3591,9 @@ function BroadcastsManagementPanel() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => deleteBroadcastMutation.mutate(broadcast.id)}
+                                  onClick={() =>
+                                    deleteBroadcastMutation.mutate(broadcast.id)
+                                  }
                                 >
                                   Delete
                                 </AlertDialogAction>
@@ -2725,7 +3602,9 @@ function BroadcastsManagementPanel() {
                           </AlertDialog>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">{broadcast.content}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {broadcast.content}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -2754,7 +3633,12 @@ function BroadcastsManagementPanel() {
                   key={broadcast.id}
                   variant="outline"
                   className="cursor-pointer opacity-60 hover-elevate"
-                  onClick={() => updateBroadcastMutation.mutate({ id: broadcast.id, isActive: true })}
+                  onClick={() =>
+                    updateBroadcastMutation.mutate({
+                      id: broadcast.id,
+                      isActive: true,
+                    })
+                  }
                   data-testid={`button-activate-${broadcast.id}`}
                 >
                   {broadcast.title}
@@ -2849,9 +3733,15 @@ function TournamentSettingsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Tournament Settings</h2>
-          <p className="text-sm text-muted-foreground">Configure payment methods and tournament details</p>
+          <p className="text-sm text-muted-foreground">
+            Configure payment methods and tournament details
+          </p>
         </div>
-        <Button onClick={handleSave} disabled={updateSettingsMutation.isPending} data-testid="button-save-settings">
+        <Button
+          onClick={handleSave}
+          disabled={updateSettingsMutation.isPending}
+          data-testid="button-save-settings"
+        >
           {updateSettingsMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
           ) : (
@@ -2868,7 +3758,9 @@ function TournamentSettingsPanel() {
               <DollarSign className="w-5 h-5" />
               Registration Fee
             </CardTitle>
-            <CardDescription>Set the registration fee for players</CardDescription>
+            <CardDescription>
+              Set the registration fee for players
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -2966,7 +3858,9 @@ function TournamentSettingsPanel() {
               <CreditCard className="w-5 h-5" />
               Cash App Payment
             </CardTitle>
-            <CardDescription>Configure Cash App payment details</CardDescription>
+            <CardDescription>
+              Configure Cash App payment details
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -3030,7 +3924,9 @@ function TournamentSettingsPanel() {
               <Shield className="w-5 h-5" />
               Display Mode Credentials
             </CardTitle>
-            <CardDescription>Login credentials for display/projector mode</CardDescription>
+            <CardDescription>
+              Login credentials for display/projector mode
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
