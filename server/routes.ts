@@ -487,13 +487,8 @@ export async function registerRoutes(
       }
       
       let currentBid = state.currentBid || 0;
-      // Round up to nearest 100 if not already a multiple of 100
-      if (currentBid % 100 !== 0) {
-        currentBid = Math.ceil(currentBid / 100) * 100;
-      }
-      // Always increment by 100
-      const increment = 100;
-      const newBid = currentBid + increment;
+      // Calculate next number divisible by 200
+      const newBid = Math.ceil((currentBid + 1) / 200) * 200;
       
       if (newBid > team.remainingBudget) {
         return res.status(400).json({ error: "Insufficient budget" });
