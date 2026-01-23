@@ -383,14 +383,25 @@ export async function registerRoutes(
           // Admin can override category, otherwise use current
           const selectedCategory = category || currentState?.currentCategory || "Batsman";
           
+          // First, mark the current player as unsold if they're in auction
+          if (currentState?.currentPlayerId) {
+            const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
+            if (currentPlayer && currentPlayer.status === "in_auction") {
+              await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
+            }
+          }
+          
           // Clear break state when moving to next player
           await storage.updateAuctionState({
             categoryBreak: false,
             completedCategory: null,
           });
           
+          // Refresh players list after updating current player
+          const updatedPlayers = await storage.getAllPlayers();
+          
           // IMPORTANT: Only payment-verified players can be in auction
-          let nextPlayer = players.find(p => 
+          let nextPlayer = updatedPlayers.find(p => 
             p.status === "registered" && 
             p.paymentStatus === "verified" && 
             p.category === selectedCategory
@@ -398,7 +409,7 @@ export async function registerRoutes(
           
           if (!nextPlayer) {
             // Check if there are lost gold players for this category
-            const lostGoldPlayers = players.filter(p => 
+            const lostGoldPlayers = updatedPlayers.filter(p => 
               p.status === "lost_gold" && 
               p.paymentStatus === "verified"
             );

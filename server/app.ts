@@ -15,8 +15,8 @@ export function log(message: string) {
 export async function createApp() {
   const app = express();
   
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
   const httpServer = createServer(app);
 
