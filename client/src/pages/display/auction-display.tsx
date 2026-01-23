@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Gavel, Zap, Target, Shield, Star, TrendingUp, Wallet, Crown, Megaphone, X, Users, Trophy, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,10 @@ export default function AuctionDisplay() {
   const [previousTeamId, setPreviousTeamId] = useState<string | null>(null);
   const [showPlayerFly, setShowPlayerFly] = useState(false);
   const [lastAnimatedTimestamp, setLastAnimatedTimestamp] = useState<number | null>(null);
+  const [showTeamFly, setShowTeamFly] = useState(false);
+  const [flyingTeam, setFlyingTeam] = useState<Team | null>(null);
+  const [targetPairIndex, setTargetPairIndex] = useState<number | null>(null);
+  const previousAssignedTeamsRef = useRef<Set<string>>(new Set());
 
   const { data: auctionState } = useQuery<AuctionState>({
     queryKey: ["/api/auction/state"],
@@ -133,6 +137,44 @@ export default function AuctionDisplay() {
     setPreviousTeamId(auctionState?.currentTeamId || null);
   }, [auctionState?.currentTeamId, teams, players, previousTeamId, triggerConfetti, showTeamSold]);
 
+  // Detect when a team is newly assigned to a captain pair and trigger flying animation
+  useEffect(() => {
+    if (!captainPairs || !teams) return;
+    
+    const currentAssigned = new Set<string>();
+    captainPairs.forEach(pair => {
+      if (pair.assignedTeamId) {
+        currentAssigned.add(pair.assignedTeamId);
+      }
+    });
+    
+    // Find newly assigned team (one that wasn't assigned before but is now)
+    currentAssigned.forEach(teamId => {
+      if (!previousAssignedTeamsRef.current.has(teamId)) {
+        const assignedTeam = teams.find(t => t.id === teamId);
+        const assignedPair = captainPairs.find(p => p.assignedTeamId === teamId);
+        if (assignedTeam && assignedPair) {
+          // Find the index of this captain pair
+          const sortedPairs = [...captainPairs].sort((a, b) => a.slotNumber - b.slotNumber);
+          const pairIndex = sortedPairs.findIndex(p => p.id === assignedPair.id);
+          
+          setFlyingTeam(assignedTeam);
+          setTargetPairIndex(pairIndex);
+          setShowTeamFly(true);
+          triggerConfetti();
+          
+          setTimeout(() => {
+            setShowTeamFly(false);
+            setFlyingTeam(null);
+            setTargetPairIndex(null);
+          }, 2000);
+        }
+      }
+    });
+    
+    previousAssignedTeamsRef.current = currentAssigned;
+  }, [captainPairs, teams, triggerConfetti]);
+
   const getRoleIcon = (role: string) => {
     switch (role?.toLowerCase()) {
       case "batsman": return <Zap className="w-5 h-5" />;
@@ -217,65 +259,128 @@ export default function AuctionDisplay() {
       )}
 
       <div className={`pb-4 px-2 h-[calc(100vh-80px)] flex ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-32" : "pt-16"}`}>
-        {/* Left Side - 6 Teams */}
+        {/* Left Side - Show Captain Pairs during Team Names auction, otherwise show Teams */}
         <div className="w-80 flex flex-col gap-1">
-          {teams?.slice(0, 6).map((team, index) => {
-            const captain = players?.find(p => p.id === team.captainId);
-            const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
-            const hasOwners = captain || viceCaptain;
-            const teamPlayers = players?.filter(p => p.teamId === team.id && p.id !== team.captainId && p.id !== team.viceCaptainId) || [];
-            const playerCount = teamPlayers.length + (hasOwners ? 2 : 0);
-            return (
-              <motion.div
-                key={team.id}
-                id={`team-box-left-${index}`}
-                animate={{
-                  scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
-                  borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => {
-                  setSelectedTeam(team);
-                  setShowTeamModal(true);
-                }}
-                className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
-                style={{ 
-                  borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                  background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}30, transparent)` : undefined
-                }}
-                data-testid={`team-card-${team.id}`}
-              >
-                <div className="flex items-center gap-2 w-full h-full">
-                  <div 
-                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
-                    style={{ backgroundColor: team.primaryColor }}
-                  >
-                    {team.logoUrl ? (
-                      <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
-                    ) : (
-                      team.shortName
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <span className="font-display text-lg text-white block truncate leading-tight">{team.name}</span>
-                    {hasOwners ? (
+          {auctionState?.currentCategory === "Team Names" ? (
+            // During Team Names auction: Show Captain Pairs (first 6)
+            [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber).slice(0, 6).map((pair, index) => {
+              const captain = players?.find(p => p.id === pair.captainId);
+              const viceCaptain = players?.find(p => p.id === pair.viceCaptainId);
+              const assignedTeam = teams?.find(t => t.id === pair.assignedTeamId);
+              const isCurrentBidder = currentBiddingPair?.id === pair.id;
+              
+              return (
+                <motion.div
+                  key={pair.id}
+                  id={`captain-pair-left-${index}`}
+                  animate={{
+                    scale: isCurrentBidder ? 1.02 : 1,
+                    borderColor: isCurrentBidder ? "#9d4edd" : "rgba(255,255,255,0.1)",
+                  }}
+                  className="flex-1 bg-white/5 rounded-xl p-2 border-2 flex items-center"
+                  style={{ 
+                    borderColor: isCurrentBidder ? "#9d4edd" : "rgba(255,255,255,0.1)",
+                    background: isCurrentBidder ? "linear-gradient(135deg, rgba(157,78,221,0.3), transparent)" : undefined
+                  }}
+                  data-testid={`captain-pair-${pair.id}`}
+                >
+                  <div className="flex items-center gap-2 w-full h-full">
+                    {/* Logo placeholder - shows team logo if assigned, otherwise empty slot */}
+                    <div 
+                      className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden border-2 border-dashed"
+                      style={{ 
+                        backgroundColor: assignedTeam?.primaryColor || "#1a1a2e",
+                        borderColor: assignedTeam ? assignedTeam.primaryColor : "#4a4a5a"
+                      }}
+                    >
+                      {assignedTeam ? (
+                        assignedTeam.logoUrl ? (
+                          <img src={assignedTeam.logoUrl} alt={assignedTeam.name} className="w-full h-full object-cover" />
+                        ) : (
+                          assignedTeam.shortName
+                        )
+                      ) : (
+                        <span className="text-gray-500 text-2xl">?</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      {assignedTeam ? (
+                        <span className="font-display text-lg text-white block truncate leading-tight">{assignedTeam.name}</span>
+                      ) : (
+                        <span className="font-display text-lg text-gray-400 block truncate leading-tight">Slot #{pair.slotNumber}</span>
+                      )}
                       <div className="text-base text-yellow-400 truncate font-semibold leading-tight">
                         {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
                       </div>
-                    ) : (
-                      <div className="text-base text-gray-500 leading-tight">No owner yet</div>
-                    )}
-                    <div className="flex items-center gap-2 text-base text-white leading-tight">
-                      <Wallet className="w-5 h-5 text-green-400" />
-                      <span className="font-bold text-green-400 text-lg">{team.remainingBudget.toLocaleString()}</span>
-                      <span className="text-cyan-300 font-bold text-lg">({playerCount}/8)</span>
+                      <div className="flex items-center gap-2 text-base text-white leading-tight">
+                        <Wallet className="w-5 h-5 text-green-400" />
+                        <span className="font-bold text-green-400 text-lg">{pair.remainingBudget.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })
+          ) : (
+            // During Player auction: Show Teams
+            teams?.slice(0, 6).map((team, index) => {
+              const captain = players?.find(p => p.id === team.captainId);
+              const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
+              const hasOwners = captain || viceCaptain;
+              const teamPlayers = players?.filter(p => p.teamId === team.id && p.id !== team.captainId && p.id !== team.viceCaptainId) || [];
+              const playerCount = teamPlayers.length + (hasOwners ? 2 : 0);
+              return (
+                <motion.div
+                  key={team.id}
+                  id={`team-box-left-${index}`}
+                  animate={{
+                    scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
+                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => {
+                    setSelectedTeam(team);
+                    setShowTeamModal(true);
+                  }}
+                  className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
+                  style={{ 
+                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
+                    background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}30, transparent)` : undefined
+                  }}
+                  data-testid={`team-card-${team.id}`}
+                >
+                  <div className="flex items-center gap-2 w-full h-full">
+                    <div 
+                      className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
+                      style={{ backgroundColor: team.primaryColor }}
+                    >
+                      {team.logoUrl ? (
+                        <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+                      ) : (
+                        team.shortName
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="font-display text-lg text-white block truncate leading-tight">{team.name}</span>
+                      {hasOwners ? (
+                        <div className="text-base text-yellow-400 truncate font-semibold leading-tight">
+                          {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
+                        </div>
+                      ) : (
+                        <div className="text-base text-gray-500 leading-tight">No owner yet</div>
+                      )}
+                      <div className="flex items-center gap-2 text-base text-white leading-tight">
+                        <Wallet className="w-5 h-5 text-green-400" />
+                        <span className="font-bold text-green-400 text-lg">{team.remainingBudget.toLocaleString()}</span>
+                        <span className="text-cyan-300 font-bold text-lg">({playerCount}/8)</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
         </div>
 
         {/* Center - Auction Content */}
@@ -630,65 +735,128 @@ export default function AuctionDisplay() {
           </AnimatePresence>
         </div>
 
-        {/* Right Side - 6 Teams */}
+        {/* Right Side - Show Captain Pairs during Team Names auction, otherwise show Teams */}
         <div className="w-80 flex flex-col gap-1">
-          {teams?.slice(6, 12).map((team, index) => {
-            const captain = players?.find(p => p.id === team.captainId);
-            const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
-            const hasOwners = captain || viceCaptain;
-            const teamPlayers = players?.filter(p => p.teamId === team.id && p.id !== team.captainId && p.id !== team.viceCaptainId) || [];
-            const playerCount = teamPlayers.length + (hasOwners ? 2 : 0);
-            return (
-              <motion.div
-                key={team.id}
-                id={`team-box-right-${index}`}
-                animate={{
-                  scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
-                  borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => {
-                  setSelectedTeam(team);
-                  setShowTeamModal(true);
-                }}
-                className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
-                style={{ 
-                  borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                  background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}30, transparent)` : undefined
-                }}
-                data-testid={`team-card-${team.id}`}
-              >
-                <div className="flex items-center gap-2 w-full h-full">
-                  <div 
-                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
-                    style={{ backgroundColor: team.primaryColor }}
-                  >
-                    {team.logoUrl ? (
-                      <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
-                    ) : (
-                      team.shortName
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <span className="font-display text-lg text-white block truncate leading-tight">{team.name}</span>
-                    {hasOwners ? (
+          {auctionState?.currentCategory === "Team Names" ? (
+            // During Team Names auction: Show Captain Pairs (last 6)
+            [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber).slice(6, 12).map((pair, index) => {
+              const captain = players?.find(p => p.id === pair.captainId);
+              const viceCaptain = players?.find(p => p.id === pair.viceCaptainId);
+              const assignedTeam = teams?.find(t => t.id === pair.assignedTeamId);
+              const isCurrentBidder = currentBiddingPair?.id === pair.id;
+              
+              return (
+                <motion.div
+                  key={pair.id}
+                  id={`captain-pair-right-${index}`}
+                  animate={{
+                    scale: isCurrentBidder ? 1.02 : 1,
+                    borderColor: isCurrentBidder ? "#9d4edd" : "rgba(255,255,255,0.1)",
+                  }}
+                  className="flex-1 bg-white/5 rounded-xl p-2 border-2 flex items-center"
+                  style={{ 
+                    borderColor: isCurrentBidder ? "#9d4edd" : "rgba(255,255,255,0.1)",
+                    background: isCurrentBidder ? "linear-gradient(135deg, rgba(157,78,221,0.3), transparent)" : undefined
+                  }}
+                  data-testid={`captain-pair-${pair.id}`}
+                >
+                  <div className="flex items-center gap-2 w-full h-full">
+                    {/* Logo placeholder - shows team logo if assigned, otherwise empty slot */}
+                    <div 
+                      className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden border-2 border-dashed"
+                      style={{ 
+                        backgroundColor: assignedTeam?.primaryColor || "#1a1a2e",
+                        borderColor: assignedTeam ? assignedTeam.primaryColor : "#4a4a5a"
+                      }}
+                    >
+                      {assignedTeam ? (
+                        assignedTeam.logoUrl ? (
+                          <img src={assignedTeam.logoUrl} alt={assignedTeam.name} className="w-full h-full object-cover" />
+                        ) : (
+                          assignedTeam.shortName
+                        )
+                      ) : (
+                        <span className="text-gray-500 text-2xl">?</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      {assignedTeam ? (
+                        <span className="font-display text-lg text-white block truncate leading-tight">{assignedTeam.name}</span>
+                      ) : (
+                        <span className="font-display text-lg text-gray-400 block truncate leading-tight">Slot #{pair.slotNumber}</span>
+                      )}
                       <div className="text-base text-yellow-400 truncate font-semibold leading-tight">
                         {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
                       </div>
-                    ) : (
-                      <div className="text-base text-gray-500 leading-tight">No owner yet</div>
-                    )}
-                    <div className="flex items-center gap-2 text-base text-white leading-tight">
-                      <Wallet className="w-5 h-5 text-green-400" />
-                      <span className="font-bold text-green-400 text-lg">{team.remainingBudget.toLocaleString()}</span>
-                      <span className="text-cyan-300 font-bold text-lg">({playerCount}/8)</span>
+                      <div className="flex items-center gap-2 text-base text-white leading-tight">
+                        <Wallet className="w-5 h-5 text-green-400" />
+                        <span className="font-bold text-green-400 text-lg">{pair.remainingBudget.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })
+          ) : (
+            // During Player auction: Show Teams
+            teams?.slice(6, 12).map((team, index) => {
+              const captain = players?.find(p => p.id === team.captainId);
+              const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
+              const hasOwners = captain || viceCaptain;
+              const teamPlayers = players?.filter(p => p.teamId === team.id && p.id !== team.captainId && p.id !== team.viceCaptainId) || [];
+              const playerCount = teamPlayers.length + (hasOwners ? 2 : 0);
+              return (
+                <motion.div
+                  key={team.id}
+                  id={`team-box-right-${index}`}
+                  animate={{
+                    scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
+                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => {
+                    setSelectedTeam(team);
+                    setShowTeamModal(true);
+                  }}
+                  className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
+                  style={{ 
+                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
+                    background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}30, transparent)` : undefined
+                  }}
+                  data-testid={`team-card-${team.id}`}
+                >
+                  <div className="flex items-center gap-2 w-full h-full">
+                    <div 
+                      className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
+                      style={{ backgroundColor: team.primaryColor }}
+                    >
+                      {team.logoUrl ? (
+                        <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+                      ) : (
+                        team.shortName
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="font-display text-lg text-white block truncate leading-tight">{team.name}</span>
+                      {hasOwners ? (
+                        <div className="text-base text-yellow-400 truncate font-semibold leading-tight">
+                          {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
+                        </div>
+                      ) : (
+                        <div className="text-base text-gray-500 leading-tight">No owner yet</div>
+                      )}
+                      <div className="flex items-center gap-2 text-base text-white leading-tight">
+                        <Wallet className="w-5 h-5 text-green-400" />
+                        <span className="font-bold text-green-400 text-lg">{team.remainingBudget.toLocaleString()}</span>
+                        <span className="text-cyan-300 font-bold text-lg">({playerCount}/8)</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -902,6 +1070,64 @@ export default function AuctionDisplay() {
                 </motion.div>
               </motion.div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Flying Team Animation - when team is assigned to captain pair */}
+      <AnimatePresence>
+        {showTeamFly && flyingTeam && targetPairIndex !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            className="fixed inset-0 z-50 pointer-events-none"
+          >
+            {(() => {
+              const sortedPairs = [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber);
+              const isLeftSide = targetPairIndex < 6;
+              const positionInColumn = isLeftSide ? targetPairIndex : targetPairIndex - 6;
+              const targetY = 16 + (positionInColumn * 12);
+              const targetX = isLeftSide ? 10 : 88;
+              
+              return (
+                <motion.div
+                  initial={{ 
+                    x: "50vw", 
+                    y: "40vh",
+                    scale: 1.5,
+                    opacity: 1
+                  }}
+                  animate={{ 
+                    x: `${targetX}vw`,
+                    y: `${targetY}vh`,
+                    scale: 0.3,
+                    opacity: 0.8
+                  }}
+                  transition={{ 
+                    duration: 1.5,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                  }}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                >
+                  <div 
+                    className="w-32 h-32 rounded-2xl flex items-center justify-center text-white font-display shadow-2xl border-4 overflow-hidden"
+                    style={{ 
+                      backgroundColor: flyingTeam.primaryColor,
+                      borderColor: flyingTeam.secondaryColor || flyingTeam.primaryColor,
+                      boxShadow: `0 0 60px ${flyingTeam.primaryColor}`
+                    }}
+                  >
+                    {flyingTeam.logoUrl ? (
+                      <img src={flyingTeam.logoUrl} alt={flyingTeam.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl">{flyingTeam.shortName}</span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>
