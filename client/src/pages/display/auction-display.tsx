@@ -330,15 +330,15 @@ export default function AuctionDisplay() {
                 >
                   <p className="text-2xl text-gray-400 uppercase tracking-widest mb-4">Current Bid</p>
                   <motion.div
-                    className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-cyan-400/70"
+                    className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-yellow-400/70"
                   >
                     <motion.p
                       key={auctionState.currentBid}
                       initial={{ scale: 1.5 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
-                      className="font-display text-[12rem] leading-none text-cyan-300"
-                      style={{ textShadow: "0 0 40px rgba(34, 211, 238, 0.8), 0 0 80px rgba(34, 211, 238, 0.5)" }}
+                      className="font-display text-[12rem] leading-none text-yellow-400"
+                      style={{ textShadow: "0 0 40px rgba(250, 204, 21, 0.8), 0 0 80px rgba(250, 204, 21, 0.5)" }}
                     >
                       {(auctionState.currentBid || currentTeam.basePrice || 1000).toLocaleString()}
                     </motion.p>
@@ -448,14 +448,14 @@ export default function AuctionDisplay() {
                   className="text-center"
                 >
                   <p className="text-2xl text-gray-400 uppercase tracking-widest mb-4">Current Bid</p>
-                  <motion.div className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-cyan-400/70">
+                  <motion.div className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-yellow-400/70">
                     <motion.p
                       key={auctionState.currentBid}
                       initial={{ scale: 1.5 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
-                      className="font-display text-[12rem] leading-none text-cyan-300"
-                      style={{ textShadow: "0 0 40px rgba(34, 211, 238, 0.8), 0 0 80px rgba(34, 211, 238, 0.5)" }}
+                      className="font-display text-[12rem] leading-none text-yellow-400"
+                      style={{ textShadow: "0 0 40px rgba(250, 204, 21, 0.8), 0 0 80px rgba(250, 204, 21, 0.5)" }}
                     >
                       {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
                     </motion.p>

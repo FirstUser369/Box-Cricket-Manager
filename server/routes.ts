@@ -560,6 +560,7 @@ export async function registerRoutes(
           // Set selected player to in_auction
           await storage.updatePlayer(selectedPlayer.id, { status: "in_auction" });
           
+          // Keep the current category - don't override with player's category
           const state = await storage.updateAuctionState({
             status: "in_progress",
             currentPlayerId: selectedPlayer.id,
@@ -567,7 +568,6 @@ export async function registerRoutes(
             currentBiddingTeamId: null,
             currentTeamId: null,
             bidHistory: [],
-            currentCategory: selectedPlayer.category || "Batsman",
           });
           
           res.json(state);
