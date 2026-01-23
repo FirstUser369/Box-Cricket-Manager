@@ -760,17 +760,17 @@ function AdminDashboard() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="3000">
-                          Jhakaas Superstars (3000 pts)
+                        <SelectItem value="Batsman">
+                          Batsman
                         </SelectItem>
-                        <SelectItem value="2500">
-                          Solid Performers (2500 pts)
+                        <SelectItem value="Bowler">
+                          Bowler
                         </SelectItem>
-                        <SelectItem value="2000">
-                          Promising Talent (2000 pts)
+                        <SelectItem value="All-rounder">
+                          All-rounder
                         </SelectItem>
-                        <SelectItem value="1500">
-                          Hidden Gems (1500 pts)
+                        <SelectItem value="Unsold">
+                          Unsold
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -783,7 +783,7 @@ function AdminDashboard() {
                       onClick={() =>
                         auctionControlMutation.mutate({
                           action: "start",
-                          category: auctionState?.currentCategory || "3000",
+                          category: auctionState?.currentCategory || "Batsman",
                         })
                       }
                       data-testid="button-start-auction"
@@ -818,7 +818,7 @@ function AdminDashboard() {
                       onClick={() =>
                         auctionControlMutation.mutate({
                           action: "next",
-                          category: auctionState?.currentCategory || "3000",
+                          category: auctionState?.currentCategory || "Batsman",
                         })
                       }
                     >

@@ -318,8 +318,8 @@ export async function registerRoutes(
       
       switch (action) {
         case "start": {
-          // Category is now manually selected by admin
-          const selectedCategory = category || "3000";
+          // Category is now role-based (Batsman, Bowler, All-rounder, Unsold)
+          const selectedCategory = category || "Batsman";
           const players = await storage.getAllPlayers();
           
           // IMPORTANT: Only payment-verified players can be in auction
@@ -335,12 +335,11 @@ export async function registerRoutes(
           
           await storage.updatePlayer(availablePlayer.id, { status: "in_auction" });
           
-          const categoryBasePrice = parseInt(selectedCategory);
-          
+          // Use player's basePoints as the starting bid
           const state = await storage.updateAuctionState({
             status: "in_progress",
             currentPlayerId: availablePlayer.id,
-            currentBid: categoryBasePrice,
+            currentBid: availablePlayer.basePoints,
             currentBiddingTeamId: null,
             bidHistory: [],
             currentCategory: selectedCategory,
@@ -365,8 +364,8 @@ export async function registerRoutes(
         case "select_category": {
           // Admin manually selects which category to auction next
           const selectedCategory = category;
-          if (!selectedCategory || !["3000", "2500", "2000", "1500"].includes(selectedCategory)) {
-            return res.status(400).json({ error: "Invalid category. Must be 3000, 2500, 2000, or 1500" });
+          if (!selectedCategory || !["Batsman", "Bowler", "All-rounder", "Unsold"].includes(selectedCategory)) {
+            return res.status(400).json({ error: "Invalid category. Must be Batsman, Bowler, All-rounder, or Unsold" });
           }
           
           const state = await storage.updateAuctionState({
@@ -382,7 +381,7 @@ export async function registerRoutes(
         case "next": {
           const players = await storage.getAllPlayers();
           // Admin can override category, otherwise use current
-          const selectedCategory = category || currentState?.currentCategory || "3000";
+          const selectedCategory = category || currentState?.currentCategory || "Batsman";
           
           // Clear break state when moving to next player
           await storage.updateAuctionState({
@@ -407,14 +406,13 @@ export async function registerRoutes(
             if (lostGoldPlayers.length > 0) {
               const player = lostGoldPlayers[0];
               await storage.updatePlayer(player.id, { status: "in_auction" });
-              const categoryBasePrice = parseInt(player.category || "1500");
               const state = await storage.updateAuctionState({
                 status: "lost_gold_round",
                 currentPlayerId: player.id,
-                currentBid: categoryBasePrice,
+                currentBid: player.basePoints,
                 currentBiddingTeamId: null,
                 bidHistory: [],
-                currentCategory: player.category || "1500",
+                currentCategory: player.category || "Batsman",
               });
               return res.json(state);
             }
@@ -439,11 +437,11 @@ export async function registerRoutes(
           
           await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
           
-          const categoryBasePrice = parseInt(selectedCategory);
+          // Use player's basePoints as the starting bid
           const state = await storage.updateAuctionState({
             status: "in_progress",
             currentPlayerId: nextPlayer.id,
-            currentBid: categoryBasePrice,
+            currentBid: nextPlayer.basePoints,
             currentBiddingTeamId: null,
             bidHistory: [],
             currentCategory: selectedCategory,
@@ -535,9 +533,9 @@ export async function registerRoutes(
       let newBiddingTeamId: string | null;
       
       if (newBidHistory.length === 0) {
-        // No bids left, revert to category base price
-        const categoryBasePrice = parseInt(state.currentCategory || "1500");
-        newCurrentBid = categoryBasePrice;
+        // No bids left, revert to player's base points
+        const currentPlayer = await storage.getPlayer(state.currentPlayerId!);
+        newCurrentBid = currentPlayer?.basePoints || 1500;
         newBiddingTeamId = null;
       } else {
         // Restore the previous (now last) bid
@@ -1860,28 +1858,14 @@ export async function registerRoutes(
   
   app.post("/api/players/:id/approve", async (req, res) => {
     try {
-      // First get the player to calculate category from ratings
+      // First get the player to get their role for category
       const existingPlayer = await storage.getPlayer(req.params.id);
       if (!existingPlayer) {
         return res.status(404).json({ error: "Player not found" });
       }
       
-      // Calculate category based on total ratings (batting + bowling + fielding)
-      // Max total is 30 (10+10+10)
-      const totalRating = (existingPlayer.battingRating || 5) + 
-                          (existingPlayer.bowlingRating || 5) + 
-                          (existingPlayer.fieldingRating || 5);
-      
-      let category: string;
-      if (totalRating >= 24) {
-        category = "3000"; // Jhakaas Superstars
-      } else if (totalRating >= 18) {
-        category = "2500"; // Solid Performers
-      } else if (totalRating >= 12) {
-        category = "2000"; // Promising Talent
-      } else {
-        category = "1500"; // Hidden Gems
-      }
+      // Category is based on player's role (Batsman, Bowler, All-rounder)
+      const category = existingPlayer.role || "Batsman";
       
       const player = await storage.updatePlayer(req.params.id, {
         approvalStatus: "approved",

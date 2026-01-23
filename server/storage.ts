@@ -151,11 +151,8 @@ export class DatabaseStorage implements IStorage {
       player.fieldingRating || 5
     );
 
-    // Determine category based on base points (total rating * 100)
-    let category = "1500"; // Hidden Gems
-    if (basePoints >= 2400) category = "3000"; // Jhakaas Superstars (8+ avg rating)
-    else if (basePoints >= 2100) category = "2500"; // Solid Performers (7+ avg rating)
-    else if (basePoints >= 1800) category = "2000"; // Promising Talent (6+ avg rating)
+    // Category is based on player's role
+    const category = player.role || "Batsman";
 
     const [newPlayer] = await db.insert(players).values({
       id,

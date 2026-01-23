@@ -17,7 +17,7 @@ export const players = pgTable("players", {
   photoUrl: text("photo_url").notNull(),
   tshirtSize: text("tshirt_size"), // S, M, L, XL
   basePoints: integer("base_points").notNull(),
-  category: text("category").default("1500"), // 1500, 2000, 2500, 3000
+  category: text("category").default("Batsman"), // Batsman, Bowler, All-rounder, Unsold
   isLocked: boolean("is_locked").default(false),
   isCaptain: boolean("is_captain").default(false),
   isViceCaptain: boolean("is_vice_captain").default(false),
@@ -73,7 +73,7 @@ export const auctionState = pgTable("auction_state", {
   currentBid: integer("current_bid"),
   currentBiddingTeamId: varchar("current_bidding_team_id", { length: 36 }),
   bidHistory: jsonb("bid_history").$type<Array<{ teamId: string; amount: number; timestamp: number }>>(),
-  currentCategory: text("current_category").default("3000"), // Tracks current auction category (3000 -> 2500 -> 2000 -> 1500)
+  currentCategory: text("current_category").default("Batsman"), // Tracks current auction category (Batsman -> Bowler -> All-rounder -> Unsold)
   categoryBreak: boolean("category_break").default(false), // True when a category is complete and break animation should show
   completedCategory: text("completed_category"), // Which category just completed (for break display)
 });
@@ -269,10 +269,10 @@ export type PlayerRegistration = z.infer<typeof playerRegistrationSchema>;
 
 // Auction Category Names (Hinglish fun names)
 export const AUCTION_CATEGORIES = {
-  "3000": "Jhakaas Superstars",
-  "2500": "Solid Performers",
-  "2000": "Promising Talent",
-  "1500": "Hidden Gems",
+  "Batsman": "Batsman",
+  "Bowler": "Bowler",
+  "All-rounder": "All-rounder",
+  "Unsold": "Unsold",
 } as const;
 
 export type AuctionCategory = keyof typeof AUCTION_CATEGORIES;
