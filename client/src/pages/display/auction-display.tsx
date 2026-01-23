@@ -26,6 +26,7 @@ export default function AuctionDisplay() {
   const [lastSoldTeamVC, setLastSoldTeamVC] = useState<Player | null>(null);
   const [previousTeamId, setPreviousTeamId] = useState<string | null>(null);
   const [showPlayerFly, setShowPlayerFly] = useState(false);
+  const [lastAnimatedTimestamp, setLastAnimatedTimestamp] = useState<number | null>(null);
 
   const { data: auctionState } = useQuery<AuctionState>({
     queryKey: ["/api/auction/state"],
@@ -85,27 +86,32 @@ export default function AuctionDisplay() {
     frame();
   }, []);
 
+  // Detect when a player is sold using lastSoldTimestamp from auction state
   useEffect(() => {
-    // Detect when the previous player was sold (works when transitioning to next player OR to null)
-    if (previousPlayerId && previousPlayerId !== auctionState?.currentPlayerId) {
-      const soldPlayer = players?.find(p => p.id === previousPlayerId && p.status === "sold");
-      if (soldPlayer && soldPlayer.teamId && !showSold) {
-        const soldTeam = teams?.find(t => t.id === soldPlayer.teamId);
-        if (soldTeam) {
-          setLastSoldPlayer(soldPlayer);
-          setLastSoldTeam(soldTeam);
-          setLastSoldPrice(soldPlayer.soldPrice || 0);
-          setShowSold(true);
-          setShowPlayerFly(false);
-          triggerConfetti();
-          // Start fly animation after confetti (delayed by 800ms)
-          setTimeout(() => setShowPlayerFly(true), 800);
-          setTimeout(() => setShowSold(false), 2500);
-        }
+    const soldTimestamp = auctionState?.lastSoldTimestamp;
+    const soldPlayerId = auctionState?.lastSoldPlayerId;
+    const soldTeamId = auctionState?.lastSoldTeamId;
+    const soldPriceValue = auctionState?.lastSoldPrice;
+    
+    // Only trigger if we have a new timestamp that we haven't animated yet
+    if (soldTimestamp && soldPlayerId && soldTeamId && soldTimestamp !== lastAnimatedTimestamp) {
+      const soldPlayer = players?.find(p => p.id === soldPlayerId);
+      const soldTeam = teams?.find(t => t.id === soldTeamId);
+      
+      if (soldPlayer && soldTeam && !showSold) {
+        setLastSoldPlayer(soldPlayer);
+        setLastSoldTeam(soldTeam);
+        setLastSoldPrice(soldPriceValue || 0);
+        setShowSold(true);
+        setShowPlayerFly(false);
+        setLastAnimatedTimestamp(soldTimestamp);
+        triggerConfetti();
+        // Start fly animation after confetti (delayed by 800ms)
+        setTimeout(() => setShowPlayerFly(true), 800);
+        setTimeout(() => setShowSold(false), 2500);
       }
     }
-    setPreviousPlayerId(auctionState?.currentPlayerId || null);
-  }, [auctionState?.currentPlayerId, players, teams, previousPlayerId, triggerConfetti, showSold]);
+  }, [auctionState?.lastSoldTimestamp, auctionState?.lastSoldPlayerId, auctionState?.lastSoldTeamId, auctionState?.lastSoldPrice, players, teams, lastAnimatedTimestamp, triggerConfetti, showSold]);
 
   // Detect when a team is sold in Team Names auction
   useEffect(() => {

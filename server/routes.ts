@@ -992,14 +992,19 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Team not found" });
       }
       
-      await storage.updatePlayer(state.currentPlayerId, {
+      const soldPlayerId = state.currentPlayerId;
+      const soldTeamId = state.currentBiddingTeamId;
+      const soldPrice = state.currentBid || 0;
+      const soldTimestamp = Date.now();
+      
+      await storage.updatePlayer(soldPlayerId, {
         status: "sold",
-        teamId: state.currentBiddingTeamId,
-        soldPrice: state.currentBid,
+        teamId: soldTeamId,
+        soldPrice: soldPrice,
       });
       
-      await storage.updateTeam(state.currentBiddingTeamId, {
-        remainingBudget: team.remainingBudget - (state.currentBid || 0),
+      await storage.updateTeam(soldTeamId, {
+        remainingBudget: team.remainingBudget - soldPrice,
       });
       
       const players = await storage.getAllPlayers();
@@ -1018,6 +1023,10 @@ export async function registerRoutes(
           currentBid: nextPlayer.basePoints,
           currentBiddingTeamId: null,
           bidHistory: [],
+          lastSoldPlayerId: soldPlayerId,
+          lastSoldTeamId: soldTeamId,
+          lastSoldPrice: soldPrice,
+          lastSoldTimestamp: soldTimestamp,
         });
         return res.json(updatedState);
       }
@@ -1034,6 +1043,10 @@ export async function registerRoutes(
           bidHistory: [],
           completedCategory: currentCategory,
           categoryBreak: true,
+          lastSoldPlayerId: soldPlayerId,
+          lastSoldTeamId: soldTeamId,
+          lastSoldPrice: soldPrice,
+          lastSoldTimestamp: soldTimestamp,
         });
         return res.json(updatedState);
       }
@@ -1048,6 +1061,10 @@ export async function registerRoutes(
           currentBid: player.basePoints,
           currentBiddingTeamId: null,
           bidHistory: [],
+          lastSoldPlayerId: soldPlayerId,
+          lastSoldTeamId: soldTeamId,
+          lastSoldPrice: soldPrice,
+          lastSoldTimestamp: soldTimestamp,
         });
         return res.json(updatedState);
       }
@@ -1057,6 +1074,10 @@ export async function registerRoutes(
         currentPlayerId: null,
         currentBid: null,
         currentBiddingTeamId: null,
+        lastSoldPlayerId: soldPlayerId,
+        lastSoldTeamId: soldTeamId,
+        lastSoldPrice: soldPrice,
+        lastSoldTimestamp: soldTimestamp,
       });
       
       res.json(updatedState);

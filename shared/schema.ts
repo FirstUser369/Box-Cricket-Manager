@@ -95,6 +95,10 @@ export const auctionState = pgTable("auction_state", {
   completedCategory: text("completed_category"), // Which category just completed (for break display)
   currentTeamId: varchar("current_team_id", { length: 36 }), // For team name auction - which team name is being auctioned
   currentBiddingPairId: varchar("current_bidding_pair_id", { length: 36 }), // For team name auction - which captain pair is currently bidding
+  lastSoldPlayerId: varchar("last_sold_player_id", { length: 36 }), // Player ID that was just sold (for animation trigger)
+  lastSoldTeamId: varchar("last_sold_team_id", { length: 36 }), // Team ID player was sold to (for animation trigger)
+  lastSoldPrice: integer("last_sold_price"), // Price player was sold for (for animation trigger)
+  lastSoldTimestamp: integer("last_sold_timestamp"), // Timestamp of last sale (for animation trigger - changes on each sale)
 });
 
 export const insertAuctionStateSchema = createInsertSchema(auctionState).omit({ id: true });
