@@ -872,18 +872,25 @@ export async function registerRoutes(
       const currentPlayer = await storage.getPlayer(state.currentPlayerId!);
       const basePrice = currentPlayer?.basePoints || 1500;
       
-      // Use currentBid from state, falling back to base price
-      let currentBid = state.currentBid ?? basePrice;
+      let newBid: number;
       
-      // Bid increment: +200 until bid reaches 4000, then +250
-      let increment = currentBid < 4000 ? 200 : 250;
-      let newBid = currentBid + increment;
+      // Check if this is the first bid (no bids in history yet)
+      const existingBidHistory = state.bidHistory || [];
+      if (existingBidHistory.length === 0) {
+        // First bid is the base price
+        newBid = basePrice;
+      } else {
+        // Subsequent bids: add increment to current bid
+        const currentBid = state.currentBid ?? basePrice;
+        const increment = currentBid < 4000 ? 200 : 250;
+        newBid = currentBid + increment;
+      }
       
       if (newBid > team.remainingBudget) {
         return res.status(400).json({ error: "Insufficient budget" });
       }
       
-      const bidHistory = [...(state.bidHistory || []), {
+      const updatedBidHistory = [...existingBidHistory, {
         teamId,
         amount: newBid,
         timestamp: Date.now(),
@@ -892,7 +899,7 @@ export async function registerRoutes(
       const updatedState = await storage.updateAuctionState({
         currentBid: newBid,
         currentBiddingTeamId: teamId,
-        bidHistory,
+        bidHistory: updatedBidHistory,
       });
       
       res.json(updatedState);
@@ -1086,6 +1093,8 @@ export async function registerRoutes(
           teamId: null,
           soldPrice: null,
           isLocked: false,
+          isCaptain: false,
+          isViceCaptain: false,
         });
       }
       
@@ -1096,12 +1105,24 @@ export async function registerRoutes(
         });
       }
       
+      // Reset captain pair assignments
+      const captainPairs = await storage.getAllCaptainPairs();
+      for (const pair of captainPairs) {
+        await storage.updateCaptainPair(pair.id, {
+          assignedTeamId: null,
+          remainingBudget: pair.budget,
+        });
+      }
+      
       await storage.updateAuctionState({
         status: "not_started",
         currentPlayerId: null,
         currentBid: null,
         currentBiddingTeamId: null,
         bidHistory: [],
+        currentCategory: "Team Names",
+        currentTeamId: null,
+        currentBiddingPairId: null,
       });
       
       res.json({ success: true, message: "Auction reset successfully" });
