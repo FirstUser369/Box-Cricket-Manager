@@ -181,7 +181,7 @@ export default function AuctionDisplay() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="fixed top-[52px] left-0 right-0 z-30"
+          className="fixed top-[60px] left-0 right-0 z-30"
           data-testid="category-title-bar"
         >
           <div 
@@ -210,7 +210,7 @@ export default function AuctionDisplay() {
         </motion.div>
       )}
 
-      <div className={`pb-4 px-2 h-[calc(100vh-80px)] flex ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-28" : "pt-16"}`}>
+      <div className={`pb-4 px-2 h-[calc(100vh-80px)] flex ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-32" : "pt-16"}`}>
         {/* Left Side - 6 Teams */}
         <div className="w-80 flex flex-col gap-1">
           {teams?.slice(0, 6).map((team, index) => {
