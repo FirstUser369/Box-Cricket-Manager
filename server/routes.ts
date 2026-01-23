@@ -1003,7 +1003,18 @@ export async function registerRoutes(
       });
       
       const players = await storage.getAllPlayers();
-      const nextPlayer = players.find(p => p.status === "registered");
+      const currentCategory = state.currentCategory;
+      
+      // Find next player from the same category first
+      let nextPlayer = players.find(p => 
+        p.status === "registered" && 
+        p.category === currentCategory
+      );
+      
+      // If no more players in current category, find from any category
+      if (!nextPlayer) {
+        nextPlayer = players.find(p => p.status === "registered");
+      }
       
       if (nextPlayer) {
         await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
@@ -1012,6 +1023,8 @@ export async function registerRoutes(
           currentBid: nextPlayer.basePoints,
           currentBiddingTeamId: null,
           bidHistory: [],
+          // Update category if switching to a player from different category
+          currentCategory: nextPlayer.category || currentCategory,
         });
         return res.json(updatedState);
       }
@@ -1058,9 +1071,27 @@ export async function registerRoutes(
       });
       
       const players = await storage.getAllPlayers();
-      const nextPlayer = isLostGoldRound
-        ? players.find(p => p.status === "lost_gold")
-        : players.find(p => p.status === "registered");
+      const currentCategory = state.currentCategory;
+      
+      // Find next player from same category first
+      let nextPlayer;
+      if (isLostGoldRound) {
+        nextPlayer = players.find(p => 
+          p.status === "lost_gold" && 
+          p.category === currentCategory
+        );
+        if (!nextPlayer) {
+          nextPlayer = players.find(p => p.status === "lost_gold");
+        }
+      } else {
+        nextPlayer = players.find(p => 
+          p.status === "registered" && 
+          p.category === currentCategory
+        );
+        if (!nextPlayer) {
+          nextPlayer = players.find(p => p.status === "registered");
+        }
+      }
       
       if (nextPlayer) {
         await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
@@ -1069,6 +1100,7 @@ export async function registerRoutes(
           currentBid: nextPlayer.basePoints,
           currentBiddingTeamId: null,
           bidHistory: [],
+          currentCategory: nextPlayer.category || currentCategory,
         });
         return res.json(updatedState);
       }
