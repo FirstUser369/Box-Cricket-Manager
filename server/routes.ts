@@ -926,6 +926,36 @@ export async function registerRoutes(
     }
   });
 
+  // Reset all bids for current player (back to base price)
+  app.post("/api/auction/reset-player", async (req, res) => {
+    try {
+      const state = await storage.getAuctionState();
+      
+      if (!state || (state.status !== "in_progress" && state.status !== "lost_gold_round")) {
+        return res.status(400).json({ error: "Auction not in progress" });
+      }
+      
+      if (!state.currentPlayerId) {
+        return res.status(400).json({ error: "No player currently in auction" });
+      }
+      
+      // Get current player's base price
+      const currentPlayer = await storage.getPlayer(state.currentPlayerId);
+      const basePrice = currentPlayer?.basePoints || 1500;
+      
+      // Reset all bids - clear history and set bid back to base price
+      const updatedState = await storage.updateAuctionState({
+        currentBid: basePrice,
+        currentBiddingTeamId: null,
+        bidHistory: [],
+      });
+      
+      res.json(updatedState);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reset player bids" });
+    }
+  });
+
   // Undo last bid
   app.post("/api/auction/undo-bid", async (req, res) => {
     try {

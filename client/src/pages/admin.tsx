@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Download,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -428,6 +429,20 @@ function AdminDashboard() {
     },
     onError: (error: any) => {
       const message = error?.message || "No bids to undo";
+      toast({ title: message, variant: "destructive" });
+    },
+  });
+
+  const resetPlayerMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/auction/reset-player", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
+      toast({ title: "Player bids reset to base price" });
+    },
+    onError: (error: any) => {
+      const message = error?.message || "Failed to reset player";
       toast({ title: message, variant: "destructive" });
     },
   });
@@ -1534,15 +1549,26 @@ function AdminDashboard() {
                   )}
                   {(auctionState?.status === "in_progress" ||
                     auctionState?.status === "lost_gold_round") && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => undoBidMutation.mutate()}
-                      disabled={!auctionState?.bidHistory?.length}
-                      data-testid="button-undo-bid"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Undo Last Bid
-                    </Button>
+                    <>
+                      <Button
+                        variant="secondary"
+                        onClick={() => undoBidMutation.mutate()}
+                        disabled={!auctionState?.bidHistory?.length}
+                        data-testid="button-undo-bid"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Undo Last Bid
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => resetPlayerMutation.mutate()}
+                        disabled={!auctionState?.currentPlayerId}
+                        data-testid="button-reset-player"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Reset Player
+                      </Button>
+                    </>
                   )}
                   {auctionState?.status !== "not_started" &&
                     auctionState?.status !== "completed" && (
