@@ -924,7 +924,6 @@ function AdminDashboard() {
                       "Fielding Rating": player.fieldingRating,
                       "Base Points": player.basePoints,
                       "Category": player.category || "",
-                      "Photo URL": player.photoUrl,
                       "Payment Status": player.paymentStatus,
                       "Approval Status": player.approvalStatus,
                       "Status": player.status,
@@ -944,7 +943,6 @@ function AdminDashboard() {
                       { wch: 15 }, // Fielding Rating
                       { wch: 12 }, // Base Points
                       { wch: 12 }, // Category
-                      { wch: 40 }, // Photo URL
                       { wch: 15 }, // Payment Status
                       { wch: 15 }, // Approval Status
                       { wch: 12 }, // Status
