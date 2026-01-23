@@ -21,187 +21,66 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendPaymentConfirmationEmail(playerEmail: string, playerName: string) {
-  const displayUrl = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://your-app-url.replit.app'}/display`;
+  // Get tournament settings for dynamic display credentials
+  const settings = await storage.getTournamentSettings();
+  const displayUsername = settings?.displayUsername || "Bhulku";
+  const displayPassword = settings?.displayPassword || "weareone";
+  
+  // Always use the published production URL for emails
+  const baseUrl = 'https://samanvaypremierleagues02.replit.app';
+  const displayUrl = `${baseUrl}/display`;
+  const logoUrl = `${baseUrl}/spl-logo.png`;
   
   const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
-  <style>
-    :root { color-scheme: light dark; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-      background-color: #0d0d0d !important; 
-      color: #f0f0f0 !important; 
-      margin: 0; 
-      padding: 0;
-      -webkit-text-size-adjust: 100%;
-    }
-    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
-    .header { 
-      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc00 100%); 
-      padding: 28px 20px; 
-      text-align: center; 
-      border-radius: 12px 12px 0 0;
-    }
-    .header h1 { 
-      margin: 0; 
-      font-size: 26px; 
-      font-weight: 800; 
-      text-transform: uppercase; 
-      letter-spacing: 2px; 
-      color: #000000 !important;
-      text-shadow: none;
-    }
-    .content { 
-      background-color: #1a1a1a !important; 
-      padding: 28px 24px; 
-      border-radius: 0 0 12px 12px;
-      border: 1px solid #333;
-      border-top: none;
-    }
-    .greeting { font-size: 20px; color: #ffffff !important; margin-bottom: 16px; }
-    .player-name { color: #ffcc00 !important; font-weight: 700; }
-    .body-text { font-size: 16px; line-height: 1.7; color: #e0e0e0 !important; margin-bottom: 16px; }
-    .highlight { color: #ffcc00 !important; font-weight: 600; }
-    .event-box { 
-      background-color: #262626 !important; 
-      padding: 20px; 
-      border-radius: 10px; 
-      margin: 24px 0;
-      border-left: 5px solid #ff6b35;
-    }
-    .event-title { 
-      color: #ff6b35 !important; 
-      font-size: 18px;
-      font-weight: 700; 
-      margin: 0 0 16px 0;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .detail-row { padding: 10px 0; border-bottom: 1px solid #3a3a3a; }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-label { color: #999999 !important; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
-    .detail-value { color: #ffffff !important; font-size: 16px; font-weight: 600; }
-    .detail-value.gold { color: #ffcc00 !important; }
-    .rides-banner { 
-      background: linear-gradient(90deg, #22c55e, #16a34a); 
-      padding: 16px 20px; 
-      text-align: center; 
-      border-radius: 10px; 
-      margin: 24px 0;
-    }
-    .rides-banner p { 
-      margin: 0; 
-      font-size: 16px; 
-      font-weight: 700; 
-      text-transform: uppercase; 
-      letter-spacing: 1px;
-      color: #ffffff !important;
-    }
-    .credentials-box { 
-      background-color: #262626 !important; 
-      padding: 20px; 
-      border-radius: 10px; 
-      margin: 24px 0;
-      border-left: 5px solid #3b82f6;
-    }
-    .credentials-title { color: #60a5fa !important; font-size: 16px; font-weight: 700; margin: 0 0 12px 0; }
-    .credentials-text { color: #cccccc !important; font-size: 14px; margin-bottom: 16px; }
-    .credential { 
-      background-color: #333333 !important; 
-      padding: 12px 16px; 
-      border-radius: 8px; 
-      margin: 10px 0; 
-      font-family: 'SF Mono', Menlo, Monaco, 'Courier New', monospace;
-      font-size: 15px;
-      color: #ffffff !important;
-    }
-    .credential strong { color: #999999 !important; }
-    .cta-button { 
-      display: inline-block; 
-      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); 
-      color: #000000 !important; 
-      padding: 14px 28px; 
-      text-decoration: none; 
-      border-radius: 8px; 
-      font-weight: 700; 
-      text-transform: uppercase; 
-      letter-spacing: 1px; 
-      margin-top: 16px;
-      font-size: 14px;
-    }
-    .closing { color: #cccccc !important; font-size: 15px; margin-top: 28px; line-height: 1.6; }
-    .signature { color: #ffffff !important; font-weight: 600; }
-    .footer { text-align: center; padding: 20px; color: #666666 !important; font-size: 12px; }
-    
-    @media (prefers-color-scheme: dark) {
-      body { background-color: #0d0d0d !important; }
-      .content { background-color: #1a1a1a !important; }
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="background-color: #0d0d0d; margin: 0; padding: 0;">
-  <div class="container">
-    <div class="header">
-      <h1 style="color: #000000;">YOU'RE IN!</h1>
+<body style="font-family: Arial, sans-serif; background: #ffffff; color: #000000; margin: 0; padding: 20px;">
+  <div style="max-width: 500px; margin: 0 auto;">
+    <div style="text-align: center; padding: 20px; border-bottom: 2px solid #000;">
+      <img src="${logoUrl}" alt="SPL" style="width: 100px; margin-bottom: 10px;">
+      <h1 style="color: #000; margin: 0; font-size: 28px;">YOU'RE IN!</h1>
     </div>
-    <div class="content" style="background-color: #1a1a1a;">
-      <p class="greeting" style="color: #ffffff;">Hey <span class="player-name" style="color: #ffcc00;">${playerName}</span>,</p>
-      
-      <p class="body-text" style="color: #e0e0e0;">
-        <strong style="color: #22c55e;">CONGRATULATIONS!</strong> Your payment has been verified and you're officially registered for the most exciting cricket event of the year!
-      </p>
-      
-      <p class="body-text" style="color: #e0e0e0;">
-        Get ready to showcase your skills in the <span class="highlight" style="color: #ffcc00;">Points-Based Auction</span> where teams will compete to get YOU on their squad!
-      </p>
+    
+    <div style="padding: 24px 0;">
+      <p style="font-size: 18px; margin-bottom: 20px;">Hey <strong>${playerName}</strong>, your payment is confirmed!</p>
 
-      <div class="event-box" style="background-color: #262626;">
-        <h2 class="event-title" style="color: #ff6b35;">EVENT DETAILS</h2>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Event Name</span>
-          <span class="detail-value gold" style="color: #ffcc00;">Samanvay Premier League Season 2</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Location</span>
-          <span class="detail-value" style="color: #ffffff;">839 Upper Union Street, Franklin - MA - 02038</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Auction Date</span>
-          <span class="detail-value gold" style="color: #ffcc00;">25th January</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label" style="color: #999999;">Tournament Date</span>
-          <span class="detail-value gold" style="color: #ffcc00;">7th February</span>
-        </div>
+      <div style="background: #f5f5f5; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #ddd;">
+        <h3 style="color: #000; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px 0;">Event Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px;">Event</td><td style="padding: 8px 0; text-align: right; font-weight: bold;">SPL Season 2</td></tr>
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd;">Location</td><td style="padding: 8px 0; text-align: right; font-weight: bold; border-top: 1px solid #ddd;">839 Upper Union St, Franklin MA</td></tr>
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd;">Auction</td><td style="padding: 8px 0; text-align: right; font-weight: bold; border-top: 1px solid #ddd;">Jan 25, 2026</td></tr>
+          <tr><td style="padding: 8px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd;">Tournament</td><td style="padding: 8px 0; text-align: right; font-weight: bold; border-top: 1px solid #ddd;">Feb 7, 2026</td></tr>
+        </table>
       </div>
 
-      <div class="rides-banner">
-        <p style="color: #ffffff;">RIDES WILL BE PROVIDED IF NEEDED!</p>
+      <div style="background: #000; text-align: center; padding: 14px; border-radius: 8px; margin: 20px 0;">
+        <span style="color: #fff; font-weight: bold; font-size: 14px;">RIDES PROVIDED IF NEEDED</span>
       </div>
 
-      <div class="credentials-box" style="background-color: #262626;">
-        <h3 class="credentials-title" style="color: #60a5fa;">WATCH LIVE DISPLAY</h3>
-        <p class="credentials-text" style="color: #cccccc;">Use these credentials to access the live auction and match displays:</p>
-        <div class="credential" style="background-color: #333333; color: #ffffff;"><strong style="color: #999999;">Username:</strong> Bhulku</div>
-        <div class="credential" style="background-color: #333333; color: #ffffff;"><strong style="color: #999999;">Password:</strong> weareone</div>
-        <a href="${displayUrl}" class="cta-button" style="color: #000000; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">Access Display Mode</a>
+      <div style="background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h3 style="color: #000; font-size: 14px; font-weight: bold; margin: 0 0 16px 0;">Live Display Access</h3>
+        <div style="background: #fff; padding: 12px; border-radius: 6px; margin: 10px 0; border: 1px solid #ddd;">
+          <span style="color: #666; font-size: 11px; text-transform: uppercase;">Username</span>
+          <span style="float: right; font-weight: bold;">${displayUsername}</span>
+        </div>
+        <div style="background: #fff; padding: 12px; border-radius: 6px; margin: 10px 0; border: 1px solid #ddd;">
+          <span style="color: #666; font-size: 11px; text-transform: uppercase;">Password</span>
+          <span style="float: right; font-weight: bold;">${displayPassword}</span>
+        </div>
+        <p style="margin: 16px 0 0; font-size: 13px; color: #666;">Link: <a href="${displayUrl}" style="color: #000; font-weight: bold;">${displayUrl}</a></p>
+        <a href="${displayUrl}" style="display: block; background: #000; color: #fff; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 16px;">WATCH LIVE</a>
       </div>
 
-      <p class="closing" style="color: #cccccc;">
-        We can't wait to see you at the auction! May the best team grab you!
-      </p>
-      
-      <p class="closing" style="color: #cccccc;">
-        See you on the pitch,<br>
-        <span class="signature" style="color: #ffffff;">Team Samanvay Premier League</span>
-      </p>
+      <p style="text-align: center; color: #666; font-size: 14px; margin-top: 24px;">See you on the pitch!<br><strong style="color: #000;">Team SPL</strong></p>
     </div>
-    <div class="footer">
-      <p style="color: #666666;">This is an automated confirmation email. Please do not reply.</p>
+    
+    <div style="text-align: center; color: #999; font-size: 11px; padding-top: 20px; border-top: 1px solid #ddd;">
+      © 2026 Samanvay Premier League
     </div>
   </div>
 </body>
@@ -212,7 +91,7 @@ async function sendPaymentConfirmationEmail(playerEmail: string, playerName: str
     await transporter.sendMail({
       from: `"Samanvay Premier League" <${process.env.GMAIL_USER}>`,
       to: playerEmail,
-      subject: "🏏 You're IN! Payment Confirmed - Samanvay Premier League Season 2",
+      subject: "YOU'RE IN! Payment Confirmed - SPL Season 2",
       html: emailHtml,
     });
     console.log(`Confirmation email sent to ${playerEmail}`);
@@ -306,6 +185,74 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete player" });
+    }
+  });
+
+  // Player reassignment (post-auction)
+  app.post("/api/players/:id/reassign", async (req, res) => {
+    try {
+      const { newTeamId } = req.body;
+      
+      if (!newTeamId || typeof newTeamId !== 'string') {
+        return res.status(400).json({ error: "newTeamId is required" });
+      }
+      
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      if (!player.teamId) {
+        return res.status(400).json({ error: "Player is not assigned to any team" });
+      }
+      if (player.teamId === newTeamId) {
+        return res.status(400).json({ error: "Player is already on this team" });
+      }
+      
+      // Get all data fresh to avoid stale reads
+      const [oldTeam, newTeam, allPlayers] = await Promise.all([
+        storage.getTeam(player.teamId),
+        storage.getTeam(newTeamId),
+        storage.getAllPlayers(),
+      ]);
+      
+      if (!oldTeam || !newTeam) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Check roster limit (8 players max per team)
+      const newTeamPlayers = allPlayers.filter(p => p.teamId === newTeamId);
+      if (newTeamPlayers.length >= 8) {
+        return res.status(400).json({ error: "New team already has 8 players (maximum roster size)" });
+      }
+      
+      const soldPrice = player.soldPrice || player.basePoints;
+      
+      // Check if new team has enough budget
+      if (newTeam.remainingBudget < soldPrice) {
+        return res.status(400).json({ error: "New team does not have enough budget" });
+      }
+      
+      // Calculate correct budgets based on all players in each team
+      const oldTeamPlayersAfter = allPlayers.filter(p => p.teamId === oldTeam.id && p.id !== player.id);
+      const oldTeamSpentAfter = oldTeamPlayersAfter.reduce((sum, p) => sum + (p.soldPrice || p.basePoints), 0);
+      const oldTeamBudgetAfter = oldTeam.budget - oldTeamSpentAfter;
+      
+      const newTeamSpentAfter = newTeamPlayers.reduce((sum, p) => sum + (p.soldPrice || p.basePoints), 0) + soldPrice;
+      const newTeamBudgetAfter = newTeam.budget - newTeamSpentAfter;
+      
+      // Update player's team first
+      const updatedPlayer = await storage.updatePlayer(player.id, { teamId: newTeamId });
+      
+      // Then update team budgets atomically based on recalculated values
+      await Promise.all([
+        storage.updateTeam(oldTeam.id, { remainingBudget: oldTeamBudgetAfter }),
+        storage.updateTeam(newTeam.id, { remainingBudget: newTeamBudgetAfter }),
+      ]);
+      
+      res.json(updatedPlayer);
+    } catch (error) {
+      console.error("Reassign player error:", error);
+      res.status(500).json({ error: "Failed to reassign player" });
     }
   });
 
@@ -424,6 +371,8 @@ export async function registerRoutes(
           
           const state = await storage.updateAuctionState({
             currentCategory: selectedCategory,
+            categoryBreak: false,
+            completedCategory: null,
           });
           
           res.json(state);
@@ -434,6 +383,12 @@ export async function registerRoutes(
           const players = await storage.getAllPlayers();
           // Admin can override category, otherwise use current
           const selectedCategory = category || currentState?.currentCategory || "3000";
+          
+          // Clear break state when moving to next player
+          await storage.updateAuctionState({
+            categoryBreak: false,
+            completedCategory: null,
+          });
           
           // IMPORTANT: Only payment-verified players can be in auction
           let nextPlayer = players.find(p => 
@@ -464,9 +419,20 @@ export async function registerRoutes(
               return res.json(state);
             }
             
-            // No players available in selected category
-            return res.status(400).json({ 
-              error: `No payment-verified players available in category ${selectedCategory}. Select a different category.`,
+            // No players available in selected category - trigger break
+            const state = await storage.updateAuctionState({
+              status: "paused",
+              currentPlayerId: null,
+              currentBid: null,
+              currentBiddingTeamId: null,
+              bidHistory: [],
+              categoryBreak: true,
+              completedCategory: selectedCategory,
+            });
+            
+            return res.json({ 
+              ...state,
+              message: `Category ${selectedCategory} completed! Select a different category.`,
               noPlayersInCategory: true
             });
           }

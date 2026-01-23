@@ -62,10 +62,10 @@ export default function LeaderboardDisplay() {
             <div className="p-6 space-y-4">
               {topOrange.length > 0 ? (
                 topOrange.map((leader, i) => {
-                  const team = getTeam(leader.player.teamId);
+                  const team = getTeam(leader.player?.teamId || null);
                   return (
                     <motion.div
-                      key={leader.player.id}
+                      key={leader.player?.id || i}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 + i * 0.1 }}
@@ -75,13 +75,13 @@ export default function LeaderboardDisplay() {
                         #{i + 1}
                       </span>
                       <Avatar className="w-14 h-14 border-2" style={{ borderColor: team?.primaryColor }}>
-                        <AvatarImage src={leader.player.photoUrl} />
+                        <AvatarImage src={leader.player?.photoUrl || undefined} />
                         <AvatarFallback className="bg-gradient-to-br from-orange-500 to-yellow-500">
-                          {leader.player.name.slice(0, 2).toUpperCase()}
+                          {(leader.player?.name || "??").slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-lg">{leader.player.name}</p>
+                        <p className="font-medium text-lg">{leader.player?.name || "Unknown"}</p>
                         <p className="text-sm text-gray-400">{team?.shortName}</p>
                       </div>
                       <div className="text-right">
@@ -119,10 +119,10 @@ export default function LeaderboardDisplay() {
             <div className="p-6 space-y-4">
               {topPurple.length > 0 ? (
                 topPurple.map((leader, i) => {
-                  const team = getTeam(leader.player.teamId);
+                  const team = getTeam(leader.player?.teamId || null);
                   return (
                     <motion.div
-                      key={leader.player.id}
+                      key={leader.player?.id || i}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 + i * 0.1 }}
@@ -132,13 +132,13 @@ export default function LeaderboardDisplay() {
                         #{i + 1}
                       </span>
                       <Avatar className="w-14 h-14 border-2" style={{ borderColor: team?.primaryColor }}>
-                        <AvatarImage src={leader.player.photoUrl} />
+                        <AvatarImage src={leader.player?.photoUrl || undefined} />
                         <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500">
-                          {leader.player.name.slice(0, 2).toUpperCase()}
+                          {(leader.player?.name || "??").slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-lg">{leader.player.name}</p>
+                        <p className="font-medium text-lg">{leader.player?.name || "Unknown"}</p>
                         <p className="text-sm text-gray-400">{team?.shortName}</p>
                       </div>
                       <div className="text-right">
@@ -176,10 +176,10 @@ export default function LeaderboardDisplay() {
             <div className="p-6 space-y-4">
               {topMVP.length > 0 ? (
                 topMVP.map((leader, i) => {
-                  const team = getTeam(leader.player.teamId);
+                  const team = getTeam(leader.player?.teamId || null);
                   return (
                     <motion.div
-                      key={leader.player.id}
+                      key={leader.player?.id || i}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 + i * 0.1 }}
@@ -189,13 +189,13 @@ export default function LeaderboardDisplay() {
                         #{i + 1}
                       </span>
                       <Avatar className="w-14 h-14 border-2" style={{ borderColor: team?.primaryColor }}>
-                        <AvatarImage src={leader.player.photoUrl} />
+                        <AvatarImage src={leader.player?.photoUrl || undefined} />
                         <AvatarFallback className="bg-gradient-to-br from-yellow-500 to-orange-500">
-                          {leader.player.name.slice(0, 2).toUpperCase()}
+                          {(leader.player?.name || "??").slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-lg">{leader.player.name}</p>
+                        <p className="font-medium text-lg">{leader.player?.name || "Unknown"}</p>
                         <p className="text-sm text-gray-400">{team?.shortName}</p>
                       </div>
                       <div className="text-right">

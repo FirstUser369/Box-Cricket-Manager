@@ -1,0 +1,291 @@
+Objective
+---------
+
+Implement, fix, and validate frontend and backend features related to match history, leaderboard stability, live score interaction, and gameplay rule enforcement, while being aware of unresolved backend security risks.
+
+* * *
+
+1\. Completed Match History and Scorecard Visibility
+----------------------------------------------------
+
+### Problem to Address
+
+The Matches page “Results” tab only shows a high level summary for completed matches and lacks detailed score information.
+
+### Required Actions
+
+1.  **Add a “View Scorecard” action**
+    
+    *   For every completed match card in the Results tab, render a “View Scorecard” button.
+        
+    *   Ensure this button is only visible for matches with status = completed.
+        
+2.  **Implement a Scorecard Dialog**
+    
+    *   On click, open a modal or dialog component.
+        
+    *   The dialog must display:
+        
+        *   Separate sections for **1st Innings** and **2nd Innings**.
+            
+        *   Clear team labels for each innings.
+            
+3.  **Batting Statistics Table**
+    
+    *   For each innings, list all batters who participated.
+        
+    *   Display at minimum:
+        
+        *   Runs
+            
+        *   Balls faced
+            
+        *   Number of 4s
+            
+        *   Number of 6s
+            
+        *   Strike Rate
+            
+        *   Dismissal information (Out type or Not Out)
+            
+4.  **Bowling Statistics Table**
+    
+    *   For each innings, list all bowlers.
+        
+    *   Display at minimum:
+        
+        *   Overs
+            
+        *   Runs conceded
+            
+        *   Wickets taken
+            
+        *   Economy rate
+            
+5.  **Innings Order Logic**
+    
+    *   Implement or use a helper function `getFirstBattingTeamId`.
+        
+    *   Determine batting order based on toss winner and toss decision.
+        
+    *   Ensure innings are displayed in the correct chronological order.
+        
+
+* * *
+
+2\. Leaderboard Runtime Crash Fix
+---------------------------------
+
+### Problem to Address
+
+The Leaderboard page crashes due to incorrect assumptions about API response structure.
+
+### Required Actions
+
+1.  **Inspect API Response**
+    
+    *   The backend returns leaderboard data with nested objects.
+        
+    *   Player-related data is inside `leader.player`.
+        
+2.  **Update Frontend Accessors**
+    
+    *   In `leaderboard-display.tsx`, replace all direct property access with nested access:
+        
+        *   `leader.playerName` → `leader.player.name`
+            
+        *   `leader.teamId` → `leader.player.teamId`
+            
+        *   `leader.photoUrl` → `leader.player.photoUrl`
+            
+3.  **Apply Changes Consistently**
+    
+    *   Ensure fixes are applied for:
+        
+        *   Orange Cap leaderboard
+            
+        *   Purple Cap leaderboard
+            
+        *   MVP leaderboard
+            
+4.  **Validation**
+    
+    *   Confirm that `.slice()` and other array operations are only applied to valid arrays.
+        
+    *   Add optional chaining or guards if necessary.
+        
+
+* * *
+
+3\. Live Score Interaction for Broadcast Display
+------------------------------------------------
+
+### Problem to Address
+
+Users want to click on a team icon during a live match and view detailed scores.
+
+### Required Actions
+
+1.  **Make Team Headers Interactive**
+    
+    *   In `match-display.tsx`, make each team header or icon clickable.
+        
+    *   Ensure click targets are visually obvious and accessible.
+        
+2.  **Display Scorecard Modal**
+    
+    *   On click:
+        
+        *   If the innings has started, show the detailed scorecard using the same component or logic as completed matches.
+            
+        *   If the innings has not started, show a clear message such as “Inning not yet started”.
+            
+3.  **Code Reuse**
+    
+    *   Do not duplicate scorecard logic.
+        
+    *   Reuse existing scorecard components or helper functions created for completed match viewing.
+        
+
+* * *
+
+4\. Critical Server Crash Resolution
+------------------------------------
+
+### Problem to Address
+
+The backend server fails to start due to variable redeclaration.
+
+### Required Actions
+
+1.  **Locate Duplicate Declaration**
+    
+    *   In `routes.ts`, identify duplicate declarations of the variable `existingStats` in the same scope.
+        
+2.  **Fix Compilation Error**
+    
+    *   Remove or merge the duplicate declaration.
+        
+    *   Ensure validation logic and original logic are preserved.
+        
+3.  **Verify Server Startup**
+    
+    *   Confirm that the server compiles and starts without TransformError.
+        
+
+* * *
+
+5\. Gameplay Logic and Rule Enforcement
+---------------------------------------
+
+### 5.1 Consecutive Bowling Restriction
+
+**Objective**  
+Prevent the same bowler from bowling two consecutive overs.
+
+**Actions**
+
+*   Add validation in the backend API to reject over assignments if the same bowler bowled the previous over.
+    
+*   Add corresponding UI validation to disable or prevent selecting the previous over’s bowler.
+    
+
+* * *
+
+### 5.2 Prevent Re-selecting Dismissed Batters
+
+**Objective**  
+Ensure dismissed players cannot bat again in the same innings.
+
+**Actions**
+
+*   Filter dismissed players from batsman selection dropdowns.
+    
+*   Enforce the same validation at the API level for safety.
+    
+
+* * *
+
+### 5.3 Clarify Wicket Attribution
+
+**Objective**  
+Remove ambiguity when a wicket occurs.
+
+**Actions**
+
+*   When a wicket event is recorded, explicitly prompt the admin to select:
+    
+    *   Striker or
+        
+    *   Non-Striker
+        
+*   Store and reflect the correct dismissal information in scorecards.
+    
+
+* * *
+
+6\. New Batsman Selection Logic Fix
+-----------------------------------
+
+### Problem to Address
+
+The “Select New Batsman” panel fails to appear when the Non-Striker is dismissed.
+
+### Required Actions
+
+1.  **Update Vacancy Detection**
+    
+    *   Modify `needsNewBatsman` logic in `admin.tsx`.
+        
+    *   Trigger the selection panel if either:
+        
+        *   Striker is missing OR
+            
+        *   Non-Striker is missing.
+            
+2.  **Dropdown Filtering**
+    
+    *   Exclude:
+        
+        *   The remaining batsman at the crease.
+            
+        *   Any dismissed players.
+            
+    *   Ensure only valid candidates appear.
+        
+
+* * *
+
+7\. Outstanding Critical Issues (Awareness Only)
+------------------------------------------------
+
+These issues are **not fixed** but must be kept in mind for future work:
+
+*   API routes lack authentication and authorization.
+    
+*   Sensitive credentials are hardcoded in the codebase.
+    
+*   Betting and bidding logic is vulnerable to race conditions due to missing transactional safeguards.
+    
+
+The AI agent should **not introduce new features that worsen these risks** and should flag them if touching related areas.
+
+* * *
+
+Expected Outcome
+----------------
+
+After following these instructions:
+
+*   Match history and live matches provide full, accurate scorecards.
+    
+*   Leaderboards render without crashes.
+    
+*   Gameplay rules align with real cricket constraints.
+    
+*   The server runs reliably.
+    
+*   UI state transitions are robust and predictable.
+    
+
+This instruction set should be treated as a definitive implementation and verification checklist for the current development phase.

@@ -24,11 +24,13 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           <Link href="/" data-testid="link-home-logo">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <img 
+                src="/spl-logo.png" 
+                alt="SPL Logo" 
+                className="w-12 h-12 object-contain"
+              />
               <span className="font-display text-2xl tracking-wide hidden sm:block">
-                BCL
+                SPL
               </span>
             </div>
           </Link>

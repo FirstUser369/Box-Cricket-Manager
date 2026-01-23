@@ -52,9 +52,18 @@ export default function DisplayIndex() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-purple-600 to-orange-500 flex items-center justify-center mb-6">
-            <Monitor className="w-10 h-10 text-white" />
-          </div>
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, type: "spring" }}
+            className="mb-4"
+          >
+            <img 
+              src="/spl-logo.png" 
+              alt="SPL Logo" 
+              className="w-40 h-40 mx-auto object-contain"
+            />
+          </motion.div>
           <h1 className="font-display text-5xl text-glow-purple mb-4">BROADCAST DISPLAYS</h1>
           <p className="text-xl text-gray-400">Select a display mode for your screens</p>
         </motion.div>

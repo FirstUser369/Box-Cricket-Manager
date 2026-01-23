@@ -6,9 +6,10 @@ interface ScoreDisplayProps {
   team1: Team;
   team2: Team;
   variant?: "compact" | "full";
+  onScoreClick?: () => void;
 }
 
-export function ScoreDisplay({ match, team1, team2, variant = "compact" }: ScoreDisplayProps) {
+export function ScoreDisplay({ match, team1, team2, variant = "compact", onScoreClick }: ScoreDisplayProps) {
   const battingTeam = match.currentInnings === 1 ? team1 : team2;
   const bowlingTeam = match.currentInnings === 1 ? team2 : team1;
   
@@ -83,10 +84,18 @@ export function ScoreDisplay({ match, team1, team2, variant = "compact" }: Score
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div 
+        className={cn(
+          "grid grid-cols-2 gap-6",
+          onScoreClick && "cursor-pointer"
+        )}
+        onClick={onScoreClick}
+        data-testid={`score-display-clickable-${match.id}`}
+      >
         <div className={cn(
           "p-4 rounded-md border-2 transition-colors",
-          match.currentInnings === 1 ? "border-primary bg-primary/5" : "border-transparent bg-muted/50"
+          match.currentInnings === 1 ? "border-primary bg-primary/5" : "border-transparent bg-muted/50",
+          onScoreClick && "hover-elevate"
         )}>
           <div className="flex items-center gap-3 mb-3">
             <div 
@@ -107,11 +116,15 @@ export function ScoreDisplay({ match, team1, team2, variant = "compact" }: Score
             <span className="text-3xl text-muted-foreground">/{match.team1Wickets}</span>
             <span className="text-lg text-muted-foreground ml-2">({match.team1Overs} ov)</span>
           </div>
+          {onScoreClick && (
+            <p className="text-xs text-muted-foreground mt-2">Click to view detailed scorecard</p>
+          )}
         </div>
 
         <div className={cn(
           "p-4 rounded-md border-2 transition-colors",
-          match.currentInnings === 2 ? "border-primary bg-primary/5" : "border-transparent bg-muted/50"
+          match.currentInnings === 2 ? "border-primary bg-primary/5" : "border-transparent bg-muted/50",
+          onScoreClick && "hover-elevate"
         )}>
           <div className="flex items-center gap-3 mb-3">
             <div 
@@ -132,6 +145,9 @@ export function ScoreDisplay({ match, team1, team2, variant = "compact" }: Score
             <span className="text-3xl text-muted-foreground">/{match.team2Wickets}</span>
             <span className="text-lg text-muted-foreground ml-2">({match.team2Overs} ov)</span>
           </div>
+          {onScoreClick && (
+            <p className="text-xs text-muted-foreground mt-2">Click to view detailed scorecard</p>
+          )}
         </div>
       </div>
 
