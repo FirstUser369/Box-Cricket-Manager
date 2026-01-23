@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import * as XLSX from "xlsx";
 import {
   Shield,
   Users,
@@ -30,6 +31,7 @@ import {
   Megaphone,
   AlertTriangle,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -890,6 +892,87 @@ function AdminDashboard() {
                 isLoading={playersLoading}
               />
             </div>
+
+            {/* Excel Download for Verified Payment Players */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="w-5 h-5" />
+                  Export Verified Players
+                </CardTitle>
+                <CardDescription>
+                  Download an Excel file with all players who have verified payment
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified") || [];
+                  
+                  const downloadExcel = () => {
+                    if (verifiedPlayers.length === 0) {
+                      toast({ title: "No verified players to export", variant: "destructive" });
+                      return;
+                    }
+                    
+                    const exportData = verifiedPlayers.map(player => ({
+                      "Name": player.name,
+                      "Mobile": player.mobile,
+                      "Phone": player.phone || "",
+                      "Role": player.role,
+                      "Batting Rating": player.battingRating,
+                      "Bowling Rating": player.bowlingRating,
+                      "Fielding Rating": player.fieldingRating,
+                      "Base Points": player.basePoints,
+                      "Category": player.category || "",
+                      "Photo URL": player.photoUrl,
+                      "Payment Status": player.paymentStatus,
+                      "Approval Status": player.approvalStatus,
+                      "Status": player.status,
+                    }));
+                    
+                    const worksheet = XLSX.utils.json_to_sheet(exportData);
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "Verified Players");
+                    
+                    const colWidths = [
+                      { wch: 25 }, // Name
+                      { wch: 15 }, // Mobile
+                      { wch: 15 }, // Phone
+                      { wch: 12 }, // Role
+                      { wch: 15 }, // Batting Rating
+                      { wch: 15 }, // Bowling Rating
+                      { wch: 15 }, // Fielding Rating
+                      { wch: 12 }, // Base Points
+                      { wch: 12 }, // Category
+                      { wch: 40 }, // Photo URL
+                      { wch: 15 }, // Payment Status
+                      { wch: 15 }, // Approval Status
+                      { wch: 12 }, // Status
+                    ];
+                    worksheet["!cols"] = colWidths;
+                    
+                    XLSX.writeFile(workbook, "verified_players.xlsx");
+                    toast({ title: `Exported ${verifiedPlayers.length} verified players` });
+                  };
+                  
+                  return (
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        {verifiedPlayers.length} player{verifiedPlayers.length !== 1 ? "s" : ""} with verified payment
+                      </div>
+                      <Button
+                        onClick={downloadExcel}
+                        disabled={verifiedPlayers.length === 0}
+                        data-testid="button-download-excel"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Excel
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Captain Pairs Tab - Assign captain/VC pairs to slots before auction */}
