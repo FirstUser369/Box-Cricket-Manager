@@ -14,10 +14,11 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 
 ### Auction System
 - **Role-Based Categories**: Auction groups players by role (Batsman, Bowler, All-rounder, Unsold)
-- **Incremental Bidding**: Bids increment to next number divisible by 200
+- **Incremental Bidding**: +₹200 until bid reaches ₹4000, then +₹250 increments
 - **Budget Enforcement**: Teams cannot exceed their ₹25,000 budget
 - **Lost Gold Round**: Unsold players get a second chance in the Lost Gold round
 - **Real-time State**: Auction state persisted in database with bid history and current category
+- **Category Filtering**: Players appear only when their matching category is selected
 
 ### Live Scoring
 - **Ball-by-Ball**: Record runs (0-6), extras (wide, no-ball - no free hit), wickets (bowled, caught, lbw, run_out, stumped)

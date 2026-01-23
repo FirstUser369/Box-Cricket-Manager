@@ -496,8 +496,16 @@ export async function registerRoutes(
       }
       
       let currentBid = state.currentBid || 0;
-      // Calculate next number divisible by 200
-      const newBid = Math.ceil((currentBid + 1) / 200) * 200;
+      // Bid increment: +200 until 4000, then +250
+      let increment = currentBid < 4000 ? 200 : 250;
+      let newBid: number;
+      if (currentBid < 4000) {
+        // Calculate next number divisible by 200
+        newBid = Math.ceil((currentBid + 1) / 200) * 200;
+      } else {
+        // Calculate next number divisible by 250
+        newBid = Math.ceil((currentBid + 1) / 250) * 250;
+      }
       
       if (newBid > team.remainingBudget) {
         return res.status(400).json({ error: "Insufficient budget" });

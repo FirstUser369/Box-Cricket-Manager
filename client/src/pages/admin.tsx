@@ -745,7 +745,7 @@ function AdminDashboard() {
                       Select Category:
                     </Label>
                     <Select
-                      value={auctionState?.currentCategory || "3000"}
+                      value={auctionState?.currentCategory || "Batsman"}
                       onValueChange={(value) =>
                         auctionControlMutation.mutate({
                           action: "select_category",
@@ -2061,6 +2061,12 @@ function LiveScoringPanel({
   const [selectedFielder, setSelectedFielder] = useState<string>("");
   const [selectedDismissedBatsman, setSelectedDismissedBatsman] =
     useState<string>("");
+  const [wicketDialogState, setWicketDialogState] = useState<{
+    open: boolean;
+    type: string;
+    needsFielder?: boolean;
+  }>({ open: false, type: "" });
+  const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
 
   const team1 = teams.find((t) => t.id === match.team1Id);
   const team2 = teams.find((t) => t.id === match.team2Id);
