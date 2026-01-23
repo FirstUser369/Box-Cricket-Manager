@@ -868,17 +868,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: `Team roster full (${MAX_ROSTER_SIZE} players max)` });
       }
       
-      let currentBid = state.currentBid || 0;
-      // Bid increment: +200 until 4000, then +250
+      // Get base price from current player
+      const currentPlayer = await storage.getPlayer(state.currentPlayerId!);
+      const basePrice = currentPlayer?.basePoints || 1500;
+      
+      // Use currentBid from state, falling back to base price
+      let currentBid = state.currentBid ?? basePrice;
+      
+      // Bid increment: +200 until bid reaches 4000, then +250
       let increment = currentBid < 4000 ? 200 : 250;
-      let newBid: number;
-      if (currentBid < 4000) {
-        // Calculate next number divisible by 200
-        newBid = Math.ceil((currentBid + 1) / 200) * 200;
-      } else {
-        // Calculate next number divisible by 250
-        newBid = Math.ceil((currentBid + 1) / 250) * 250;
-      }
+      let newBid = currentBid + increment;
       
       if (newBid > team.remainingBudget) {
         return res.status(400).json({ error: "Insufficient budget" });
@@ -911,6 +910,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Auction not in progress" });
       }
       
+      if (!state.currentPlayerId) {
+        return res.status(400).json({ error: "No player currently in auction" });
+      }
+      
       const originalHistory = state.bidHistory || [];
       
       if (originalHistory.length === 0) {
@@ -920,14 +923,17 @@ export async function registerRoutes(
       // Create a new array without the last bid (immutable)
       const newBidHistory = originalHistory.slice(0, -1);
       
+      // Get current player's base price for fallback
+      const currentPlayer = await storage.getPlayer(state.currentPlayerId);
+      const basePrice = currentPlayer?.basePoints || 1500;
+      
       // Determine new current bid and bidding team
       let newCurrentBid: number;
       let newBiddingTeamId: string | null;
       
       if (newBidHistory.length === 0) {
-        // No bids left, revert to player's base points
-        const currentPlayer = await storage.getPlayer(state.currentPlayerId!);
-        newCurrentBid = currentPlayer?.basePoints || 1500;
+        // No bids left, revert to player's base price
+        newCurrentBid = basePrice;
         newBiddingTeamId = null;
       } else {
         // Restore the previous (now last) bid
