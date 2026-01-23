@@ -12,13 +12,21 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 - **Approval Workflow**: Players start as pending, admin approves/rejects before auction
 - **Payment Tracking**: Payment status (pending/verified/rejected) managed by admin
 
-### Auction System
+### Auction System (Two-Phase)
+**Phase 1: Team Names Auction**
+- **Team Names Management**: Admin creates 12 team identities (name, logo, colors) in Team Names tab
+- **Captain/VC Pairs as Bidders**: Pre-assigned captain pairs bid for team identities
+- **Category Locking**: Non-Team Names categories are blurred/locked until Phase 1 completes
+- **Assign Team**: Captain pair that wins bid gets assigned to that team identity
+
+**Phase 2: Player Auction**
 - **Role-Based Categories**: Auction groups players by role (Batsman, Bowler, All-rounder, Unsold)
-- **Category Summary**: Pre-auction grid shows available/total players per category (Batsmen, Bowlers, All-rounders)
+- **Category Summary**: Pre-auction grid shows available/total players per category
 - **Player Dropdown**: Select specific players from current category (excludes sold players)
 - **Live Category Switching**: Changing category mid-auction immediately shows first player from new category
 - **Incremental Bidding**: +₹200 until bid reaches ₹4000, then +₹250 increments
-- **Budget Enforcement**: Teams cannot exceed their ₹25,000 budget
+- **Budget Enforcement**: Teams cannot exceed their ₹30,000 budget
+- **Roster Limit**: Max 8 players per team (2 captain/VC already assigned + 6 to buy)
 - **Lost Gold Round**: Unsold players get a second chance in the Lost Gold round
 - **Real-time State**: Auction state persisted in database with bid history and current category
 - **Category Filtering**: Players appear only when their matching category is selected
