@@ -159,7 +159,7 @@ export default function AuctionDisplay() {
               <Gavel className="w-7 h-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-display text-2xl tracking-wide">BCL AUCTION</h1>
+              <h1 className="font-display text-2xl tracking-wide">SPL-2026 AUCTION</h1>
               <Badge className="bg-red-500/20 border-red-500 text-red-400">
                 <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />
                 LIVE
@@ -191,41 +191,42 @@ export default function AuctionDisplay() {
 
       <div className="pt-20 pb-4 px-2 h-[calc(100vh-80px)] flex">
         {/* Left Side - 6 Teams */}
-        <div className="w-64 flex flex-col gap-1.5">
+        <div className="w-64 flex flex-col gap-1">
           {teams?.slice(0, 6).map((team) => {
             const teamPlayers = players?.filter(p => p.teamId === team.id) || [];
             const captain = players?.find(p => p.id === team.captainId);
             const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
             const hasOwners = captain || viceCaptain;
+            const playerCount = teamPlayers.length + (hasOwners ? 2 : 0);
             return (
               <motion.div
                 key={team.id}
                 animate={{
-                  scale: currentBiddingTeam?.id === team.id ? 1.03 : 1,
+                  scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
                   borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
                 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => {
                   setSelectedTeam(team);
                   setShowTeamModal(true);
                 }}
-                className="bg-white/5 rounded-xl p-3 border-2 cursor-pointer transition-all hover:bg-white/10"
+                className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
                 style={{ 
                   borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
                   background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}20, transparent)` : undefined
                 }}
                 data-testid={`team-card-${team.id}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 w-full">
                   <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-display text-lg shadow-lg"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-display text-sm shadow-lg flex-shrink-0"
                     style={{ backgroundColor: team.primaryColor }}
                   >
                     {team.shortName}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="font-display text-base text-white block truncate">{team.name}</span>
+                    <span className="font-display text-sm text-white block truncate">{team.name}</span>
                     {hasOwners ? (
                       <div className="text-xs text-yellow-400 truncate">
                         {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
@@ -233,10 +234,10 @@ export default function AuctionDisplay() {
                     ) : (
                       <div className="text-xs text-gray-500">No owner yet</div>
                     )}
-                    <div className="flex items-center gap-2 text-sm text-white mt-1">
-                      <Wallet className="w-3.5 h-3.5 text-green-400" />
+                    <div className="flex items-center gap-1.5 text-xs text-white">
+                      <Wallet className="w-3 h-3 text-green-400" />
                       <span className="font-bold">{team.remainingBudget.toLocaleString()}</span>
-                      <span className="text-gray-400">({teamPlayers.length}/8)</span>
+                      <span className="text-gray-400">({playerCount}/8)</span>
                     </div>
                   </div>
                 </div>
@@ -572,7 +573,7 @@ export default function AuctionDisplay() {
             </motion.div>
           )}
 
-          {auctionState?.categoryBreak && auctionState?.completedCategory && (
+          {auctionState?.categoryBreak && auctionState?.completedCategory && !currentTeam && !currentPlayer && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -657,41 +658,42 @@ export default function AuctionDisplay() {
         </div>
 
         {/* Right Side - 6 Teams */}
-        <div className="w-64 flex flex-col gap-1.5">
+        <div className="w-64 flex flex-col gap-1">
           {teams?.slice(6, 12).map((team) => {
             const teamPlayers = players?.filter(p => p.teamId === team.id) || [];
             const captain = players?.find(p => p.id === team.captainId);
             const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
             const hasOwners = captain || viceCaptain;
+            const playerCount = teamPlayers.length + (hasOwners ? 2 : 0);
             return (
               <motion.div
                 key={team.id}
                 animate={{
-                  scale: currentBiddingTeam?.id === team.id ? 1.03 : 1,
+                  scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
                   borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
                 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => {
                   setSelectedTeam(team);
                   setShowTeamModal(true);
                 }}
-                className="bg-white/5 rounded-xl p-3 border-2 cursor-pointer transition-all hover:bg-white/10"
+                className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
                 style={{ 
                   borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
                   background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}20, transparent)` : undefined
                 }}
                 data-testid={`team-card-${team.id}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 w-full">
                   <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-display text-lg shadow-lg"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-display text-sm shadow-lg flex-shrink-0"
                     style={{ backgroundColor: team.primaryColor }}
                   >
                     {team.shortName}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="font-display text-base text-white block truncate">{team.name}</span>
+                    <span className="font-display text-sm text-white block truncate">{team.name}</span>
                     {hasOwners ? (
                       <div className="text-xs text-yellow-400 truncate">
                         {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
@@ -699,10 +701,10 @@ export default function AuctionDisplay() {
                     ) : (
                       <div className="text-xs text-gray-500">No owner yet</div>
                     )}
-                    <div className="flex items-center gap-2 text-sm text-white mt-1">
-                      <Wallet className="w-3.5 h-3.5 text-green-400" />
+                    <div className="flex items-center gap-1.5 text-xs text-white">
+                      <Wallet className="w-3 h-3 text-green-400" />
                       <span className="font-bold">{team.remainingBudget.toLocaleString()}</span>
-                      <span className="text-gray-400">({teamPlayers.length}/8)</span>
+                      <span className="text-gray-400">({playerCount}/8)</span>
                     </div>
                   </div>
                 </div>
@@ -719,59 +721,104 @@ export default function AuctionDisplay() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-50 pointer-events-none"
           >
+            {/* Flying Player Card */}
             <motion.div
-              initial={{ scale: 2.5, rotate: -12, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 400, 
-                damping: 20
+              initial={{ 
+                x: "50vw", 
+                y: "40vh",
+                scale: 1,
+                opacity: 1
               }}
-              className="text-center relative"
+              animate={{ 
+                x: teams?.findIndex(t => t.id === lastSoldTeam.id) !== undefined && teams?.findIndex(t => t.id === lastSoldTeam.id)! < 6 
+                  ? "5vw" 
+                  : "85vw",
+                y: `${((teams?.findIndex(t => t.id === lastSoldTeam.id) || 0) % 6) * 12 + 15}vh`,
+                scale: 0.3,
+                opacity: 0
+              }}
+              transition={{ 
+                duration: 0.8,
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+              className="absolute"
+            >
+              <div 
+                className="w-24 h-32 rounded-xl flex flex-col items-center justify-center text-white font-display shadow-2xl border-2"
+                style={{ 
+                  backgroundColor: lastSoldTeam.primaryColor,
+                  borderColor: lastSoldTeam.secondaryColor
+                }}
+              >
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                  <Users className="w-6 h-6" />
+                </div>
+                <span className="text-xs text-center px-1 truncate w-full">{lastSoldPlayer.name?.split(' ')[0]}</span>
+              </div>
+            </motion.div>
+
+            {/* SOLD Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="absolute inset-0 flex items-center justify-center"
             >
               <motion.div
-                animate={{ 
-                  boxShadow: [
-                    "0 0 0px rgba(234, 179, 8, 0)",
-                    "0 0 60px rgba(234, 179, 8, 0.9)",
-                    "0 0 30px rgba(234, 179, 8, 0.5)"
-                  ]
+                initial={{ scale: 2.5, rotate: -12, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 400, 
+                  damping: 20,
+                  delay: 0.1
                 }}
-                transition={{ duration: 0.5 }}
-                className="border-[6px] border-amber-500 rounded-xl px-8 py-4 bg-black/80 backdrop-blur-md"
+                className="text-center relative"
               >
-                <motion.h1
-                  initial={{ scale: 0.6 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.05, type: "spring", stiffness: 500 }}
-                  className="font-display text-[6rem] md:text-[8rem] bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 bg-clip-text text-transparent leading-none tracking-wider"
-                  style={{ 
-                    textShadow: "0 0 30px rgba(251, 191, 36, 0.6)",
-                  }}
-                >
-                  SOLD
-                </motion.h1>
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="mt-2 space-y-1"
+                  animate={{ 
+                    boxShadow: [
+                      "0 0 0px rgba(234, 179, 8, 0)",
+                      "0 0 60px rgba(234, 179, 8, 0.9)",
+                      "0 0 30px rgba(234, 179, 8, 0.5)"
+                    ]
+                  }}
+                  transition={{ duration: 0.5 }}
+                  className="border-[6px] border-amber-500 rounded-xl px-8 py-4 bg-black/80 backdrop-blur-md"
                 >
-                  <p className="font-display text-2xl md:text-3xl text-white">{lastSoldPlayer.name}</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <span 
-                      className="px-3 py-1 rounded-lg font-display text-lg md:text-xl text-white"
-                      style={{ backgroundColor: lastSoldTeam.primaryColor }}
-                    >
-                      {lastSoldTeam.shortName || lastSoldTeam.name}
-                    </span>
-                    <span className="font-display text-2xl md:text-3xl text-emerald-400">
-                      {lastSoldPrice.toLocaleString()} pts
-                    </span>
-                  </div>
+                  <motion.h1
+                    initial={{ scale: 0.6 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.15, type: "spring", stiffness: 500 }}
+                    className="font-display text-[6rem] md:text-[8rem] bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 bg-clip-text text-transparent leading-none tracking-wider"
+                    style={{ 
+                      textShadow: "0 0 30px rgba(251, 191, 36, 0.6)",
+                    }}
+                  >
+                    SOLD
+                  </motion.h1>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="mt-2 space-y-1"
+                  >
+                    <p className="font-display text-2xl md:text-3xl text-white">{lastSoldPlayer.name}</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <span 
+                        className="px-3 py-1 rounded-lg font-display text-lg md:text-xl text-white"
+                        style={{ backgroundColor: lastSoldTeam.primaryColor }}
+                      >
+                        {lastSoldTeam.shortName || lastSoldTeam.name}
+                      </span>
+                      <span className="font-display text-2xl md:text-3xl text-emerald-400">
+                        {lastSoldPrice.toLocaleString()} pts
+                      </span>
+                    </div>
+                  </motion.div>
                 </motion.div>
               </motion.div>
             </motion.div>
