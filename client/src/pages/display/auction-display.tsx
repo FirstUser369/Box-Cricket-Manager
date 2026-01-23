@@ -248,10 +248,14 @@ export default function AuctionDisplay() {
               >
                 <div className="flex items-center gap-2 w-full h-full">
                   <div 
-                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0"
+                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
                     style={{ backgroundColor: team.primaryColor }}
                   >
-                    {team.shortName}
+                    {team.logoUrl ? (
+                      <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+                    ) : (
+                      team.shortName
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <span className="font-display text-lg text-white block truncate leading-tight">{team.name}</span>
@@ -323,13 +327,17 @@ export default function AuctionDisplay() {
                         className="rounded-2xl"
                       >
                         <div 
-                          className="w-56 h-56 rounded-2xl flex items-center justify-center text-white font-display text-6xl border-4"
+                          className="w-56 h-56 rounded-2xl flex items-center justify-center text-white font-display text-6xl border-4 overflow-hidden"
                           style={{ 
                             backgroundColor: currentTeam.primaryColor,
                             borderColor: currentTeam.secondaryColor
                           }}
                         >
-                          {currentTeam.shortName}
+                          {currentTeam.logoUrl ? (
+                            <img src={currentTeam.logoUrl} alt={currentTeam.name} className="w-full h-full object-cover" />
+                          ) : (
+                            currentTeam.shortName
+                          )}
                         </div>
                       </motion.div>
                     </div>
@@ -498,10 +506,14 @@ export default function AuctionDisplay() {
                       >
                         <TrendingUp className="w-10 h-10 text-emerald-400" />
                         <div 
-                          className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-2xl"
+                          className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-2xl overflow-hidden"
                           style={{ backgroundColor: currentBiddingTeam.primaryColor }}
                         >
-                          {currentBiddingTeam.shortName}
+                          {currentBiddingTeam.logoUrl ? (
+                            <img src={currentBiddingTeam.logoUrl} alt={currentBiddingTeam.name} className="w-full h-full object-cover" />
+                          ) : (
+                            currentBiddingTeam.shortName
+                          )}
                         </div>
                         <div className="text-left">
                           <p className="text-base text-gray-400 uppercase tracking-wide">LEADING BID</p>
@@ -649,10 +661,14 @@ export default function AuctionDisplay() {
               >
                 <div className="flex items-center gap-2 w-full h-full">
                   <div 
-                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0"
+                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
                     style={{ backgroundColor: team.primaryColor }}
                   >
-                    {team.shortName}
+                    {team.logoUrl ? (
+                      <img src={team.logoUrl} alt={team.name} className="w-full h-full object-cover" />
+                    ) : (
+                      team.shortName
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <span className="font-display text-lg text-white block truncate leading-tight">{team.name}</span>
@@ -834,10 +850,14 @@ export default function AuctionDisplay() {
                   className="mb-6"
                 >
                   <div 
-                    className="w-32 h-32 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-5xl shadow-2xl"
+                    className="w-32 h-32 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-5xl shadow-2xl overflow-hidden"
                     style={{ backgroundColor: lastSoldTeamName.primaryColor }}
                   >
-                    {lastSoldTeamName.shortName}
+                    {lastSoldTeamName.logoUrl ? (
+                      <img src={lastSoldTeamName.logoUrl} alt={lastSoldTeamName.name} className="w-full h-full object-cover" />
+                    ) : (
+                      lastSoldTeamName.shortName
+                    )}
                   </div>
                 </motion.div>
 
@@ -1018,10 +1038,14 @@ export default function AuctionDisplay() {
               <DialogHeader className="pb-4">
                 <div className="flex items-center gap-4">
                   <div 
-                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-2xl"
+                    className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-2xl overflow-hidden"
                     style={{ backgroundColor: selectedTeam.primaryColor }}
                   >
-                    {selectedTeam.shortName}
+                    {selectedTeam.logoUrl ? (
+                      <img src={selectedTeam.logoUrl} alt={selectedTeam.name} className="w-full h-full object-cover" />
+                    ) : (
+                      selectedTeam.shortName
+                    )}
                   </div>
                   <div>
                     <DialogTitle className="text-2xl font-display text-white">{selectedTeam.name}</DialogTitle>
@@ -1181,10 +1205,14 @@ export default function AuctionDisplay() {
                         return playerTeam ? (
                           <>
                             <div 
-                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-display"
+                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-display overflow-hidden"
                               style={{ backgroundColor: playerTeam.primaryColor }}
                             >
-                              {playerTeam.shortName}
+                              {playerTeam.logoUrl ? (
+                                <img src={playerTeam.logoUrl} alt={playerTeam.name} className="w-full h-full object-cover" />
+                              ) : (
+                                playerTeam.shortName
+                              )}
                             </div>
                             <span className="font-medium">{playerTeam.name}</span>
                           </>
