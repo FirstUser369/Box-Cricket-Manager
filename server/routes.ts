@@ -1005,16 +1005,11 @@ export async function registerRoutes(
       const players = await storage.getAllPlayers();
       const currentCategory = state.currentCategory;
       
-      // Find next player from the same category first
+      // Find next player from the same category
       let nextPlayer = players.find(p => 
         p.status === "registered" && 
         p.category === currentCategory
       );
-      
-      // If no more players in current category, find from any category
-      if (!nextPlayer) {
-        nextPlayer = players.find(p => p.status === "registered");
-      }
       
       if (nextPlayer) {
         await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
@@ -1023,8 +1018,22 @@ export async function registerRoutes(
           currentBid: nextPlayer.basePoints,
           currentBiddingTeamId: null,
           bidHistory: [],
-          // Update category if switching to a player from different category
-          currentCategory: nextPlayer.category || currentCategory,
+        });
+        return res.json(updatedState);
+      }
+      
+      // No more players in current category - check if other categories have players
+      const remainingPlayers = players.find(p => p.status === "registered");
+      
+      if (remainingPlayers) {
+        // Show break/end of category screen - don't auto-switch
+        const updatedState = await storage.updateAuctionState({
+          currentPlayerId: null,
+          currentBid: null,
+          currentBiddingTeamId: null,
+          bidHistory: [],
+          completedCategory: currentCategory,
+          categoryBreak: true,
         });
         return res.json(updatedState);
       }
@@ -1073,24 +1082,18 @@ export async function registerRoutes(
       const players = await storage.getAllPlayers();
       const currentCategory = state.currentCategory;
       
-      // Find next player from same category first
+      // Find next player from same category
       let nextPlayer;
       if (isLostGoldRound) {
         nextPlayer = players.find(p => 
           p.status === "lost_gold" && 
           p.category === currentCategory
         );
-        if (!nextPlayer) {
-          nextPlayer = players.find(p => p.status === "lost_gold");
-        }
       } else {
         nextPlayer = players.find(p => 
           p.status === "registered" && 
           p.category === currentCategory
         );
-        if (!nextPlayer) {
-          nextPlayer = players.find(p => p.status === "registered");
-        }
       }
       
       if (nextPlayer) {
@@ -1100,12 +1103,26 @@ export async function registerRoutes(
           currentBid: nextPlayer.basePoints,
           currentBiddingTeamId: null,
           bidHistory: [],
-          currentCategory: nextPlayer.category || currentCategory,
         });
         return res.json(updatedState);
       }
       
+      // No more players in current category - check for remaining players
       if (!isLostGoldRound) {
+        const remainingInCategory = players.find(p => p.status === "registered");
+        if (remainingInCategory) {
+          // Show break/end of category screen
+          const updatedState = await storage.updateAuctionState({
+            currentPlayerId: null,
+            currentBid: null,
+            currentBiddingTeamId: null,
+            bidHistory: [],
+            completedCategory: currentCategory,
+            categoryBreak: true,
+          });
+          return res.json(updatedState);
+        }
+        
         const lostGoldPlayers = players.filter(p => p.status === "lost_gold");
         if (lostGoldPlayers.length > 0) {
           const player = lostGoldPlayers[0];
