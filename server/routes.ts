@@ -323,12 +323,22 @@ export async function registerRoutes(
           const players = await storage.getAllPlayers();
           
           // IMPORTANT: Only payment-verified AND approved players can be in auction
-          const availablePlayer = players.find(p => 
-            (p.status === "registered" || p.status === "unsold") && 
-            p.paymentStatus === "verified" && 
-            p.approvalStatus === "approved" &&
-            p.category === selectedCategory
-          );
+          // "Unsold" is special - it means re-auction unsold players from any category
+          let availablePlayer;
+          if (selectedCategory === "Unsold") {
+            availablePlayer = players.find(p => 
+              p.status === "unsold" && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved"
+            );
+          } else {
+            availablePlayer = players.find(p => 
+              (p.status === "registered" || p.status === "unsold") && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved" &&
+              p.category === selectedCategory
+            );
+          }
           
           if (!availablePlayer) {
             return res.status(400).json({ error: `No payment-verified players available in category ${selectedCategory}` });
@@ -377,13 +387,23 @@ export async function registerRoutes(
             }
             
             // Find first available player from new category (registered OR unsold players can be auctioned again)
+            // "Unsold" is special - it means re-auction unsold players from any category
             const players = await storage.getAllPlayers();
-            const nextPlayer = players.find(p => 
-              (p.status === "registered" || p.status === "unsold") && 
-              p.paymentStatus === "verified" && 
-              p.approvalStatus === "approved" &&
-              p.category === selectedCategory
-            );
+            let nextPlayer;
+            if (selectedCategory === "Unsold") {
+              nextPlayer = players.find(p => 
+                p.status === "unsold" && 
+                p.paymentStatus === "verified" && 
+                p.approvalStatus === "approved"
+              );
+            } else {
+              nextPlayer = players.find(p => 
+                (p.status === "registered" || p.status === "unsold") && 
+                p.paymentStatus === "verified" && 
+                p.approvalStatus === "approved" &&
+                p.category === selectedCategory
+              );
+            }
             
             if (nextPlayer) {
               await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
@@ -481,12 +501,22 @@ export async function registerRoutes(
           const updatedPlayers = await storage.getAllPlayers();
           
           // IMPORTANT: Only payment-verified AND approved players can be in auction
-          let nextPlayer = updatedPlayers.find(p => 
-            (p.status === "registered" || p.status === "unsold") && 
-            p.paymentStatus === "verified" && 
-            p.approvalStatus === "approved" &&
-            p.category === selectedCategory
-          );
+          // "Unsold" is special - it means re-auction unsold players from any category
+          let nextPlayer;
+          if (selectedCategory === "Unsold") {
+            nextPlayer = updatedPlayers.find(p => 
+              p.status === "unsold" && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved"
+            );
+          } else {
+            nextPlayer = updatedPlayers.find(p => 
+              (p.status === "registered" || p.status === "unsold") && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved" &&
+              p.category === selectedCategory
+            );
+          }
           
           if (!nextPlayer) {
             // Check if there are lost gold players for this category

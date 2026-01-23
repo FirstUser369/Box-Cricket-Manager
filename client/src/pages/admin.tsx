@@ -29,6 +29,7 @@ import {
   Save,
   Megaphone,
   AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -744,13 +745,15 @@ function AdminDashboard() {
                   const batsmen = verifiedPlayers.filter(p => p.category === "Batsman");
                   const bowlers = verifiedPlayers.filter(p => p.category === "Bowler");
                   const allrounders = verifiedPlayers.filter(p => p.category === "All-rounder");
+                  const unsoldPlayers = verifiedPlayers.filter(p => p.status === "unsold");
                   
-                  const batsmenAvailable = batsmen.filter(p => p.status !== "sold").length;
-                  const bowlersAvailable = bowlers.filter(p => p.status !== "sold").length;
-                  const allroundersAvailable = allrounders.filter(p => p.status !== "sold").length;
+                  const batsmenAvailable = batsmen.filter(p => p.status === "registered" || p.status === "unsold").length;
+                  const bowlersAvailable = bowlers.filter(p => p.status === "registered" || p.status === "unsold").length;
+                  const allroundersAvailable = allrounders.filter(p => p.status === "registered" || p.status === "unsold").length;
+                  const unsoldAvailable = unsoldPlayers.length;
                   
                   return (
-                    <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="grid grid-cols-4 gap-3 p-3 rounded-lg bg-muted/50">
                       <div className="text-center p-2 rounded bg-blue-500/10 border border-blue-500/30">
                         <div className="text-xs text-muted-foreground">Batsmen</div>
                         <div className="text-lg font-bold text-blue-500">{batsmenAvailable}/{batsmen.length}</div>
@@ -765,6 +768,11 @@ function AdminDashboard() {
                         <div className="text-xs text-muted-foreground">All-rounders</div>
                         <div className="text-lg font-bold text-purple-500">{allroundersAvailable}/{allrounders.length}</div>
                         <div className="text-xs text-muted-foreground">available</div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-orange-500/10 border border-orange-500/30">
+                        <div className="text-xs text-muted-foreground">Unsold</div>
+                        <div className="text-lg font-bold text-orange-500">{unsoldAvailable}</div>
+                        <div className="text-xs text-muted-foreground">for re-auction</div>
                       </div>
                     </div>
                   );
@@ -831,15 +839,25 @@ function AdminDashboard() {
                       <SelectContent>
                         {(() => {
                           const currentCategory = auctionState?.currentCategory || "Batsman";
-                          const availablePlayers = players?.filter(p => 
-                            p.category === currentCategory &&
-                            p.paymentStatus === "verified" &&
-                            p.approvalStatus === "approved" &&
-                            p.status !== "sold"
-                          ) || [];
+                          let availablePlayers: Player[] = [];
+                          
+                          if (currentCategory === "Unsold") {
+                            availablePlayers = players?.filter(p => 
+                              p.status === "unsold" &&
+                              p.paymentStatus === "verified" &&
+                              p.approvalStatus === "approved"
+                            ) || [];
+                          } else {
+                            availablePlayers = players?.filter(p => 
+                              p.category === currentCategory &&
+                              p.paymentStatus === "verified" &&
+                              p.approvalStatus === "approved" &&
+                              (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
+                            ) || [];
+                          }
                           
                           if (availablePlayers.length === 0) {
-                            return <SelectItem value="" disabled>No players available</SelectItem>;
+                            return <SelectItem value="no-players" disabled>No players available</SelectItem>;
                           }
                           
                           return availablePlayers.map(player => (
@@ -853,21 +871,70 @@ function AdminDashboard() {
                   </div>
                 </div>
 
+                {/* Warning when selected category has no players */}
+                {(() => {
+                  const currentCategory = auctionState?.currentCategory || "Batsman";
+                  const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
+                  
+                  let availableInCategory = 0;
+                  if (currentCategory === "Unsold") {
+                    availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
+                  } else {
+                    availableInCategory = verifiedPlayers.filter(p => 
+                      p.category === currentCategory && 
+                      (p.status === "registered" || p.status === "unsold")
+                    ).length;
+                  }
+                  
+                  if (availableInCategory === 0) {
+                    return (
+                      <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          <span className="font-medium">No players available in "{currentCategory}" category</span>
+                        </div>
+                        <p className="text-sm mt-1 text-muted-foreground">
+                          {currentCategory === "Unsold" 
+                            ? "No unsold players yet. Players become unsold when they go through auction without being bought."
+                            : "Select a different category or wait for more players to be approved and verified."}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 <div className="flex flex-wrap gap-3">
-                  {auctionState?.status === "not_started" && (
-                    <Button
-                      onClick={() =>
-                        auctionControlMutation.mutate({
-                          action: "start",
-                          category: auctionState?.currentCategory || "Batsman",
-                        })
-                      }
-                      data-testid="button-start-auction"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Start Auction
-                    </Button>
-                  )}
+                  {auctionState?.status === "not_started" && (() => {
+                    const currentCategory = auctionState?.currentCategory || "Batsman";
+                    const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
+                    
+                    let availableInCategory = 0;
+                    if (currentCategory === "Unsold") {
+                      availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
+                    } else {
+                      availableInCategory = verifiedPlayers.filter(p => 
+                        p.category === currentCategory && 
+                        (p.status === "registered" || p.status === "unsold")
+                      ).length;
+                    }
+                    
+                    return (
+                      <Button
+                        onClick={() =>
+                          auctionControlMutation.mutate({
+                            action: "start",
+                            category: currentCategory,
+                          })
+                        }
+                        disabled={availableInCategory === 0}
+                        data-testid="button-start-auction"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Start Auction
+                      </Button>
+                    );
+                  })()}
                   {auctionState?.status === "in_progress" && (
                     <Button
                       variant="outline"
