@@ -1437,7 +1437,7 @@ function AdminDashboard() {
                   } else {
                     availableInCategory = verifiedPlayers.filter(p => 
                       p.category === currentCategory && 
-                      (p.status === "registered" || p.status === "unsold")
+                      (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
                     ).length;
                   }
                   
@@ -1479,7 +1479,7 @@ function AdminDashboard() {
                     } else {
                       availableInCategory = verifiedPlayers.filter(p => 
                         p.category === currentCategory && 
-                        (p.status === "registered" || p.status === "unsold")
+                        (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
                       ).length;
                     }
                     
