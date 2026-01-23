@@ -438,6 +438,7 @@ function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/captain-pairs"] });
       toast({ title: "Auction reset successfully" });
     },
     onError: (error: any) => {
