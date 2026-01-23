@@ -13,9 +13,7 @@ import { z } from "zod";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+  service: "gmail",
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
@@ -23,7 +21,7 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendPaymentConfirmationEmail(playerEmail: string, playerName: string) {
-  const displayUrl = `${process.env.PROD_DOMAIN ? `https://${process.env.PROD_DOMAIN}` : 'https://splapp-prod.onrender.com'}/display`;
+  const displayUrl = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'https://your-app-url.replit.app'}/display`;
   
   const emailHtml = `
 <!DOCTYPE html>
@@ -1926,11 +1924,6 @@ export async function registerRoutes(
         status: "registered",
         category: category,
       });
-
-      if (player && player.email) {
-        sendPaymentConfirmationEmail(player.email, player.name)
-          .catch(err => console.error("Failed to send approval email:", err));
-      }
       
       res.json(player);
     } catch (error) {
