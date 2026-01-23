@@ -1263,9 +1263,9 @@ function AdminDashboard() {
                   const allrounders = verifiedPlayers.filter(p => p.category === "All-rounder");
                   const unsoldPlayers = verifiedPlayers.filter(p => p.status === "unsold");
                   
-                  const batsmenAvailable = batsmen.filter(p => p.status === "registered" || p.status === "unsold").length;
-                  const bowlersAvailable = bowlers.filter(p => p.status === "registered" || p.status === "unsold").length;
-                  const allroundersAvailable = allrounders.filter(p => p.status === "registered" || p.status === "unsold").length;
+                  const batsmenAvailable = batsmen.filter(p => p.status === "registered" || p.status === "unsold" || p.status === "in_auction").length;
+                  const bowlersAvailable = bowlers.filter(p => p.status === "registered" || p.status === "unsold" || p.status === "in_auction").length;
+                  const allroundersAvailable = allrounders.filter(p => p.status === "registered" || p.status === "unsold" || p.status === "in_auction").length;
                   const unsoldAvailable = unsoldPlayers.length;
                   
                   // Team Names: count teams not yet assigned to captain pairs
