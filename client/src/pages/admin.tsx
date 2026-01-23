@@ -383,13 +383,14 @@ function AdminDashboard() {
   });
 
   const auctionControlMutation = useMutation({
-    mutationFn: async (params: { action: string; category?: string; playerId?: string }) => {
+    mutationFn: async (params: { action: string; category?: string; playerId?: string; pairId?: string }) => {
       return apiRequest("POST", "/api/auction/control", params);
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/captain-pairs"] });
 
       // Show toast when category break is triggered
       if (data?.categoryBreak && data?.completedCategory) {
@@ -720,6 +721,14 @@ function AdminDashboard() {
   const currentBiddingTeam = teams?.find(
     (t) => t.id === auctionState?.currentBiddingTeamId,
   );
+  // For Team Names auction - the team being auctioned and current bidding pair
+  const currentTeam = teams?.find(
+    (t) => t.id === auctionState?.currentTeamId,
+  );
+  const currentBiddingPair = captainPairs?.find(
+    (p) => p.id === auctionState?.currentBiddingPairId,
+  );
+  const isTeamNamesAuction = auctionState?.currentCategory === "Team Names";
   const liveMatch = matches?.find((m) => m.status === "live");
 
   const getNextPlayer = () => {
@@ -766,6 +775,14 @@ function AdminDashboard() {
             >
               <Star className="w-4 h-4" />
               Captains
+            </TabsTrigger>
+            <TabsTrigger
+              value="team-names"
+              className="gap-2"
+              data-testid="admin-tab-team-names"
+            >
+              <Shield className="w-4 h-4" />
+              Team Names
             </TabsTrigger>
             <TabsTrigger
               value="auction"
@@ -972,6 +989,117 @@ function AdminDashboard() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="team-names" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Team Names Management
+                </CardTitle>
+                <CardDescription>
+                  Create and manage 12 team identities (name and logo) before the auction begins.
+                  Captain pairs will bid for these team names in the first auction phase.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Create Team Button */}
+                {(teams?.length || 0) < 12 && (
+                  <div className="flex justify-end">
+                    <CreateTeamDialog
+                      onSubmit={(data) => createTeamMutation.mutate(data)}
+                    />
+                  </div>
+                )}
+
+                {/* Teams Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {teamsLoading ? (
+                    Array.from({ length: 12 }).map((_, i) => (
+                      <Skeleton key={i} className="h-40" />
+                    ))
+                  ) : (
+                    <>
+                      {teams?.map((team) => {
+                        const assignedPair = captainPairs?.find(p => p.assignedTeamId === team.id);
+                        const captain = assignedPair ? players?.find(p => p.id === assignedPair.captainId) : null;
+                        const vc = assignedPair ? players?.find(p => p.id === assignedPair.viceCaptainId) : null;
+                        
+                        return (
+                          <Card key={team.id} className={assignedPair ? "border-green-500/50" : ""}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                {team.logoUrl ? (
+                                  <img
+                                    src={team.logoUrl}
+                                    alt={team.name}
+                                    className="w-16 h-16 rounded-md object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-16 h-16 rounded-md flex items-center justify-center text-white font-display text-lg"
+                                    style={{ backgroundColor: team.primaryColor }}
+                                  >
+                                    {team.shortName}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-medium truncate">{team.name}</h3>
+                                  <p className="text-sm text-muted-foreground">{team.shortName}</p>
+                                  {assignedPair ? (
+                                    <div className="mt-2">
+                                      <Badge variant="secondary" className="text-xs">
+                                        Assigned to: {captain?.name} & {vc?.name}
+                                      </Badge>
+                                    </div>
+                                  ) : (
+                                    <Badge variant="outline" className="mt-2 text-xs">
+                                      Available for Auction
+                                    </Badge>
+                                  )}
+                                </div>
+                                <EditTeamDialog
+                                  team={team}
+                                  onSubmit={(data) =>
+                                    updateTeamMutation.mutate({
+                                      id: team.id,
+                                      ...data,
+                                    })
+                                  }
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                      
+                      {/* Empty placeholders for remaining slots */}
+                      {Array.from({ length: Math.max(0, 12 - (teams?.length || 0)) }).map((_, i) => (
+                        <Card key={`empty-${i}`} className="border-dashed">
+                          <CardContent className="p-4 flex flex-col items-center justify-center h-32 text-muted-foreground">
+                            <Shield className="w-8 h-8 mb-2 opacity-50" />
+                            <span className="text-sm">Empty Slot {(teams?.length || 0) + i + 1}</span>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  )}
+                </div>
+
+                {/* Summary */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div>
+                    <span className="font-medium">{teams?.length || 0}</span> of 12 team names created
+                  </div>
+                  <div className="text-muted-foreground">
+                    {(teams?.length || 0) === 12 
+                      ? "All team names ready for auction" 
+                      : "Create all 12 team identities before starting the auction"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="auction" className="space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -1048,29 +1176,45 @@ function AdminDashboard() {
                   const availableTeams = teams?.filter(t => !assignedTeamIds.has(t.id)) || [];
                   const totalTeams = teams?.length || 0;
                   
+                  // Team Names auction is complete when all teams have been assigned
+                  const teamNamesComplete = totalTeams > 0 && availableTeams.length === 0;
+                  const playerCategoriesBlurred = !teamNamesComplete;
+                  
                   return (
                     <div className="grid grid-cols-5 gap-3 p-3 rounded-lg bg-muted/50">
                       <div className="text-center p-2 rounded bg-yellow-500/10 border border-yellow-500/30">
                         <div className="text-xs text-muted-foreground">Team Names</div>
                         <div className="text-lg font-bold text-yellow-500">{availableTeams.length}/{totalTeams}</div>
-                        <div className="text-xs text-muted-foreground">available</div>
+                        <div className="text-xs text-muted-foreground">{teamNamesComplete ? "Complete" : "available"}</div>
                       </div>
-                      <div className="text-center p-2 rounded bg-blue-500/10 border border-blue-500/30">
+                      <div className={cn(
+                        "text-center p-2 rounded bg-blue-500/10 border border-blue-500/30",
+                        playerCategoriesBlurred && "opacity-40 blur-[1px]"
+                      )}>
                         <div className="text-xs text-muted-foreground">Batsmen</div>
                         <div className="text-lg font-bold text-blue-500">{batsmenAvailable}/{batsmen.length}</div>
                         <div className="text-xs text-muted-foreground">available</div>
                       </div>
-                      <div className="text-center p-2 rounded bg-green-500/10 border border-green-500/30">
+                      <div className={cn(
+                        "text-center p-2 rounded bg-green-500/10 border border-green-500/30",
+                        playerCategoriesBlurred && "opacity-40 blur-[1px]"
+                      )}>
                         <div className="text-xs text-muted-foreground">Bowlers</div>
                         <div className="text-lg font-bold text-green-500">{bowlersAvailable}/{bowlers.length}</div>
                         <div className="text-xs text-muted-foreground">available</div>
                       </div>
-                      <div className="text-center p-2 rounded bg-purple-500/10 border border-purple-500/30">
+                      <div className={cn(
+                        "text-center p-2 rounded bg-purple-500/10 border border-purple-500/30",
+                        playerCategoriesBlurred && "opacity-40 blur-[1px]"
+                      )}>
                         <div className="text-xs text-muted-foreground">All-rounders</div>
                         <div className="text-lg font-bold text-purple-500">{allroundersAvailable}/{allrounders.length}</div>
                         <div className="text-xs text-muted-foreground">available</div>
                       </div>
-                      <div className="text-center p-2 rounded bg-orange-500/10 border border-orange-500/30">
+                      <div className={cn(
+                        "text-center p-2 rounded bg-orange-500/10 border border-orange-500/30",
+                        playerCategoriesBlurred && "opacity-40 blur-[1px]"
+                      )}>
                         <div className="text-xs text-muted-foreground">Unsold</div>
                         <div className="text-lg font-bold text-orange-500">{unsoldAvailable}</div>
                         <div className="text-xs text-muted-foreground">for re-auction</div>
@@ -1080,115 +1224,122 @@ function AdminDashboard() {
                 })()}
                 
                 {/* Category and Player Selection */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="whitespace-nowrap">
-                      Select Category:
-                    </Label>
-                    <Select
-                      value={auctionState?.currentCategory || "Batsman"}
-                      onValueChange={(value) =>
-                        auctionControlMutation.mutate({
-                          action: "select_category",
-                          category: value,
-                        })
-                      }
-                    >
-                      <SelectTrigger
-                        className="w-40"
-                        data-testid="select-auction-category"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Team Names">
-                          Team Names
-                        </SelectItem>
-                        <SelectItem value="Batsman">
-                          Batsman
-                        </SelectItem>
-                        <SelectItem value="Bowler">
-                          Bowler
-                        </SelectItem>
-                        <SelectItem value="All-rounder">
-                          All-rounder
-                        </SelectItem>
-                        <SelectItem value="Unsold">
-                          Unsold
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {(() => {
+                  // Check if Team Names auction is complete
+                  const assignedTeamIds = new Set(captainPairs?.map(p => p.assignedTeamId).filter(Boolean) || []);
+                  const totalTeams = teams?.length || 0;
+                  const teamNamesComplete = totalTeams > 0 && assignedTeamIds.size >= totalTeams;
+                  const currentCategory = auctionState?.currentCategory || "Team Names";
                   
-                  {/* Player/Team Dropdown - shows available players/teams from current category */}
-                  <div className="flex items-center gap-2">
-                    <Label className="whitespace-nowrap">
-                      {(auctionState?.currentCategory || "Batsman") === "Team Names" ? "Select Team:" : "Select Player:"}
-                    </Label>
-                    <Select
-                      value={auctionState?.currentPlayerId || ""}
-                      onValueChange={(id) =>
-                        auctionControlMutation.mutate({
-                          action: "select_player",
-                          playerId: id,
-                        })
-                      }
-                    >
-                      <SelectTrigger
-                        className="w-56"
-                        data-testid="select-auction-player"
-                      >
-                        <SelectValue placeholder={(auctionState?.currentCategory || "Batsman") === "Team Names" ? "Select a team..." : "Select a player..."} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(() => {
-                          const currentCategory = auctionState?.currentCategory || "Batsman";
-                          
-                          // Team Names category - show teams not yet assigned to captain pairs
-                          if (currentCategory === "Team Names") {
-                            const assignedTeamIds = new Set(captainPairs?.map(p => p.assignedTeamId).filter(Boolean) || []);
-                            const teamsForAuction = teams?.filter(t => !assignedTeamIds.has(t.id)) || [];
-                            if (teamsForAuction.length === 0) {
-                              return <SelectItem value="no-teams" disabled>No teams available</SelectItem>;
-                            }
-                            return teamsForAuction.map(team => (
-                              <SelectItem key={team.id} value={team.id}>
-                                {team.name}
-                              </SelectItem>
-                            ));
+                  return (
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Label className="whitespace-nowrap">
+                          Select Category:
+                        </Label>
+                        <Select
+                          value={currentCategory}
+                          onValueChange={(value) =>
+                            auctionControlMutation.mutate({
+                              action: "select_category",
+                              category: value,
+                            })
                           }
-                          
-                          let availablePlayers: Player[] = [];
-                          
-                          if (currentCategory === "Unsold") {
-                            availablePlayers = players?.filter(p => 
-                              p.status === "unsold" &&
-                              p.paymentStatus === "verified" &&
-                              p.approvalStatus === "approved"
-                            ) || [];
-                          } else {
-                            availablePlayers = players?.filter(p => 
-                              p.category === currentCategory &&
-                              p.paymentStatus === "verified" &&
-                              p.approvalStatus === "approved" &&
-                              (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
-                            ) || [];
-                          }
-                          
-                          if (availablePlayers.length === 0) {
-                            return <SelectItem value="no-players" disabled>No players available</SelectItem>;
-                          }
-                          
-                          return availablePlayers.map(player => (
-                            <SelectItem key={player.id} value={player.id}>
-                              {player.name} {player.status === "in_auction" ? "(Current)" : player.status === "unsold" ? "(Unsold)" : ""}
+                        >
+                          <SelectTrigger
+                            className="w-40"
+                            data-testid="select-auction-category"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Team Names">
+                              Team Names
                             </SelectItem>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                            <SelectItem value="Batsman" disabled={!teamNamesComplete}>
+                              Batsman {!teamNamesComplete && "(Locked)"}
+                            </SelectItem>
+                            <SelectItem value="Bowler" disabled={!teamNamesComplete}>
+                              Bowler {!teamNamesComplete && "(Locked)"}
+                            </SelectItem>
+                            <SelectItem value="All-rounder" disabled={!teamNamesComplete}>
+                              All-rounder {!teamNamesComplete && "(Locked)"}
+                            </SelectItem>
+                            <SelectItem value="Unsold" disabled={!teamNamesComplete}>
+                              Unsold {!teamNamesComplete && "(Locked)"}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Player/Team Dropdown - shows available players/teams from current category */}
+                      <div className="flex items-center gap-2">
+                        <Label className="whitespace-nowrap">
+                          {currentCategory === "Team Names" ? "Select Team:" : "Select Player:"}
+                        </Label>
+                        <Select
+                          value={auctionState?.currentPlayerId || ""}
+                          onValueChange={(id) =>
+                            auctionControlMutation.mutate({
+                              action: "select_player",
+                              playerId: id,
+                            })
+                          }
+                        >
+                          <SelectTrigger
+                            className="w-56"
+                            data-testid="select-auction-player"
+                          >
+                            <SelectValue placeholder={currentCategory === "Team Names" ? "Select a team..." : "Select a player..."} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(() => {
+                              // Team Names category - show teams not yet assigned to captain pairs
+                              if (currentCategory === "Team Names") {
+                                const teamsForAuction = teams?.filter(t => !assignedTeamIds.has(t.id)) || [];
+                                if (teamsForAuction.length === 0) {
+                                  return <SelectItem value="no-teams" disabled>No teams available</SelectItem>;
+                                }
+                                return teamsForAuction.map(team => (
+                                  <SelectItem key={team.id} value={team.id}>
+                                    {team.name}
+                                  </SelectItem>
+                                ));
+                              }
+                              
+                              let availablePlayers: Player[] = [];
+                              
+                              if (currentCategory === "Unsold") {
+                                availablePlayers = players?.filter(p => 
+                                  p.status === "unsold" &&
+                                  p.paymentStatus === "verified" &&
+                                  p.approvalStatus === "approved"
+                                ) || [];
+                              } else {
+                                availablePlayers = players?.filter(p => 
+                                  p.category === currentCategory &&
+                                  p.paymentStatus === "verified" &&
+                                  p.approvalStatus === "approved" &&
+                                  (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
+                                ) || [];
+                              }
+                              
+                              if (availablePlayers.length === 0) {
+                                return <SelectItem value="no-players" disabled>No players available</SelectItem>;
+                              }
+                              
+                              return availablePlayers.map(player => (
+                                <SelectItem key={player.id} value={player.id}>
+                                  {player.name} {player.status === "in_auction" ? "(Current)" : player.status === "unsold" ? "(Unsold)" : ""}
+                                </SelectItem>
+                              ));
+                            })()}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Warning when selected category has no items */}
                 {(() => {
@@ -1324,8 +1475,199 @@ function AdminDashboard() {
                     )}
                 </div>
 
+                {/* Team Names Auction Display */}
                 <AnimatePresence mode="wait">
-                  {currentPlayer && auctionState?.status === "in_progress" && (
+                  {isTeamNamesAuction && currentTeam && auctionState?.status === "in_progress" && (
+                    <motion.div
+                      key={currentTeam.id}
+                      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -50, scale: 0.9 }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="mt-6 relative overflow-visible"
+                    >
+                      <div className="absolute inset-0 auction-spotlight rounded-xl" />
+                      <div className="relative p-8 rounded-xl stadium-bg border border-white/10">
+                        <div className="absolute top-4 right-4">
+                          <Badge
+                            variant="outline"
+                            className="bg-yellow-500/20 border-yellow-500 text-yellow-400 animate-pulse"
+                          >
+                            <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2 inline-block" />
+                            TEAM NAMES AUCTION
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-col lg:flex-row items-center gap-8 mb-6">
+                          {/* Team Logo/Badge Display */}
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                            className="relative"
+                          >
+                            <div className="absolute inset-0 rounded-xl neon-gold opacity-60" />
+                            {currentTeam.logoUrl ? (
+                              <img
+                                src={currentTeam.logoUrl}
+                                alt={currentTeam.name}
+                                className="w-32 h-32 rounded-xl object-cover border-4 relative z-10"
+                                style={{ borderColor: currentTeam.primaryColor }}
+                              />
+                            ) : (
+                              <div
+                                className="w-32 h-32 rounded-xl flex items-center justify-center text-white font-display text-3xl relative z-10 border-4"
+                                style={{ 
+                                  backgroundColor: currentTeam.primaryColor,
+                                  borderColor: currentTeam.secondaryColor
+                                }}
+                              >
+                                {currentTeam.shortName}
+                              </div>
+                            )}
+                          </motion.div>
+
+                          <div className="text-center lg:text-left flex-1">
+                            <motion.h3
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.3 }}
+                              className="font-display text-4xl text-white text-glow-gold"
+                            >
+                              {currentTeam.name}
+                            </motion.h3>
+                            <p className="text-lg text-muted-foreground mt-2">
+                              Captain pairs bidding for this team identity
+                            </p>
+                          </div>
+
+                          <motion.div
+                            key={auctionState.currentBid || currentTeam.basePrice || 1000}
+                            initial={{ scale: 1.2 }}
+                            animate={{ scale: 1 }}
+                            className="text-center"
+                          >
+                            <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">
+                              Current Bid
+                            </p>
+                            <motion.p
+                              key={auctionState.currentBid}
+                              initial={{ scale: 1.3, color: "#ffd60a" }}
+                              animate={{ scale: 1, color: "#ff6b35" }}
+                              transition={{ duration: 0.3 }}
+                              className="font-display text-6xl text-glow-gold"
+                            >
+                              {(auctionState.currentBid || currentTeam.basePrice || 1000).toLocaleString()}
+                            </motion.p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Base: {(currentTeam.basePrice || 1000).toLocaleString()}
+                            </p>
+                          </motion.div>
+                        </div>
+
+                        {/* Current Leading Pair */}
+                        <AnimatePresence>
+                          {currentBiddingPair && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              className="mb-6 p-4 rounded-lg flex items-center justify-center gap-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-l-4 border-yellow-500"
+                            >
+                              <TrendingUp className="w-5 h-5 text-yellow-400" />
+                              <span className="font-display text-xl text-white">
+                                {(() => {
+                                  const captain = players?.find(p => p.id === currentBiddingPair.captainId);
+                                  const vc = players?.find(p => p.id === currentBiddingPair.viceCaptainId);
+                                  return `${captain?.name || 'Unknown'} & ${vc?.name || 'Unknown'} LEAD THE BID`;
+                                })()}
+                              </span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Captain Pairs Bidding Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                          {captainPairs?.filter(pair => !pair.assignedTeamId).map((pair, index) => {
+                            const captain = players?.find(p => p.id === pair.captainId);
+                            const vc = players?.find(p => p.id === pair.viceCaptainId);
+                            const canBid = pair.remainingBudget >= (auctionState.currentBid || currentTeam.basePrice || 1000) + getBidIncrement(auctionState.currentBid || currentTeam.basePrice || 1000);
+                            const isLeading = currentBiddingPair?.id === pair.id;
+                            
+                            return (
+                              <motion.div
+                                key={pair.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                              >
+                                <Button
+                                  variant="outline"
+                                  disabled={!canBid || isLeading}
+                                  onClick={() => auctionControlMutation.mutate({ 
+                                    action: "bid_team_name", 
+                                    pairId: pair.id 
+                                  })}
+                                  className={cn(
+                                    "w-full flex-col h-auto py-3 transition-all",
+                                    isLeading && "neon-gold animate-pulse-glow",
+                                  )}
+                                  style={{
+                                    borderColor: isLeading ? "#ffd60a" : undefined,
+                                    background: isLeading ? "rgba(255,214,10,0.2)" : "transparent",
+                                  }}
+                                  data-testid={`button-bid-pair-${pair.id}`}
+                                >
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Star className="w-3 h-3 text-yellow-500" />
+                                    <span className="text-xs font-medium truncate max-w-[60px]">
+                                      {captain?.name?.split(' ')[0] || 'Capt'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1 mb-2">
+                                    <Award className="w-3 h-3 text-blue-500" />
+                                    <span className="text-xs text-muted-foreground truncate max-w-[60px]">
+                                      {vc?.name?.split(' ')[0] || 'VC'}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {pair.remainingBudget.toLocaleString()}
+                                  </span>
+                                </Button>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Sell/Unsold Buttons for Team Names */}
+                        <div className="flex gap-4 mt-8">
+                          <Button
+                            className="flex-1 h-14 text-lg font-display bg-gradient-to-r from-yellow-600 to-orange-500 neon-gold"
+                            onClick={() => auctionControlMutation.mutate({ action: "sell_team_name" })}
+                            disabled={!currentBiddingPair}
+                            data-testid="button-sold-team"
+                          >
+                            <Check className="w-5 h-5 mr-2" />
+                            ASSIGN TEAM!
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            className="flex-1 h-14 text-lg font-display"
+                            onClick={() => auctionControlMutation.mutate({ action: "skip_team" })}
+                            data-testid="button-skip-team"
+                          >
+                            <X className="w-5 h-5 mr-2" />
+                            SKIP
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Player Auction Display */}
+                <AnimatePresence mode="wait">
+                  {!isTeamNamesAuction && currentPlayer && auctionState?.status === "in_progress" && (
                     <motion.div
                       key={currentPlayer.id}
                       initial={{ opacity: 0, y: 50, scale: 0.9 }}
@@ -1470,7 +1812,11 @@ function AdminDashboard() {
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                           {teams?.map((team, index) => {
+                            const teamRosterCount = players?.filter(p => p.teamId === team.id).length || 0;
+                            const MAX_ROSTER_SIZE = 8;
+                            const isRosterFull = teamRosterCount >= MAX_ROSTER_SIZE;
                             const canBid =
+                              !isRosterFull &&
                               team.remainingBudget >=
                               (auctionState.currentBid ||
                                 currentPlayer.basePoints) +
@@ -1496,6 +1842,7 @@ function AdminDashboard() {
                                   className={cn(
                                     "w-full flex-col h-auto py-3 transition-all",
                                     isLeading && "neon-gold animate-pulse-glow",
+                                    isRosterFull && "opacity-50",
                                   )}
                                   style={{
                                     borderColor: team.primaryColor,
@@ -1514,7 +1861,10 @@ function AdminDashboard() {
                                     {team.shortName}
                                   </span>
                                   <span className="text-xs text-muted-foreground">
-                                    {team.remainingBudget.toLocaleString()}
+                                    {isRosterFull ? "FULL" : team.remainingBudget.toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {teamRosterCount}/{MAX_ROSTER_SIZE}
                                   </span>
                                 </Button>
                               </motion.div>

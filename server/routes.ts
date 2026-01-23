@@ -319,8 +319,37 @@ export async function registerRoutes(
       
       switch (action) {
         case "start": {
-          // Category is now role-based (Batsman, Bowler, All-rounder, Unsold)
-          const selectedCategory = category || "Batsman";
+          // Category is now role-based (Team Names, Batsman, Bowler, All-rounder, Unsold)
+          const selectedCategory = category || "Team Names";
+          
+          // Team Names auction - auction team identities to captain pairs
+          if (selectedCategory === "Team Names") {
+            const teams = await storage.getAllTeams();
+            const captainPairs = await storage.getAllCaptainPairs();
+            
+            // Find teams not yet assigned to any captain pair
+            const assignedTeamIds = new Set(captainPairs.map(p => p.assignedTeamId).filter(Boolean));
+            const availableTeam = teams.find(t => !assignedTeamIds.has(t.id));
+            
+            if (!availableTeam) {
+              return res.status(400).json({ error: "No teams available for auction. All teams have been assigned." });
+            }
+            
+            const state = await storage.updateAuctionState({
+              status: "in_progress",
+              currentTeamId: availableTeam.id,
+              currentBid: availableTeam.basePrice || 1000,
+              currentBiddingPairId: null,
+              currentPlayerId: null,
+              currentBiddingTeamId: null,
+              bidHistory: [],
+              currentCategory: selectedCategory,
+            });
+            
+            res.json(state);
+            break;
+          }
+          
           const players = await storage.getAllPlayers();
           
           // IMPORTANT: Only payment-verified AND approved players can be in auction
@@ -353,6 +382,8 @@ export async function registerRoutes(
             currentPlayerId: availablePlayer.id,
             currentBid: availablePlayer.basePoints,
             currentBiddingTeamId: null,
+            currentTeamId: null,
+            currentBiddingPairId: null,
             bidHistory: [],
             currentCategory: selectedCategory,
           });
@@ -376,8 +407,39 @@ export async function registerRoutes(
         case "select_category": {
           // Admin manually selects which category to auction next
           const selectedCategory = category;
-          if (!selectedCategory || !["Batsman", "Bowler", "All-rounder", "Unsold"].includes(selectedCategory)) {
-            return res.status(400).json({ error: "Invalid category. Must be Batsman, Bowler, All-rounder, or Unsold" });
+          if (!selectedCategory || !["Team Names", "Batsman", "Bowler", "All-rounder", "Unsold"].includes(selectedCategory)) {
+            return res.status(400).json({ error: "Invalid category. Must be Team Names, Batsman, Bowler, All-rounder, or Unsold" });
+          }
+          
+          // Team Names category - switch to first available team
+          if (selectedCategory === "Team Names") {
+            const teams = await storage.getAllTeams();
+            const captainPairs = await storage.getAllCaptainPairs();
+            const assignedTeamIds = new Set(captainPairs.map(p => p.assignedTeamId).filter(Boolean));
+            const availableTeam = teams.find(t => !assignedTeamIds.has(t.id));
+            
+            if (availableTeam) {
+              const state = await storage.updateAuctionState({
+                currentCategory: selectedCategory,
+                currentTeamId: availableTeam.id,
+                currentBid: availableTeam.basePrice || 1000,
+                currentBiddingPairId: null,
+                currentPlayerId: null,
+                currentBiddingTeamId: null,
+                bidHistory: [],
+                categoryBreak: false,
+                completedCategory: null,
+              });
+              return res.json(state);
+            }
+            
+            // No teams available - Team Names auction is complete
+            const state = await storage.updateAuctionState({
+              currentCategory: selectedCategory,
+              categoryBreak: true,
+              completedCategory: "Team Names",
+            });
+            return res.json(state);
           }
           
           // If auction is in progress, mark current player as unsold and switch to first player from new category
@@ -432,10 +494,36 @@ export async function registerRoutes(
         }
         
         case "select_player": {
-          // Admin manually selects a specific player from dropdown
+          // Admin manually selects a specific player or team from dropdown
           const { playerId } = req.body;
           if (!playerId) {
-            return res.status(400).json({ error: "Player ID is required" });
+            return res.status(400).json({ error: "Player/Team ID is required" });
+          }
+          
+          // Check if this is a Team Names auction - playerId is actually teamId
+          if (currentState?.currentCategory === "Team Names") {
+            const selectedTeam = await storage.getTeam(playerId);
+            if (!selectedTeam) {
+              return res.status(404).json({ error: "Team not found" });
+            }
+            
+            // Check if team is already assigned
+            const captainPairs = await storage.getAllCaptainPairs();
+            const isAssigned = captainPairs.some(p => p.assignedTeamId === playerId);
+            if (isAssigned) {
+              return res.status(400).json({ error: "Team already assigned to a captain pair" });
+            }
+            
+            const state = await storage.updateAuctionState({
+              status: "in_progress",
+              currentTeamId: selectedTeam.id,
+              currentBid: selectedTeam.basePrice || 1000,
+              currentBiddingPairId: null,
+              currentPlayerId: null,
+              bidHistory: [],
+            });
+            
+            return res.json(state);
           }
           
           const selectedPlayer = await storage.getPlayer(playerId);
@@ -471,6 +559,7 @@ export async function registerRoutes(
             currentPlayerId: selectedPlayer.id,
             currentBid: selectedPlayer.basePoints,
             currentBiddingTeamId: null,
+            currentTeamId: null,
             bidHistory: [],
             currentCategory: selectedPlayer.category || "Batsman",
           });
@@ -574,12 +663,176 @@ export async function registerRoutes(
           break;
         }
         
+        // Team Names Auction Actions
+        case "bid_team_name": {
+          const { pairId } = req.body;
+          
+          if (!currentState || currentState.status !== "in_progress" || currentState.currentCategory !== "Team Names") {
+            return res.status(400).json({ error: "Team Names auction not in progress" });
+          }
+          
+          const pair = await storage.getCaptainPair(pairId);
+          if (!pair) {
+            return res.status(404).json({ error: "Captain pair not found" });
+          }
+          
+          if (pair.assignedTeamId) {
+            return res.status(400).json({ error: "This captain pair already has a team" });
+          }
+          
+          const currentBid = currentState.currentBid || 1000;
+          const increment = currentBid <= 4000 ? 200 : 250;
+          const newBid = currentBid + increment;
+          
+          if (pair.remainingBudget < newBid) {
+            return res.status(400).json({ error: "Insufficient budget for this bid" });
+          }
+          
+          const bidHistory = currentState.bidHistory || [];
+          bidHistory.push({
+            teamId: pairId, // Using pairId in teamId field for history
+            amount: newBid,
+            timestamp: Date.now(),
+          });
+          
+          const state = await storage.updateAuctionState({
+            currentBid: newBid,
+            currentBiddingPairId: pairId,
+            bidHistory,
+          });
+          
+          res.json(state);
+          break;
+        }
+        
+        case "sell_team_name": {
+          if (!currentState || currentState.currentCategory !== "Team Names") {
+            return res.status(400).json({ error: "Team Names auction not active" });
+          }
+          
+          const winningPairId = currentState.currentBiddingPairId;
+          const teamId = currentState.currentTeamId;
+          
+          if (!winningPairId || !teamId) {
+            return res.status(400).json({ error: "No winning bid or team selected" });
+          }
+          
+          const winningPair = await storage.getCaptainPair(winningPairId);
+          const team = await storage.getTeam(teamId);
+          
+          if (!winningPair || !team) {
+            return res.status(400).json({ error: "Captain pair or team not found" });
+          }
+          
+          const soldPrice = currentState.currentBid || team.basePrice || 1000;
+          
+          // Assign team to captain pair
+          await storage.updateCaptainPair(winningPairId, {
+            assignedTeamId: teamId,
+            remainingBudget: winningPair.remainingBudget - soldPrice,
+          });
+          
+          // Update team with captain and vice-captain IDs
+          await storage.updateTeam(teamId, {
+            captainId: winningPair.captainId,
+            viceCaptainId: winningPair.viceCaptainId,
+            remainingBudget: winningPair.remainingBudget - soldPrice,
+            teamNameAssigned: true,
+          });
+          
+          // Assign captain and vice-captain players to the team
+          await storage.updatePlayer(winningPair.captainId, {
+            teamId: teamId,
+            isCaptain: true,
+            status: "sold",
+          });
+          await storage.updatePlayer(winningPair.viceCaptainId, {
+            teamId: teamId,
+            isViceCaptain: true,
+            status: "sold",
+          });
+          
+          // Move to next team
+          const teams = await storage.getAllTeams();
+          const captainPairs = await storage.getAllCaptainPairs();
+          const assignedTeamIds = new Set(captainPairs.map(p => p.assignedTeamId).filter(Boolean));
+          assignedTeamIds.add(teamId); // Include just-assigned team
+          
+          const nextTeam = teams.find(t => !assignedTeamIds.has(t.id));
+          
+          if (nextTeam) {
+            const state = await storage.updateAuctionState({
+              currentTeamId: nextTeam.id,
+              currentBid: nextTeam.basePrice || 1000,
+              currentBiddingPairId: null,
+              bidHistory: [],
+            });
+            return res.json(state);
+          }
+          
+          // All teams assigned - Team Names auction complete
+          const state = await storage.updateAuctionState({
+            status: "paused",
+            currentTeamId: null,
+            currentBid: null,
+            currentBiddingPairId: null,
+            bidHistory: [],
+            categoryBreak: true,
+            completedCategory: "Team Names",
+          });
+          
+          res.json(state);
+          break;
+        }
+        
+        case "skip_team": {
+          if (!currentState || currentState.currentCategory !== "Team Names") {
+            return res.status(400).json({ error: "Team Names auction not active" });
+          }
+          
+          const currentTeamId = currentState.currentTeamId;
+          
+          // Move to next team (skip this one)
+          const teams = await storage.getAllTeams();
+          const captainPairs = await storage.getAllCaptainPairs();
+          const assignedTeamIds = new Set(captainPairs.map(p => p.assignedTeamId).filter(Boolean));
+          
+          // Find next team after current one
+          const currentIndex = teams.findIndex(t => t.id === currentTeamId);
+          const remainingTeams = teams.filter((t, i) => i > currentIndex && !assignedTeamIds.has(t.id));
+          const nextTeam = remainingTeams[0] || teams.find(t => !assignedTeamIds.has(t.id) && t.id !== currentTeamId);
+          
+          if (nextTeam) {
+            const state = await storage.updateAuctionState({
+              currentTeamId: nextTeam.id,
+              currentBid: nextTeam.basePrice || 1000,
+              currentBiddingPairId: null,
+              bidHistory: [],
+            });
+            return res.json(state);
+          }
+          
+          // No more teams - pause
+          const state = await storage.updateAuctionState({
+            status: "paused",
+            currentTeamId: null,
+            currentBid: null,
+            currentBiddingPairId: null,
+            bidHistory: [],
+          });
+          
+          res.json(state);
+          break;
+        }
+        
         case "stop": {
           const state = await storage.updateAuctionState({
             status: "completed",
             currentPlayerId: null,
             currentBid: null,
             currentBiddingTeamId: null,
+            currentTeamId: null,
+            currentBiddingPairId: null,
           });
           res.json(state);
           break;
@@ -605,6 +858,14 @@ export async function registerRoutes(
       const team = await storage.getTeam(teamId);
       if (!team) {
         return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Check roster limit: max 8 players per team (2 captain/VC + 6 bought)
+      const players = await storage.getAllPlayers();
+      const teamRoster = players.filter(p => p.teamId === teamId);
+      const MAX_ROSTER_SIZE = 8;
+      if (teamRoster.length >= MAX_ROSTER_SIZE) {
+        return res.status(400).json({ error: `Team roster full (${MAX_ROSTER_SIZE} players max)` });
       }
       
       let currentBid = state.currentBid || 0;
