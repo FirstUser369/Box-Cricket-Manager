@@ -362,12 +362,15 @@ export async function registerRoutes(
               p.approvalStatus === "approved"
             );
           } else {
-            availablePlayer = players.find(p => 
-              (p.status === "registered" || p.status === "unsold") && 
-              p.paymentStatus === "verified" && 
-              p.approvalStatus === "approved" &&
-              p.category === selectedCategory
-            );
+            // Case-insensitive matching, fallback to role if category not set
+            const categoryLower = selectedCategory.toLowerCase();
+            availablePlayer = players.find(p => {
+              const playerCat = (p.category || p.role || "").toLowerCase();
+              return (p.status === "registered" || p.status === "unsold") && 
+                p.paymentStatus === "verified" && 
+                p.approvalStatus === "approved" &&
+                playerCat === categoryLower;
+            });
           }
           
           if (!availablePlayer) {
@@ -461,12 +464,15 @@ export async function registerRoutes(
               p.approvalStatus === "approved"
             );
           } else {
-            nextPlayer = players.find(p => 
-              (p.status === "registered" || p.status === "unsold") && 
-              p.paymentStatus === "verified" && 
-              p.approvalStatus === "approved" &&
-              p.category === selectedCategory
-            );
+            // Case-insensitive matching, fallback to role if category not set
+            const categoryLower = selectedCategory.toLowerCase();
+            nextPlayer = players.find(p => {
+              const playerCat = (p.category || p.role || "").toLowerCase();
+              return (p.status === "registered" || p.status === "unsold") && 
+                p.paymentStatus === "verified" && 
+                p.approvalStatus === "approved" &&
+                playerCat === categoryLower;
+            });
           }
           
           if (nextPlayer) {
@@ -606,12 +612,15 @@ export async function registerRoutes(
               p.approvalStatus === "approved"
             );
           } else {
-            nextPlayer = updatedPlayers.find(p => 
-              (p.status === "registered" || p.status === "unsold") && 
-              p.paymentStatus === "verified" && 
-              p.approvalStatus === "approved" &&
-              p.category === selectedCategory
-            );
+            // Case-insensitive matching, fallback to role if category not set
+            const categoryLower = selectedCategory.toLowerCase();
+            nextPlayer = updatedPlayers.find(p => {
+              const playerCat = (p.category || p.role || "").toLowerCase();
+              return (p.status === "registered" || p.status === "unsold") && 
+                p.paymentStatus === "verified" && 
+                p.approvalStatus === "approved" &&
+                playerCat === categoryLower;
+            });
           }
           
           if (!nextPlayer) {
@@ -1040,11 +1049,12 @@ export async function registerRoutes(
       const players = await storage.getAllPlayers();
       const currentCategory = state.currentCategory;
       
-      // Find next player from the same category
-      let nextPlayer = players.find(p => 
-        p.status === "registered" && 
-        p.category === currentCategory
-      );
+      // Find next player from the same category (case-insensitive, fallback to role)
+      const categoryLower = (currentCategory || "").toLowerCase();
+      let nextPlayer = players.find(p => {
+        const playerCat = (p.category || p.role || "").toLowerCase();
+        return p.status === "registered" && playerCat === categoryLower;
+      });
       
       if (nextPlayer) {
         await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
@@ -1133,18 +1143,19 @@ export async function registerRoutes(
       const players = await storage.getAllPlayers();
       const currentCategory = state.currentCategory;
       
-      // Find next player from same category
+      // Find next player from same category (case-insensitive, fallback to role)
+      const catLower = (currentCategory || "").toLowerCase();
       let nextPlayer;
       if (isLostGoldRound) {
-        nextPlayer = players.find(p => 
-          p.status === "lost_gold" && 
-          p.category === currentCategory
-        );
+        nextPlayer = players.find(p => {
+          const playerCat = (p.category || p.role || "").toLowerCase();
+          return p.status === "lost_gold" && playerCat === catLower;
+        });
       } else {
-        nextPlayer = players.find(p => 
-          p.status === "registered" && 
-          p.category === currentCategory
-        );
+        nextPlayer = players.find(p => {
+          const playerCat = (p.category || p.role || "").toLowerCase();
+          return p.status === "registered" && playerCat === catLower;
+        });
       }
       
       if (nextPlayer) {

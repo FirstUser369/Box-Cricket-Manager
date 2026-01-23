@@ -1258,9 +1258,11 @@ function AdminDashboard() {
                 {/* Category Summary - Show player counts before auction */}
                 {(() => {
                   const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
-                  const batsmen = verifiedPlayers.filter(p => p.category === "Batsman");
-                  const bowlers = verifiedPlayers.filter(p => p.category === "Bowler");
-                  const allrounders = verifiedPlayers.filter(p => p.category === "All-rounder");
+                  // Use category or fall back to role, case-insensitive matching
+                  const getPlayerCategory = (p: Player) => (p.category || p.role || "").toLowerCase();
+                  const batsmen = verifiedPlayers.filter(p => getPlayerCategory(p) === "batsman");
+                  const bowlers = verifiedPlayers.filter(p => getPlayerCategory(p) === "bowler");
+                  const allrounders = verifiedPlayers.filter(p => getPlayerCategory(p) === "all-rounder");
                   const unsoldPlayers = verifiedPlayers.filter(p => p.status === "unsold");
                   
                   const batsmenAvailable = batsmen.filter(p => p.status === "registered" || p.status === "unsold" || p.status === "in_auction").length;
@@ -1413,12 +1415,15 @@ function AdminDashboard() {
                                   p.approvalStatus === "approved"
                                 ) || [];
                               } else {
-                                availablePlayers = players?.filter(p => 
-                                  p.category === currentCategory &&
-                                  p.paymentStatus === "verified" &&
-                                  p.approvalStatus === "approved" &&
-                                  (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
-                                ) || [];
+                                // Case-insensitive matching, fallback to role if category not set
+                                const categoryLower = currentCategory.toLowerCase();
+                                availablePlayers = players?.filter(p => {
+                                  const playerCat = (p.category || p.role || "").toLowerCase();
+                                  return playerCat === categoryLower &&
+                                    p.paymentStatus === "verified" &&
+                                    p.approvalStatus === "approved" &&
+                                    (p.status === "registered" || p.status === "unsold" || p.status === "in_auction");
+                                }) || [];
                               }
                               
                               if (availablePlayers.length === 0) {
@@ -1450,10 +1455,13 @@ function AdminDashboard() {
                   } else if (currentCategory === "Unsold") {
                     availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
                   } else {
-                    availableInCategory = verifiedPlayers.filter(p => 
-                      p.category === currentCategory && 
-                      (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
-                    ).length;
+                    // Case-insensitive matching, fallback to role if category not set
+                    const categoryLower = currentCategory.toLowerCase();
+                    availableInCategory = verifiedPlayers.filter(p => {
+                      const playerCat = (p.category || p.role || "").toLowerCase();
+                      return playerCat === categoryLower && 
+                        (p.status === "registered" || p.status === "unsold" || p.status === "in_auction");
+                    }).length;
                   }
                   
                   if (availableInCategory === 0) {
