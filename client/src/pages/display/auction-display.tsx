@@ -73,9 +73,10 @@ export default function AuctionDisplay() {
   }, []);
 
   useEffect(() => {
-    if (previousPlayerId && !auctionState?.currentPlayerId && previousPlayerId !== auctionState?.currentPlayerId) {
+    // Detect when the previous player was sold (works when transitioning to next player OR to null)
+    if (previousPlayerId && previousPlayerId !== auctionState?.currentPlayerId) {
       const soldPlayer = players?.find(p => p.id === previousPlayerId && p.status === "sold");
-      if (soldPlayer && soldPlayer.teamId) {
+      if (soldPlayer && soldPlayer.teamId && !showSold) {
         const soldTeam = teams?.find(t => t.id === soldPlayer.teamId);
         if (soldTeam) {
           setLastSoldPlayer(soldPlayer);
@@ -83,12 +84,12 @@ export default function AuctionDisplay() {
           setLastSoldPrice(soldPlayer.soldPrice || 0);
           setShowSold(true);
           triggerConfetti();
-          setTimeout(() => setShowSold(false), 4000);
+          setTimeout(() => setShowSold(false), 1500);
         }
       }
     }
     setPreviousPlayerId(auctionState?.currentPlayerId || null);
-  }, [auctionState?.currentPlayerId, players, teams, previousPlayerId, triggerConfetti]);
+  }, [auctionState?.currentPlayerId, players, teams, previousPlayerId, triggerConfetti, showSold]);
 
   const getRoleIcon = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -487,41 +488,61 @@ export default function AuctionDisplay() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
           >
             <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="text-center"
+              initial={{ scale: 2.5, rotate: -12, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 400, 
+                damping: 20
+              }}
+              className="text-center relative"
             >
-              <motion.h1
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="font-display text-[10rem] bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 bg-clip-text text-transparent text-glow-gold"
-              >
-                SOLD!
-              </motion.h1>
               <motion.div
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-4"
+                animate={{ 
+                  boxShadow: [
+                    "0 0 0px rgba(234, 179, 8, 0)",
+                    "0 0 60px rgba(234, 179, 8, 0.9)",
+                    "0 0 30px rgba(234, 179, 8, 0.5)"
+                  ]
+                }}
+                transition={{ duration: 0.5 }}
+                className="border-[6px] border-amber-500 rounded-xl px-8 py-4 bg-black/80 backdrop-blur-md"
               >
-                <p className="font-display text-5xl text-white">{lastSoldPlayer.name}</p>
-                <div className="flex items-center justify-center gap-4">
-                  <span className="text-2xl text-gray-400">to</span>
-                  <div 
-                    className="px-6 py-3 rounded-xl font-display text-3xl text-white"
-                    style={{ backgroundColor: lastSoldTeam.primaryColor }}
-                  >
-                    {lastSoldTeam.name}
+                <motion.h1
+                  initial={{ scale: 0.6 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.05, type: "spring", stiffness: 500 }}
+                  className="font-display text-[6rem] md:text-[8rem] bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-500 bg-clip-text text-transparent leading-none tracking-wider"
+                  style={{ 
+                    textShadow: "0 0 30px rgba(251, 191, 36, 0.6)",
+                  }}
+                >
+                  SOLD
+                </motion.h1>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="mt-2 space-y-1"
+                >
+                  <p className="font-display text-2xl md:text-3xl text-white">{lastSoldPlayer.name}</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span 
+                      className="px-3 py-1 rounded-lg font-display text-lg md:text-xl text-white"
+                      style={{ backgroundColor: lastSoldTeam.primaryColor }}
+                    >
+                      {lastSoldTeam.shortName || lastSoldTeam.name}
+                    </span>
+                    <span className="font-display text-2xl md:text-3xl text-emerald-400">
+                      {lastSoldPrice.toLocaleString()} pts
+                    </span>
                   </div>
-                </div>
-                <p className="font-display text-7xl text-emerald-400 text-glow-gold">
-                  {lastSoldPrice.toLocaleString()}
-                </p>
+                </motion.div>
               </motion.div>
             </motion.div>
           </motion.div>

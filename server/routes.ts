@@ -486,10 +486,13 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Team not found" });
       }
       
-      const currentBid = state.currentBid || 0;
-      // New bid increment rules: +100 (up to 4000), +200 (above 4000)
-      let increment = currentBid >= 4000 ? 200 : 100;
-      
+      let currentBid = state.currentBid || 0;
+      // Round up to nearest 100 if not already a multiple of 100
+      if (currentBid % 100 !== 0) {
+        currentBid = Math.ceil(currentBid / 100) * 100;
+      }
+      // Always increment by 100
+      const increment = 100;
       const newBid = currentBid + increment;
       
       if (newBid > team.remainingBudget) {
