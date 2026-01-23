@@ -2154,8 +2154,8 @@ function LiveScoringPanel({
       dismissedPlayerId: dismissedId,
       fielderId: selectedFielder || undefined,
     });
-    setShowFielderDialog(false);
-    setPendingWicketType("");
+    setWicketDialogState({ open: false, type: "" });
+    setSelectedDismissedPlayer("");
     setSelectedFielder("");
     setSelectedDismissedBatsman("");
   };
@@ -2163,6 +2163,7 @@ function LiveScoringPanel({
   return (
     <Card>
       <CardHeader>
+
         <CardTitle className="flex items-center justify-between">
           <span>
             Live: {team1?.shortName} vs {team2?.shortName}
@@ -2428,6 +2429,11 @@ function LiveScoringPanel({
                   ? "End of Over! Select Next Bowler"
                   : "Select Bowler"}
               </p>
+              {lastBowlerId && (
+                <p className="text-xs text-muted-foreground">
+                    Last bowler: {getPlayerName(lastBowlerId)} (Cannot bowl consecutive overs)
+                </p>
+              )}
               <div className="flex gap-3">
                 <Select
                   value={selectedBowler}
@@ -2628,8 +2634,10 @@ function LiveScoringPanel({
           </div>
         )}
 
-        {/* Fielder Selection Dialog */}
-        <Dialog open={showFielderDialog} onOpenChange={setShowFielderDialog}>
+        {/* Wicket Details Dialog */}
+        <Dialog open={wicketDialogState.open} onOpenChange={(open) => {
+            if (!open) setWicketDialogState(prev => ({ ...prev, open: false }));
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="capitalize">
@@ -2693,6 +2701,24 @@ function LiveScoringPanel({
                   </SelectContent>
                 </Select>
               </div>
+
+              {wicketDialogState.needsFielder && (
+                  <div>
+                    <Label>Fielder</Label>
+                    <Select value={selectedFielder} onValueChange={setSelectedFielder}>
+                      <SelectTrigger data-testid="select-fielder">
+                        <SelectValue placeholder="Select fielder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bowlingTeamPlayers.map(player => (
+                          <SelectItem key={player.id} value={player.id}>
+                            {player.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+              )}
             </div>
             <DialogFooter>
               <Button
