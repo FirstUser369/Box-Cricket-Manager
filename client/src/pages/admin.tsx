@@ -73,6 +73,7 @@ import {
   type TournamentSettings,
   type AuctionCategory,
   type Broadcast,
+  type CaptainPair,
 } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
@@ -88,6 +89,144 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+function CaptainPairAssignmentForm({
+  players,
+  captainPairs,
+  onAssign,
+  isPending,
+}: {
+  players: Player[];
+  captainPairs: CaptainPair[];
+  onAssign: (data: { captainId: string; viceCaptainId: string; slotNumber: number }) => void;
+  isPending: boolean;
+}) {
+  const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const [selectedCaptain, setSelectedCaptain] = useState<string>("");
+  const [selectedVC, setSelectedVC] = useState<string>("");
+  const [validationError, setValidationError] = useState<string>("");
+
+  const availableSlots = Array.from({ length: 12 }, (_, i) => i + 1)
+    .filter(slot => !captainPairs.some(p => p.slotNumber === slot));
+
+  const usedPlayerIds = new Set(
+    captainPairs.flatMap(p => [p.captainId, p.viceCaptainId])
+  );
+
+  const availablePlayers = players.filter(p => 
+    p.paymentStatus === "verified" && 
+    p.approvalStatus === "approved" &&
+    !usedPlayerIds.has(p.id)
+  );
+
+  const handleAssign = () => {
+    setValidationError("");
+    
+    if (!selectedSlot) {
+      setValidationError("Please select a slot number");
+      return;
+    }
+    if (!selectedCaptain) {
+      setValidationError("Please select a captain");
+      return;
+    }
+    if (!selectedVC) {
+      setValidationError("Please select a vice-captain");
+      return;
+    }
+    if (selectedCaptain === selectedVC) {
+      setValidationError("Captain and vice-captain must be different players");
+      return;
+    }
+
+    onAssign({
+      slotNumber: parseInt(selectedSlot),
+      captainId: selectedCaptain,
+      viceCaptainId: selectedVC,
+    });
+
+    setSelectedSlot("");
+    setSelectedCaptain("");
+    setSelectedVC("");
+  };
+
+  return (
+    <div className="p-4 rounded-lg border bg-muted/50">
+      <h4 className="font-medium mb-4">Assign New Captain Pair</h4>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div>
+          <Label>Slot Number</Label>
+          <Select value={selectedSlot} onValueChange={setSelectedSlot}>
+            <SelectTrigger data-testid="select-captain-slot">
+              <SelectValue placeholder="Select slot..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSlots.length === 0 ? (
+                <SelectItem value="none" disabled>All slots filled</SelectItem>
+              ) : (
+                availableSlots.map(slot => (
+                  <SelectItem key={slot} value={slot.toString()}>
+                    Slot {slot}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Captain</Label>
+          <Select value={selectedCaptain} onValueChange={(val) => {
+            setSelectedCaptain(val);
+            if (val === selectedVC) setSelectedVC("");
+          }}>
+            <SelectTrigger data-testid="select-captain-player">
+              <SelectValue placeholder="Select captain..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availablePlayers.length === 0 ? (
+                <SelectItem value="none" disabled>No players available</SelectItem>
+              ) : (
+                availablePlayers.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Vice-Captain</Label>
+          <Select value={selectedVC} onValueChange={setSelectedVC}>
+            <SelectTrigger data-testid="select-vc-player">
+              <SelectValue placeholder="Select vice-captain..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availablePlayers.filter(p => p.id !== selectedCaptain).length === 0 ? (
+                <SelectItem value="none" disabled>No players available</SelectItem>
+              ) : (
+                availablePlayers
+                  .filter(p => p.id !== selectedCaptain)
+                  .map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={handleAssign}
+          disabled={isPending || !selectedSlot || !selectedCaptain || !selectedVC}
+          data-testid="button-assign-captain-pair"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Assign Pair
+        </Button>
+      </div>
+      {validationError && (
+        <p className="text-sm text-destructive mt-2">{validationError}</p>
+      )}
+    </div>
+  );
+}
 
 export default function Admin() {
   const { toast } = useToast();
@@ -162,6 +301,52 @@ function AdminDashboard() {
     useQuery<AuctionState>({
       queryKey: ["/api/auction/state"],
     });
+
+  const { data: captainPairs, isLoading: captainPairsLoading } =
+    useQuery<CaptainPair[]>({
+      queryKey: ["/api/captain-pairs"],
+    });
+
+  const createCaptainPairMutation = useMutation({
+    mutationFn: async (pair: {
+      captainId: string;
+      viceCaptainId: string;
+      slotNumber: number;
+    }) => {
+      return apiRequest("POST", "/api/captain-pairs", pair);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/captain-pairs"] });
+      toast({ title: "Captain pair assigned" });
+    },
+    onError: (error: any) => {
+      let message = "Failed to assign captain pair";
+      try {
+        const errorStr = error?.message || "";
+        const jsonMatch = errorStr.match(/\{.*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          message = parsed.error || message;
+        }
+      } catch {
+        message = error?.message || message;
+      }
+      toast({ title: message, variant: "destructive" });
+    },
+  });
+
+  const deleteCaptainPairMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/captain-pairs/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/captain-pairs"] });
+      toast({ title: "Captain pair removed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove captain pair", variant: "destructive" });
+    },
+  });
 
   const createTeamMutation = useMutation({
     mutationFn: async (team: {
@@ -565,7 +750,7 @@ function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="registration" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 max-w-6xl">
+          <TabsList className="flex flex-wrap gap-1 w-full max-w-6xl h-auto">
             <TabsTrigger
               value="registration"
               className="gap-2"
@@ -573,6 +758,14 @@ function AdminDashboard() {
             >
               <QrCode className="w-4 h-4" />
               Registration
+            </TabsTrigger>
+            <TabsTrigger
+              value="captains"
+              className="gap-2"
+              data-testid="admin-tab-captains"
+            >
+              <Star className="w-4 h-4" />
+              Captains
             </TabsTrigger>
             <TabsTrigger
               value="auction"
@@ -681,6 +874,104 @@ function AdminDashboard() {
             </div>
           </TabsContent>
 
+          {/* Captain Pairs Tab - Assign captain/VC pairs to slots before auction */}
+          <TabsContent value="captains" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5" />
+                  Captain & Vice-Captain Pairs
+                </CardTitle>
+                <CardDescription>
+                  Assign captain and vice-captain pairs to the 12 team slots before the auction.
+                  These pairs will bid for team names in the first auction phase.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Assignment Form */}
+                <CaptainPairAssignmentForm
+                  players={players || []}
+                  captainPairs={captainPairs || []}
+                  onAssign={(data) => createCaptainPairMutation.mutate(data)}
+                  isPending={createCaptainPairMutation.isPending}
+                />
+
+                {/* Slots Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(slotNumber => {
+                    const pair = captainPairs?.find(p => p.slotNumber === slotNumber);
+                    const captain = pair ? players?.find(p => p.id === pair.captainId) : null;
+                    const vc = pair ? players?.find(p => p.id === pair.viceCaptainId) : null;
+                    const assignedTeam = pair?.assignedTeamId ? teams?.find(t => t.id === pair.assignedTeamId) : null;
+                    
+                    return (
+                      <Card key={slotNumber} className={pair ? "border-green-500/50" : "border-dashed"}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant={pair ? "default" : "secondary"}>
+                              Slot {slotNumber}
+                            </Badge>
+                            {pair && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => deleteCaptainPairMutation.mutate(pair.id)}
+                                disabled={deleteCaptainPairMutation.isPending}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {pair ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 text-yellow-500" />
+                                <span className="font-medium">{captain?.name || "Unknown"}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Award className="w-4 h-4 text-blue-500" />
+                                <span className="text-muted-foreground">{vc?.name || "Unknown"}</span>
+                              </div>
+                              {assignedTeam && (
+                                <Badge 
+                                  style={{ backgroundColor: assignedTeam.primaryColor }}
+                                  className="mt-2"
+                                >
+                                  {assignedTeam.name}
+                                </Badge>
+                              )}
+                              <div className="text-xs text-muted-foreground mt-2">
+                                Budget: {pair.remainingBudget.toLocaleString()} / {pair.budget.toLocaleString()}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center text-muted-foreground py-4">
+                              Empty Slot
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {/* Summary */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div>
+                    <span className="font-medium">{captainPairs?.length || 0}</span> of 12 slots assigned
+                  </div>
+                  <div className="text-muted-foreground">
+                    {(captainPairs?.length || 0) === 12 
+                      ? "All slots assigned - Ready for Team Names auction" 
+                      : "Assign all 12 pairs before starting the Team Names auction"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="auction" className="space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -752,8 +1043,18 @@ function AdminDashboard() {
                   const allroundersAvailable = allrounders.filter(p => p.status === "registered" || p.status === "unsold").length;
                   const unsoldAvailable = unsoldPlayers.length;
                   
+                  // Team Names: count teams not yet assigned to captain pairs
+                  const assignedTeamIds = new Set(captainPairs?.map(p => p.assignedTeamId).filter(Boolean) || []);
+                  const availableTeams = teams?.filter(t => !assignedTeamIds.has(t.id)) || [];
+                  const totalTeams = teams?.length || 0;
+                  
                   return (
-                    <div className="grid grid-cols-4 gap-3 p-3 rounded-lg bg-muted/50">
+                    <div className="grid grid-cols-5 gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="text-center p-2 rounded bg-yellow-500/10 border border-yellow-500/30">
+                        <div className="text-xs text-muted-foreground">Team Names</div>
+                        <div className="text-lg font-bold text-yellow-500">{availableTeams.length}/{totalTeams}</div>
+                        <div className="text-xs text-muted-foreground">available</div>
+                      </div>
                       <div className="text-center p-2 rounded bg-blue-500/10 border border-blue-500/30">
                         <div className="text-xs text-muted-foreground">Batsmen</div>
                         <div className="text-lg font-bold text-blue-500">{batsmenAvailable}/{batsmen.length}</div>
@@ -800,6 +1101,9 @@ function AdminDashboard() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="Team Names">
+                          Team Names
+                        </SelectItem>
                         <SelectItem value="Batsman">
                           Batsman
                         </SelectItem>
@@ -816,17 +1120,17 @@ function AdminDashboard() {
                     </Select>
                   </div>
                   
-                  {/* Player Dropdown - shows available players from current category */}
+                  {/* Player/Team Dropdown - shows available players/teams from current category */}
                   <div className="flex items-center gap-2">
                     <Label className="whitespace-nowrap">
-                      Select Player:
+                      {(auctionState?.currentCategory || "Batsman") === "Team Names" ? "Select Team:" : "Select Player:"}
                     </Label>
                     <Select
                       value={auctionState?.currentPlayerId || ""}
-                      onValueChange={(playerId) =>
+                      onValueChange={(id) =>
                         auctionControlMutation.mutate({
                           action: "select_player",
-                          playerId: playerId,
+                          playerId: id,
                         })
                       }
                     >
@@ -834,11 +1138,26 @@ function AdminDashboard() {
                         className="w-56"
                         data-testid="select-auction-player"
                       >
-                        <SelectValue placeholder="Select a player..." />
+                        <SelectValue placeholder={(auctionState?.currentCategory || "Batsman") === "Team Names" ? "Select a team..." : "Select a player..."} />
                       </SelectTrigger>
                       <SelectContent>
                         {(() => {
                           const currentCategory = auctionState?.currentCategory || "Batsman";
+                          
+                          // Team Names category - show teams not yet assigned to captain pairs
+                          if (currentCategory === "Team Names") {
+                            const assignedTeamIds = new Set(captainPairs?.map(p => p.assignedTeamId).filter(Boolean) || []);
+                            const teamsForAuction = teams?.filter(t => !assignedTeamIds.has(t.id)) || [];
+                            if (teamsForAuction.length === 0) {
+                              return <SelectItem value="no-teams" disabled>No teams available</SelectItem>;
+                            }
+                            return teamsForAuction.map(team => (
+                              <SelectItem key={team.id} value={team.id}>
+                                {team.name}
+                              </SelectItem>
+                            ));
+                          }
+                          
                           let availablePlayers: Player[] = [];
                           
                           if (currentCategory === "Unsold") {
@@ -871,13 +1190,16 @@ function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Warning when selected category has no players */}
+                {/* Warning when selected category has no items */}
                 {(() => {
                   const currentCategory = auctionState?.currentCategory || "Batsman";
                   const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
                   
                   let availableInCategory = 0;
-                  if (currentCategory === "Unsold") {
+                  if (currentCategory === "Team Names") {
+                    const assignedTeamIds = new Set(captainPairs?.map(p => p.assignedTeamId).filter(Boolean) || []);
+                    availableInCategory = teams?.filter(t => !assignedTeamIds.has(t.id)).length || 0;
+                  } else if (currentCategory === "Unsold") {
                     availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
                   } else {
                     availableInCategory = verifiedPlayers.filter(p => 
@@ -891,12 +1213,18 @@ function AdminDashboard() {
                       <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="w-5 h-5" />
-                          <span className="font-medium">No players available in "{currentCategory}" category</span>
+                          <span className="font-medium">
+                            {currentCategory === "Team Names" 
+                              ? "No teams available for auction" 
+                              : `No players available in "${currentCategory}" category`}
+                          </span>
                         </div>
                         <p className="text-sm mt-1 text-muted-foreground">
-                          {currentCategory === "Unsold" 
-                            ? "No unsold players yet. Players become unsold when they go through auction without being bought."
-                            : "Select a different category or wait for more players to be approved and verified."}
+                          {currentCategory === "Team Names"
+                            ? "All teams have been assigned to captain pairs. Create more teams in the Teams tab."
+                            : currentCategory === "Unsold" 
+                              ? "No unsold players yet. Players become unsold when they go through auction without being bought."
+                              : "Select a different category or wait for more players to be approved and verified."}
                         </p>
                       </div>
                     );
@@ -910,7 +1238,10 @@ function AdminDashboard() {
                     const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
                     
                     let availableInCategory = 0;
-                    if (currentCategory === "Unsold") {
+                    if (currentCategory === "Team Names") {
+                      const assignedTeamIds = new Set(captainPairs?.map(p => p.assignedTeamId).filter(Boolean) || []);
+                      availableInCategory = teams?.filter(t => !assignedTeamIds.has(t.id)).length || 0;
+                    } else if (currentCategory === "Unsold") {
                       availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
                     } else {
                       availableInCategory = verifiedPlayers.filter(p => 

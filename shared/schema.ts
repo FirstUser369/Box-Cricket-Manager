@@ -54,28 +54,47 @@ export const teams = pgTable("teams", {
   primaryColor: text("primary_color").notNull(),
   secondaryColor: text("secondary_color").notNull(),
   logoUrl: text("logo_url"),
-  budget: integer("budget").notNull().default(25000), // Updated to 25,000 as per new spec
-  remainingBudget: integer("remaining_budget").notNull().default(25000),
+  budget: integer("budget").notNull().default(30000), // Updated to 30,000 for new auction format
+  remainingBudget: integer("remaining_budget").notNull().default(30000),
   groupName: text("group_name"), // A, B, C, D
   captainId: varchar("captain_id", { length: 36 }),
   viceCaptainId: varchar("vice_captain_id", { length: 36 }),
+  teamNameAssigned: boolean("team_name_assigned").default(false), // True when captain/VC pair has won this team name in auction
+  basePrice: integer("base_price").default(1000), // Base price for team name auction
 });
 
 export const insertTeamSchema = createInsertSchema(teams).omit({ id: true });
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type Team = typeof teams.$inferSelect;
 
+// Captain Pairs - Pre-assigned captain/VC pairs who bid for team names
+export const captainPairs = pgTable("captain_pairs", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  captainId: varchar("captain_id", { length: 36 }).notNull(), // References player ID
+  viceCaptainId: varchar("vice_captain_id", { length: 36 }).notNull(), // References player ID
+  slotNumber: integer("slot_number").notNull(), // 1-12 slot position
+  assignedTeamId: varchar("assigned_team_id", { length: 36 }), // Team ID won in auction (null until team name auction)
+  budget: integer("budget").notNull().default(30000), // Starting budget for team name + player auctions
+  remainingBudget: integer("remaining_budget").notNull().default(30000),
+});
+
+export const insertCaptainPairSchema = createInsertSchema(captainPairs).omit({ id: true });
+export type InsertCaptainPair = z.infer<typeof insertCaptainPairSchema>;
+export type CaptainPair = typeof captainPairs.$inferSelect;
+
 // Auction State
 export const auctionState = pgTable("auction_state", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  status: text("status").notNull().default("not_started"), // not_started, in_progress, paused, completed, lost_gold_round
+  status: text("status").notNull().default("not_started"), // not_started, in_progress, paused, completed, lost_gold_round, team_name_auction
   currentPlayerId: varchar("current_player_id", { length: 36 }),
   currentBid: integer("current_bid"),
   currentBiddingTeamId: varchar("current_bidding_team_id", { length: 36 }),
   bidHistory: jsonb("bid_history").$type<Array<{ teamId: string; amount: number; timestamp: number }>>(),
-  currentCategory: text("current_category").default("Batsman"), // Tracks current auction category (Batsman -> Bowler -> All-rounder -> Unsold)
+  currentCategory: text("current_category").default("Team Names"), // Tracks current auction category (Team Names -> Batsman -> Bowler -> All-rounder -> Unsold)
   categoryBreak: boolean("category_break").default(false), // True when a category is complete and break animation should show
   completedCategory: text("completed_category"), // Which category just completed (for break display)
+  currentTeamId: varchar("current_team_id", { length: 36 }), // For team name auction - which team name is being auctioned
+  currentBiddingPairId: varchar("current_bidding_pair_id", { length: 36 }), // For team name auction - which captain pair is currently bidding
 });
 
 export const insertAuctionStateSchema = createInsertSchema(auctionState).omit({ id: true });
@@ -269,6 +288,7 @@ export type PlayerRegistration = z.infer<typeof playerRegistrationSchema>;
 
 // Auction Category Names (Hinglish fun names)
 export const AUCTION_CATEGORIES = {
+  "Team Names": "Team Names", // First phase: Captain/VC pairs bid for team identities
   "Batsman": "Batsman",
   "Bowler": "Bowler",
   "All-rounder": "All-rounder",

@@ -6,7 +6,8 @@ import * as schema from "@shared/schema";
 import { 
   playerRegistrationSchema, 
   insertTournamentSettingsSchema,
-  insertBroadcastSchema
+  insertBroadcastSchema,
+  insertCaptainPairSchema
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -2149,6 +2150,73 @@ export async function registerRoutes(
       res.json(updatedTeam);
     } catch (error) {
       res.status(500).json({ error: "Failed to set captain" });
+    }
+  });
+
+  // ============ CAPTAIN PAIRS (for Team Names Auction) ============
+  
+  app.get("/api/captain-pairs", async (req, res) => {
+    try {
+      const pairs = await storage.getAllCaptainPairs();
+      res.json(pairs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch captain pairs" });
+    }
+  });
+
+  app.post("/api/captain-pairs", async (req, res) => {
+    try {
+      const validation = insertCaptainPairSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.errors[0].message });
+      }
+      
+      // Check if slot is already taken
+      const existingPairs = await storage.getAllCaptainPairs();
+      const slotTaken = existingPairs.some(p => p.slotNumber === validation.data.slotNumber);
+      if (slotTaken) {
+        return res.status(400).json({ error: `Slot ${validation.data.slotNumber} is already assigned` });
+      }
+      
+      // Check if captain or VC is already in another pair
+      const captainInUse = existingPairs.some(p => 
+        p.captainId === validation.data.captainId || p.viceCaptainId === validation.data.captainId
+      );
+      const vcInUse = existingPairs.some(p => 
+        p.captainId === validation.data.viceCaptainId || p.viceCaptainId === validation.data.viceCaptainId
+      );
+      if (captainInUse) {
+        return res.status(400).json({ error: "Captain is already assigned to another pair" });
+      }
+      if (vcInUse) {
+        return res.status(400).json({ error: "Vice-Captain is already assigned to another pair" });
+      }
+      
+      const pair = await storage.createCaptainPair(validation.data);
+      res.status(201).json(pair);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create captain pair" });
+    }
+  });
+
+  app.patch("/api/captain-pairs/:id", async (req, res) => {
+    try {
+      const pair = await storage.updateCaptainPair(req.params.id, req.body);
+      if (!pair) {
+        return res.status(404).json({ error: "Captain pair not found" });
+      }
+      res.json(pair);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update captain pair" });
+    }
+  });
+
+  app.delete("/api/captain-pairs/:id", async (req, res) => {
+    try {
+      await storage.deleteCaptainPair(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete captain pair" });
     }
   });
 

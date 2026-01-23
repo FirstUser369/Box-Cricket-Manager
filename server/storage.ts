@@ -11,6 +11,7 @@ import {
   auctionState,
   tournamentSettings,
   broadcasts,
+  captainPairs,
   type Player, type InsertPlayer,
   type Team, type InsertTeam,
   type Match, type InsertMatch,
@@ -20,7 +21,8 @@ import {
   type PlayerMatchStats, type InsertPlayerMatchStats,
   type OrangeCapLeader, type PurpleCapLeader, type MVPLeader,
   type TournamentSettings, type InsertTournamentSettings,
-  type Broadcast, type InsertBroadcast
+  type Broadcast, type InsertBroadcast,
+  type CaptainPair, type InsertCaptainPair
 } from "@shared/schema";
 
 export interface IStorage {
@@ -76,6 +78,13 @@ export interface IStorage {
   createBroadcast(broadcast: InsertBroadcast): Promise<Broadcast>;
   updateBroadcast(id: string, data: Partial<Broadcast>): Promise<Broadcast | undefined>;
   deleteBroadcast(id: string): Promise<void>;
+
+  // Captain Pairs
+  getAllCaptainPairs(): Promise<CaptainPair[]>;
+  getCaptainPair(id: string): Promise<CaptainPair | undefined>;
+  createCaptainPair(pair: InsertCaptainPair): Promise<CaptainPair>;
+  updateCaptainPair(id: string, data: Partial<CaptainPair>): Promise<CaptainPair | undefined>;
+  deleteCaptainPair(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -591,6 +600,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBroadcast(id: string): Promise<void> {
     await db.delete(broadcasts).where(eq(broadcasts.id, id));
+  }
+
+  // Captain Pairs
+  async getAllCaptainPairs(): Promise<CaptainPair[]> {
+    return db.select().from(captainPairs).orderBy(captainPairs.slotNumber);
+  }
+
+  async getCaptainPair(id: string): Promise<CaptainPair | undefined> {
+    const results = await db.select().from(captainPairs).where(eq(captainPairs.id, id));
+    return results[0];
+  }
+
+  async createCaptainPair(pair: InsertCaptainPair): Promise<CaptainPair> {
+    const id = randomUUID();
+    const newPair = { ...pair, id };
+    await db.insert(captainPairs).values(newPair);
+    return newPair as CaptainPair;
+  }
+
+  async updateCaptainPair(id: string, data: Partial<CaptainPair>): Promise<CaptainPair | undefined> {
+    await db.update(captainPairs).set(data).where(eq(captainPairs.id, id));
+    return this.getCaptainPair(id);
+  }
+
+  async deleteCaptainPair(id: string): Promise<void> {
+    await db.delete(captainPairs).where(eq(captainPairs.id, id));
   }
 }
 
