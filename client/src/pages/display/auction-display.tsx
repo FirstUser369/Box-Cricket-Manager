@@ -156,44 +156,61 @@ export default function AuctionDisplay() {
     <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden relative">
       <div className="absolute inset-0 auction-spotlight" />
       
+      {/* Top Header */}
       <div className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-sm border-b border-white/10 z-40">
-        <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center justify-between px-6 py-2">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Gavel className="w-7 h-7 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <Gavel className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-display text-2xl tracking-wide">SPL-2026 AUCTION</h1>
-              <Badge className="bg-red-500/20 border-red-500 text-red-400">
-                <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />
+              <h1 className="font-display text-xl tracking-wide">SPL-2026 AUCTION</h1>
+              <Badge className="bg-red-500/20 border-red-500 text-red-400 text-xs">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1 animate-pulse" />
                 LIVE
               </Badge>
             </div>
           </div>
-          {auctionState?.status === "in_progress" && auctionState?.currentCategory && (
-            <motion.div
-              key={auctionState.currentCategory}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex items-center gap-3"
-              data-testid="category-badge"
-            >
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${getCategoryColor(auctionState.currentCategory)} shadow-lg`}>
-                <Crown className="w-5 h-5 text-white" />
-                <span className="font-display text-lg text-white tracking-wide">
-                  {getCategoryName(auctionState.currentCategory)}
-                </span>
-                <Badge className="bg-white/20 text-white border-0 ml-2">
-                  {auctionState.currentCategory} pts
-                </Badge>
-              </div>
-            </motion.div>
-          )}
         </div>
       </div>
 
-      <div className="pt-20 pb-4 px-2 h-[calc(100vh-80px)] flex">
+      {/* Full-Width Category Title Bar */}
+      {auctionState?.status === "in_progress" && auctionState?.currentCategory && (
+        <motion.div
+          key={`category-bar-${auctionState.currentCategory}`}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="fixed top-[52px] left-0 right-0 z-30"
+          data-testid="category-title-bar"
+        >
+          <div 
+            className={`w-full py-3 ${
+              auctionState.currentCategory === "Team Names" 
+                ? "bg-gradient-to-r from-violet-900 via-purple-800 to-violet-900 border-b-2 border-purple-400/50" 
+                : auctionState.currentCategory === "Batsman" 
+                ? "bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 border-b-2 border-blue-400/50"
+                : auctionState.currentCategory === "Bowler"
+                ? "bg-gradient-to-r from-red-900 via-rose-800 to-red-900 border-b-2 border-red-400/50"
+                : auctionState.currentCategory === "All-rounder"
+                ? "bg-gradient-to-r from-emerald-900 via-green-800 to-emerald-900 border-b-2 border-emerald-400/50"
+                : "bg-gradient-to-r from-amber-900 via-orange-800 to-amber-900 border-b-2 border-amber-400/50"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-4">
+              <div className="h-px w-16 bg-gradient-to-r from-transparent to-white/50" />
+              <Crown className="w-6 h-6 text-white/90" />
+              <h1 className="font-display text-3xl text-white tracking-widest uppercase">
+                {auctionState.currentCategory === "Team Names" ? "TEAM NAMES" : auctionState.currentCategory} AUCTION
+              </h1>
+              <Crown className="w-6 h-6 text-white/90" />
+              <div className="h-px w-16 bg-gradient-to-l from-transparent to-white/50" />
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      <div className={`pb-4 px-2 h-[calc(100vh-80px)] flex ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-28" : "pt-16"}`}>
         {/* Left Side - 6 Teams */}
         <div className="w-80 flex flex-col gap-1">
           {teams?.slice(0, 6).map((team, index) => {
@@ -284,20 +301,6 @@ export default function AuctionDisplay() {
               className="flex flex-col items-center justify-center h-full"
               data-testid="team-names-auction"
             >
-              {/* Category Title */}
-              <motion.div
-                initial={{ y: -30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="mb-6"
-              >
-                <div className="px-8 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 shadow-2xl border-2 border-white/20">
-                  <h1 className="font-display text-4xl text-white tracking-wider text-center uppercase">
-                    TEAM NAMES AUCTION
-                  </h1>
-                </div>
-              </motion.div>
-
               <div className="flex flex-row gap-12 items-center justify-center">
                 <motion.div
                   initial={{ x: -100, opacity: 0 }}
@@ -398,20 +401,6 @@ export default function AuctionDisplay() {
               className="flex flex-col items-center justify-center h-full"
               data-testid="player-auction"
             >
-              {/* Category Title */}
-              <motion.div
-                initial={{ y: -30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="mb-6"
-              >
-                <div className={`px-8 py-3 rounded-2xl bg-gradient-to-r ${getCategoryColor(auctionState.currentCategory)} shadow-2xl border-2 border-white/20`}>
-                  <h1 className="font-display text-4xl text-white tracking-wider text-center uppercase">
-                    {auctionState.currentCategory} AUCTION
-                  </h1>
-                </div>
-              </motion.div>
-
               <div className="flex flex-row gap-12 items-center justify-center">
                 <motion.div
                   initial={{ x: -100, opacity: 0 }}
