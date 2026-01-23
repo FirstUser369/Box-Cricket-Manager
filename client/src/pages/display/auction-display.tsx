@@ -1012,7 +1012,7 @@ export default function AuctionDisplay() {
 
       {/* Team Roster Modal */}
       <Dialog open={showTeamModal} onOpenChange={setShowTeamModal}>
-        <DialogContent className="bg-[#0a0e1a] border-white/20 text-white max-w-2xl max-h-[85vh]">
+        <DialogContent className="bg-[#0a0e1a] border-white/20 text-white max-w-3xl max-h-[90vh]">
           {selectedTeam && (
             <>
               <DialogHeader className="pb-4">
@@ -1069,34 +1069,40 @@ export default function AuctionDisplay() {
                               setSelectedPlayer(player);
                               setShowPlayerModal(true);
                             }}
-                            className="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+                            className="flex items-center gap-4 p-4 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-white/10"
                             data-testid={`roster-player-${player.id}`}
                           >
-                            <Avatar className="w-12 h-12 border-2" style={{ borderColor: selectedTeam.primaryColor }}>
+                            <Avatar className="w-16 h-16 border-3" style={{ borderColor: selectedTeam.primaryColor }}>
                               <AvatarImage src={player.photoUrl} className="object-cover" />
-                              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-orange-500 text-white font-display">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-orange-500 text-white font-display text-xl">
                                 {player.name.slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-white truncate">{player.name}</p>
+                              <p className="font-semibold text-white text-lg truncate">{player.name}</p>
                               <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline" className="text-xs border-gray-600 text-gray-400">
+                                <Badge variant="outline" className="text-sm border-gray-600 text-gray-400">
                                   {player.role}
                                 </Badge>
                                 {player.isCaptain && (
-                                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">C</Badge>
+                                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">C</Badge>
                                 )}
                                 {player.isViceCaptain && (
-                                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">VC</Badge>
+                                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">VC</Badge>
                                 )}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-display text-lg text-emerald-400">{player.soldPrice?.toLocaleString()}</p>
-                              <p className="text-xs text-gray-500">pts</p>
+                            <div className="text-right flex items-center gap-6">
+                              <div className="text-center">
+                                <p className="text-xs text-gray-500 uppercase tracking-wider">Base</p>
+                                <p className="font-display text-lg text-gray-400">{player.basePoints?.toLocaleString() || '-'}</p>
+                              </div>
+                              <div className="text-center min-w-[80px]">
+                                <p className="text-xs text-emerald-500 uppercase tracking-wider">Sold</p>
+                                <p className="font-display text-2xl text-emerald-400 font-bold">{player.soldPrice?.toLocaleString() || '-'}</p>
+                              </div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                            <ChevronRight className="w-5 h-5 text-gray-500" />
                           </motion.div>
                         ))
                     )}
