@@ -322,8 +322,15 @@ export default function AuctionDisplay() {
               );
             })
           ) : (
-            // During Player auction: Show Teams
-            teams?.slice(0, 6).map((team, index) => {
+            // During Player auction: Show Teams sorted by captain pair slot number
+            (() => {
+              const sortedPairs = [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber);
+              const sortedTeams = sortedPairs
+                .filter(pair => pair.assignedTeamId)
+                .map(pair => teams?.find(t => t.id === pair.assignedTeamId))
+                .filter((t): t is Team => t !== undefined);
+              return sortedTeams.slice(0, 6);
+            })().map((team, index) => {
               const captain = players?.find(p => p.id === team.captainId);
               const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
               const hasOwners = captain || viceCaptain;
@@ -798,8 +805,15 @@ export default function AuctionDisplay() {
               );
             })
           ) : (
-            // During Player auction: Show Teams
-            teams?.slice(6, 12).map((team, index) => {
+            // During Player auction: Show Teams sorted by captain pair slot number
+            (() => {
+              const sortedPairs = [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber);
+              const sortedTeams = sortedPairs
+                .filter(pair => pair.assignedTeamId)
+                .map(pair => teams?.find(t => t.id === pair.assignedTeamId))
+                .filter((t): t is Team => t !== undefined);
+              return sortedTeams.slice(6, 12);
+            })().map((team, index) => {
               const captain = players?.find(p => p.id === team.captainId);
               const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
               const hasOwners = captain || viceCaptain;

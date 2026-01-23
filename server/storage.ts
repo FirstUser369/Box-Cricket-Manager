@@ -117,8 +117,8 @@ export class DatabaseStorage implements IStorage {
         id: randomUUID(),
         ...team,
         logoUrl: null,
-        budget: 25000,
-        remainingBudget: 25000,
+        budget: 30000,
+        remainingBudget: 30000,
         captainId: null,
         viceCaptainId: null,
       });
