@@ -381,153 +381,115 @@ export default function AuctionDisplay() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.5 }}
-              className="flex flex-col lg:flex-row gap-8 items-center justify-center"
+              className="flex flex-col items-center justify-center h-full"
+              data-testid="player-auction"
             >
-              <motion.div
-                initial={{ x: -100, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="relative"
-              >
-                <div className="absolute inset-0 neon-purple rounded-3xl opacity-50" />
-                <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-3xl p-8 border border-white/20">
-                  <div className="relative mb-6">
-                    <motion.div
-                      animate={{ boxShadow: ["0 0 30px rgba(157,78,221,0.5)", "0 0 60px rgba(157,78,221,0.8)", "0 0 30px rgba(157,78,221,0.5)"] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                      className="rounded-full"
-                    >
-                      <Avatar className="w-48 h-48 border-4 border-purple-500/50">
-                        <AvatarImage src={currentPlayer.photoUrl} className="object-cover" />
-                        <AvatarFallback className="text-5xl font-display bg-gradient-to-br from-purple-600 to-orange-500">
-                          {currentPlayer.name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </motion.div>
-                    <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-orange-500 border-0 text-white px-4 py-1">
-                      {getRoleIcon(currentPlayer.role)}
-                      <span className="ml-2 uppercase">{currentPlayer.role}</span>
-                    </Badge>
-                  </div>
-
-                  <h2 className="font-display text-4xl text-center text-white text-glow-orange mb-4">
-                    {currentPlayer.name}
-                  </h2>
-
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="bg-orange-500/20 rounded-lg p-3">
-                      <Zap className="w-5 h-5 mx-auto text-orange-400 mb-1" />
-                      <p className="text-2xl font-display text-orange-400">{currentPlayer.battingRating}</p>
-                      <p className="text-xs text-gray-400">BATTING</p>
+              <div className="flex flex-row gap-12 items-center justify-center">
+                <motion.div
+                  initial={{ x: -100, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="relative"
+                >
+                  <div className="absolute inset-0 neon-purple rounded-3xl opacity-50" />
+                  <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-3xl p-10 border-2 border-white/20">
+                    <div className="relative mb-8 flex justify-center">
+                      <motion.div
+                        animate={{ boxShadow: ["0 0 40px rgba(157,78,221,0.5)", "0 0 80px rgba(157,78,221,0.8)", "0 0 40px rgba(157,78,221,0.5)"] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="rounded-full"
+                      >
+                        <Avatar className="w-56 h-56 border-4 border-purple-500/50">
+                          <AvatarImage src={currentPlayer.photoUrl} className="object-cover" />
+                          <AvatarFallback className="text-6xl font-display bg-gradient-to-br from-purple-600 to-orange-500">
+                            {currentPlayer.name.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </motion.div>
+                      <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-orange-500 border-0 text-white px-4 py-1.5 text-base">
+                        {getRoleIcon(currentPlayer.role)}
+                        <span className="ml-2 uppercase">{currentPlayer.role}</span>
+                      </Badge>
                     </div>
-                    <div className="bg-purple-500/20 rounded-lg p-3">
-                      <Target className="w-5 h-5 mx-auto text-purple-400 mb-1" />
-                      <p className="text-2xl font-display text-purple-400">{currentPlayer.bowlingRating}</p>
-                      <p className="text-xs text-gray-400">BOWLING</p>
+
+                    <h2 className="font-display text-5xl text-center text-white text-glow-orange mb-6">
+                      {currentPlayer.name}
+                    </h2>
+
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="bg-orange-500/20 rounded-lg p-4">
+                        <Zap className="w-6 h-6 mx-auto text-orange-400 mb-1" />
+                        <p className="text-3xl font-display text-orange-400">{currentPlayer.battingRating}</p>
+                        <p className="text-sm text-gray-400">BATTING</p>
+                      </div>
+                      <div className="bg-purple-500/20 rounded-lg p-4">
+                        <Target className="w-6 h-6 mx-auto text-purple-400 mb-1" />
+                        <p className="text-3xl font-display text-purple-400">{currentPlayer.bowlingRating}</p>
+                        <p className="text-sm text-gray-400">BOWLING</p>
+                      </div>
+                      <div className="bg-emerald-500/20 rounded-lg p-4">
+                        <Shield className="w-6 h-6 mx-auto text-emerald-400 mb-1" />
+                        <p className="text-3xl font-display text-emerald-400">{currentPlayer.fieldingRating}</p>
+                        <p className="text-sm text-gray-400">FIELDING</p>
+                      </div>
                     </div>
-                    <div className="bg-emerald-500/20 rounded-lg p-3">
-                      <Shield className="w-5 h-5 mx-auto text-emerald-400 mb-1" />
-                      <p className="text-2xl font-display text-emerald-400">{currentPlayer.fieldingRating}</p>
-                      <p className="text-xs text-gray-400">FIELDING</p>
+
+                    <div className="mt-6 text-center">
+                      <p className="text-xl text-gray-400 uppercase tracking-wide">BASE PRICE</p>
+                      <p className="font-display text-4xl text-yellow-400">{currentPlayer.basePoints.toLocaleString()}</p>
                     </div>
                   </div>
-
-                  <div className="mt-4 text-center">
-                    <p className="text-sm text-gray-400">BASE PRICE</p>
-                    <p className="font-display text-2xl text-yellow-400">{currentPlayer.basePoints.toLocaleString()}</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ x: 100, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-center"
-              >
-                <p className="text-xl text-gray-400 uppercase tracking-widest mb-2">Current Bid</p>
-                <motion.div className="bg-black/60 rounded-2xl px-8 py-4 border-4 border-cyan-400/70 inline-block">
-                  <motion.p
-                    key={auctionState.currentBid}
-                    initial={{ scale: 1.5 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="font-display text-[12rem] leading-none text-cyan-300"
-                    style={{ textShadow: "0 0 40px rgba(34, 211, 238, 0.8), 0 0 80px rgba(34, 211, 238, 0.5)" }}
-                  >
-                    {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
-                  </motion.p>
                 </motion.div>
 
-                <AnimatePresence>
-                  {currentBiddingTeam && (
-                    <motion.div
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -20, opacity: 0 }}
-                      className="mt-8 flex items-center justify-center gap-4 bg-white/10 rounded-2xl p-6"
-                      style={{ 
-                        background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}40 0%, ${currentBiddingTeam.secondaryColor}40 100%)`,
-                        borderLeft: `6px solid ${currentBiddingTeam.primaryColor}`
-                      }}
+                <motion.div
+                  initial={{ x: 100, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-center"
+                >
+                  <p className="text-2xl text-gray-400 uppercase tracking-widest mb-4">Current Bid</p>
+                  <motion.div className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-cyan-400/70">
+                    <motion.p
+                      key={auctionState.currentBid}
+                      initial={{ scale: 1.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="font-display text-[12rem] leading-none text-cyan-300"
+                      style={{ textShadow: "0 0 40px rgba(34, 211, 238, 0.8), 0 0 80px rgba(34, 211, 238, 0.5)" }}
                     >
-                      <TrendingUp className="w-8 h-8 text-emerald-400" />
-                      <div 
-                        className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-xl"
-                        style={{ backgroundColor: currentBiddingTeam.primaryColor }}
-                      >
-                        {currentBiddingTeam.shortName}
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm text-gray-400">LEADING BID</p>
-                        <p className="font-display text-3xl text-white">{currentBiddingTeam.name}</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* IPL-Style Bid History */}
-                {auctionState.bidHistory && auctionState.bidHistory.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 bg-white/5 rounded-xl p-4 max-w-md mx-auto"
-                    data-testid="bid-history"
-                  >
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4" />
-                      Bid History
-                    </h3>
-                    <div className="space-y-2">
-                      {[...auctionState.bidHistory].reverse().slice(0, 5).map((bid, index) => {
-                        const bidTeam = teams?.find(t => t.id === bid.teamId);
-                        return (
-                          <motion.div
-                            key={`${bid.teamId}-${bid.amount}-${index}`}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className={`flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30' : 'bg-white/5'}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display"
-                                style={{ backgroundColor: bidTeam?.primaryColor || '#666' }}
-                              >
-                                {bidTeam?.shortName || '??'}
-                              </div>
-                              <span className="text-sm text-white">{bidTeam?.name || 'Unknown'}</span>
-                            </div>
-                            <span className={`font-display ${index === 0 ? 'text-yellow-400' : 'text-gray-300'}`}>
-                              {bid.amount.toLocaleString()}
-                            </span>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
+                      {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
+                    </motion.p>
                   </motion.div>
-                )}
-              </motion.div>
+
+                  <AnimatePresence>
+                    {currentBiddingTeam && (
+                      <motion.div
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -20, opacity: 0 }}
+                        className="mt-10 flex items-center justify-center gap-4 bg-white/10 rounded-2xl p-6"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}40 0%, ${currentBiddingTeam.secondaryColor}40 100%)`,
+                          borderLeft: `6px solid ${currentBiddingTeam.primaryColor}`
+                        }}
+                      >
+                        <TrendingUp className="w-10 h-10 text-emerald-400" />
+                        <div 
+                          className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-2xl"
+                          style={{ backgroundColor: currentBiddingTeam.primaryColor }}
+                        >
+                          {currentBiddingTeam.shortName}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-base text-gray-400 uppercase tracking-wide">LEADING BID</p>
+                          <p className="font-display text-3xl text-white">{currentBiddingTeam.name}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                </motion.div>
+              </div>
             </motion.div>
           )}
 
