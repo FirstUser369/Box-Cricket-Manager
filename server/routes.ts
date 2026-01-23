@@ -322,10 +322,11 @@ export async function registerRoutes(
           const selectedCategory = category || "Batsman";
           const players = await storage.getAllPlayers();
           
-          // IMPORTANT: Only payment-verified players can be in auction
+          // IMPORTANT: Only payment-verified AND approved players can be in auction
           const availablePlayer = players.find(p => 
-            p.status === "registered" && 
+            (p.status === "registered" || p.status === "unsold") && 
             p.paymentStatus === "verified" && 
+            p.approvalStatus === "approved" &&
             p.category === selectedCategory
           );
           
@@ -368,10 +369,89 @@ export async function registerRoutes(
             return res.status(400).json({ error: "Invalid category. Must be Batsman, Bowler, All-rounder, or Unsold" });
           }
           
+          // If auction is in progress, mark current player as unsold and switch to first player from new category
+          if (currentState?.status === "in_progress" && currentState.currentPlayerId) {
+            const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
+            if (currentPlayer && currentPlayer.status === "in_auction") {
+              await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
+            }
+            
+            // Find first available player from new category (registered OR unsold players can be auctioned again)
+            const players = await storage.getAllPlayers();
+            const nextPlayer = players.find(p => 
+              (p.status === "registered" || p.status === "unsold") && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved" &&
+              p.category === selectedCategory
+            );
+            
+            if (nextPlayer) {
+              await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
+              const state = await storage.updateAuctionState({
+                currentCategory: selectedCategory,
+                currentPlayerId: nextPlayer.id,
+                currentBid: nextPlayer.basePoints,
+                currentBiddingTeamId: null,
+                bidHistory: [],
+                categoryBreak: false,
+                completedCategory: null,
+              });
+              return res.json(state);
+            }
+          }
+          
           const state = await storage.updateAuctionState({
             currentCategory: selectedCategory,
             categoryBreak: false,
             completedCategory: null,
+          });
+          
+          res.json(state);
+          break;
+        }
+        
+        case "select_player": {
+          // Admin manually selects a specific player from dropdown
+          const { playerId } = req.body;
+          if (!playerId) {
+            return res.status(400).json({ error: "Player ID is required" });
+          }
+          
+          const selectedPlayer = await storage.getPlayer(playerId);
+          if (!selectedPlayer) {
+            return res.status(404).json({ error: "Player not found" });
+          }
+          
+          if (selectedPlayer.status === "sold") {
+            return res.status(400).json({ error: "Player already sold" });
+          }
+          
+          if (selectedPlayer.paymentStatus !== "verified") {
+            return res.status(400).json({ error: "Player payment not verified" });
+          }
+          
+          if (selectedPlayer.approvalStatus !== "approved") {
+            return res.status(400).json({ error: "Player not approved" });
+          }
+          
+          // Mark current player as unsold if they're in auction
+          if (currentState?.currentPlayerId && currentState.currentPlayerId !== playerId) {
+            const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
+            if (currentPlayer && currentPlayer.status === "in_auction") {
+              await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
+            }
+          }
+          
+          // Set selected player to in_auction
+          await storage.updatePlayer(selectedPlayer.id, { status: "in_auction" });
+          
+          const state = await storage.updateAuctionState({
+            status: "in_progress",
+            currentPlayerId: selectedPlayer.id,
+            currentBid: selectedPlayer.basePoints,
+            currentBiddingTeamId: null,
+            bidHistory: [],
+            currentCategory: selectedPlayer.category || "Batsman",
           });
           
           res.json(state);
@@ -400,10 +480,11 @@ export async function registerRoutes(
           // Refresh players list after updating current player
           const updatedPlayers = await storage.getAllPlayers();
           
-          // IMPORTANT: Only payment-verified players can be in auction
+          // IMPORTANT: Only payment-verified AND approved players can be in auction
           let nextPlayer = updatedPlayers.find(p => 
-            p.status === "registered" && 
+            (p.status === "registered" || p.status === "unsold") && 
             p.paymentStatus === "verified" && 
+            p.approvalStatus === "approved" &&
             p.category === selectedCategory
           );
           

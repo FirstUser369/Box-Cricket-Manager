@@ -197,7 +197,7 @@ function AdminDashboard() {
   });
 
   const auctionControlMutation = useMutation({
-    mutationFn: async (params: { action: string; category?: string }) => {
+    mutationFn: async (params: { action: string; category?: string; playerId?: string }) => {
       return apiRequest("POST", "/api/auction/control", params);
     },
     onSuccess: (data: any) => {
@@ -738,7 +738,39 @@ function AdminDashboard() {
                 </AlertDialog>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Category Selector for Manual Category Selection */}
+                {/* Category Summary - Show player counts before auction */}
+                {(() => {
+                  const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
+                  const batsmen = verifiedPlayers.filter(p => p.category === "Batsman");
+                  const bowlers = verifiedPlayers.filter(p => p.category === "Bowler");
+                  const allrounders = verifiedPlayers.filter(p => p.category === "All-rounder");
+                  
+                  const batsmenAvailable = batsmen.filter(p => p.status !== "sold").length;
+                  const bowlersAvailable = bowlers.filter(p => p.status !== "sold").length;
+                  const allroundersAvailable = allrounders.filter(p => p.status !== "sold").length;
+                  
+                  return (
+                    <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="text-center p-2 rounded bg-blue-500/10 border border-blue-500/30">
+                        <div className="text-xs text-muted-foreground">Batsmen</div>
+                        <div className="text-lg font-bold text-blue-500">{batsmenAvailable}/{batsmen.length}</div>
+                        <div className="text-xs text-muted-foreground">available</div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-green-500/10 border border-green-500/30">
+                        <div className="text-xs text-muted-foreground">Bowlers</div>
+                        <div className="text-lg font-bold text-green-500">{bowlersAvailable}/{bowlers.length}</div>
+                        <div className="text-xs text-muted-foreground">available</div>
+                      </div>
+                      <div className="text-center p-2 rounded bg-purple-500/10 border border-purple-500/30">
+                        <div className="text-xs text-muted-foreground">All-rounders</div>
+                        <div className="text-lg font-bold text-purple-500">{allroundersAvailable}/{allrounders.length}</div>
+                        <div className="text-xs text-muted-foreground">available</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* Category and Player Selection */}
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Label className="whitespace-nowrap">
@@ -754,7 +786,7 @@ function AdminDashboard() {
                       }
                     >
                       <SelectTrigger
-                        className="w-64"
+                        className="w-40"
                         data-testid="select-auction-category"
                       >
                         <SelectValue />
@@ -772,6 +804,50 @@ function AdminDashboard() {
                         <SelectItem value="Unsold">
                           Unsold
                         </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Player Dropdown - shows available players from current category */}
+                  <div className="flex items-center gap-2">
+                    <Label className="whitespace-nowrap">
+                      Select Player:
+                    </Label>
+                    <Select
+                      value={auctionState?.currentPlayerId || ""}
+                      onValueChange={(playerId) =>
+                        auctionControlMutation.mutate({
+                          action: "select_player",
+                          playerId: playerId,
+                        })
+                      }
+                    >
+                      <SelectTrigger
+                        className="w-56"
+                        data-testid="select-auction-player"
+                      >
+                        <SelectValue placeholder="Select a player..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const currentCategory = auctionState?.currentCategory || "Batsman";
+                          const availablePlayers = players?.filter(p => 
+                            p.category === currentCategory &&
+                            p.paymentStatus === "verified" &&
+                            p.approvalStatus === "approved" &&
+                            p.status !== "sold"
+                          ) || [];
+                          
+                          if (availablePlayers.length === 0) {
+                            return <SelectItem value="" disabled>No players available</SelectItem>;
+                          }
+                          
+                          return availablePlayers.map(player => (
+                            <SelectItem key={player.id} value={player.id}>
+                              {player.name} {player.status === "in_auction" ? "(Current)" : player.status === "unsold" ? "(Unsold)" : ""}
+                            </SelectItem>
+                          ));
+                        })()}
                       </SelectContent>
                     </Select>
                   </div>
