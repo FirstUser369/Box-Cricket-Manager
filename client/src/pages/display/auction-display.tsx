@@ -160,7 +160,7 @@ export default function AuctionDisplay() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden relative">
-      <div className="absolute inset-0 auction-spotlight" />
+      <div className="absolute inset-0 auction-spotlight pointer-events-none" />
       
       {/* Top Header */}
       <div className="fixed top-0 left-0 right-0 bg-black/50 backdrop-blur-sm border-b border-white/10 z-40">
