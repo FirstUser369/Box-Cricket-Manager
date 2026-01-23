@@ -680,25 +680,37 @@ export async function registerRoutes(
             return res.status(400).json({ error: "This captain pair already has a team" });
           }
           
-          const currentBid = currentState.currentBid || 1000;
-          const increment = currentBid <= 4000 ? 200 : 250;
-          const newBid = currentBid + increment;
+          // Get team base price
+          const currentTeam = currentState.currentTeamId ? await storage.getTeam(currentState.currentTeamId) : null;
+          const basePrice = currentTeam?.budget ? 1000 : 1000; // Default base price for team names
+          
+          let newBid: number;
+          const existingBidHistory = currentState.bidHistory || [];
+          
+          // First bid is the base price
+          if (existingBidHistory.length === 0) {
+            newBid = basePrice;
+          } else {
+            // Subsequent bids add increment
+            const currentBid = currentState.currentBid || basePrice;
+            const increment = currentBid < 4000 ? 200 : 250;
+            newBid = currentBid + increment;
+          }
           
           if (pair.remainingBudget < newBid) {
             return res.status(400).json({ error: "Insufficient budget for this bid" });
           }
           
-          const bidHistory = currentState.bidHistory || [];
-          bidHistory.push({
+          const updatedBidHistory = [...existingBidHistory, {
             teamId: pairId, // Using pairId in teamId field for history
             amount: newBid,
             timestamp: Date.now(),
-          });
+          }];
           
           const state = await storage.updateAuctionState({
             currentBid: newBid,
             currentBiddingPairId: pairId,
-            bidHistory,
+            bidHistory: updatedBidHistory,
           });
           
           res.json(state);
