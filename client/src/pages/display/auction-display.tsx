@@ -284,6 +284,20 @@ export default function AuctionDisplay() {
               className="flex flex-col items-center justify-center h-full"
               data-testid="team-names-auction"
             >
+              {/* Category Title */}
+              <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mb-6"
+              >
+                <div className="px-8 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 shadow-2xl border-2 border-white/20">
+                  <h1 className="font-display text-4xl text-white tracking-wider text-center uppercase">
+                    TEAM NAMES AUCTION
+                  </h1>
+                </div>
+              </motion.div>
+
               <div className="flex flex-row gap-12 items-center justify-center">
                 <motion.div
                   initial={{ x: -100, opacity: 0 }}
@@ -384,6 +398,20 @@ export default function AuctionDisplay() {
               className="flex flex-col items-center justify-center h-full"
               data-testid="player-auction"
             >
+              {/* Category Title */}
+              <motion.div
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mb-6"
+              >
+                <div className={`px-8 py-3 rounded-2xl bg-gradient-to-r ${getCategoryColor(auctionState.currentCategory)} shadow-2xl border-2 border-white/20`}>
+                  <h1 className="font-display text-4xl text-white tracking-wider text-center uppercase">
+                    {auctionState.currentCategory} AUCTION
+                  </h1>
+                </div>
+              </motion.div>
+
               <div className="flex flex-row gap-12 items-center justify-center">
                 <motion.div
                   initial={{ x: -100, opacity: 0 }}
@@ -863,38 +891,129 @@ export default function AuctionDisplay() {
         )}
       </AnimatePresence>
 
-      {/* Broadcast Ticker */}
-      {broadcasts && broadcasts.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-900/95 via-black/95 to-purple-900/95 border-t border-purple-500/30 z-40">
-          <div className="flex items-center">
-            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600">
-              <Megaphone className="w-5 h-5 text-white" />
-              <span className="font-bold text-white text-sm uppercase tracking-wider">Live</span>
-            </div>
-            <div className="overflow-hidden flex-1 py-2">
-              <motion.div
-                className="flex whitespace-nowrap"
-                animate={{ x: [0, -1000] }}
-                transition={{
-                  x: {
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    duration: 20,
-                    ease: "linear",
-                  },
-                }}
-              >
-                {[...broadcasts, ...broadcasts].map((broadcast, idx) => (
-                  <span key={`broadcast-ticker-${idx}-${broadcast.id}`} className="inline-flex items-center mx-8">
-                    <span className="text-purple-400 font-medium mr-2">{broadcast.title}:</span>
-                    <span className="text-white">{broadcast.content}</span>
+      {/* Live Feed Ticker */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-900/95 via-black/95 to-purple-900/95 border-t border-purple-500/30 z-40">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600">
+            <Megaphone className="w-5 h-5 text-white" />
+            <span className="font-bold text-white text-sm uppercase tracking-wider">Live</span>
+          </div>
+          <div className="overflow-hidden flex-1 py-2">
+            <motion.div
+              className="flex whitespace-nowrap"
+              animate={{ x: [0, -2500] }}
+              transition={{
+                x: {
+                  repeat: Infinity,
+                  repeatType: "loop",
+                  duration: 40,
+                  ease: "linear",
+                },
+              }}
+            >
+              {/* Dynamic Live Feed Items */}
+              {(() => {
+                const feedItems: { type: string; content: React.ReactNode; key: string }[] = [];
+                
+                // Add sold players info
+                const soldPlayers = players?.filter(p => p.status === "sold" && p.teamId) || [];
+                soldPlayers.slice(-5).forEach((player, idx) => {
+                  const playerTeam = teams?.find(t => t.id === player.teamId);
+                  if (playerTeam) {
+                    feedItems.push({
+                      type: "sold",
+                      key: `sold-${player.id}-${idx}`,
+                      content: (
+                        <span className="inline-flex items-center">
+                          <span className="text-emerald-400 font-bold mr-2">SOLD:</span>
+                          <span className="text-white font-medium">{player.name}</span>
+                          <span className="text-gray-400 mx-2">to</span>
+                          <span 
+                            className="px-2 py-0.5 rounded text-white font-medium"
+                            style={{ backgroundColor: playerTeam.primaryColor }}
+                          >
+                            {playerTeam.shortName}
+                          </span>
+                          <span className="text-yellow-400 ml-2 font-bold">{player.soldPrice?.toLocaleString()} pts</span>
+                        </span>
+                      )
+                    });
+                  }
+                });
+                
+                // Add team budgets
+                teams?.forEach((team, idx) => {
+                  const captain = players?.find(p => p.id === team.captainId);
+                  const viceCaptain = players?.find(p => p.id === team.viceCaptainId);
+                  const hasOwners = captain || viceCaptain;
+                  const teamPlayersList = players?.filter(p => p.teamId === team.id && p.id !== team.captainId && p.id !== team.viceCaptainId) || [];
+                  const playerCount = teamPlayersList.length + (hasOwners ? 2 : 0);
+                  
+                  if (hasOwners) {
+                    feedItems.push({
+                      type: "budget",
+                      key: `budget-${team.id}-${idx}`,
+                      content: (
+                        <span className="inline-flex items-center">
+                          <span 
+                            className="px-2 py-0.5 rounded text-white font-medium mr-2"
+                            style={{ backgroundColor: team.primaryColor }}
+                          >
+                            {team.shortName}
+                          </span>
+                          <span className="text-gray-400">Budget:</span>
+                          <span className="text-green-400 font-bold ml-1">{team.remainingBudget.toLocaleString()}</span>
+                          <span className="text-gray-400 mx-2">|</span>
+                          <span className="text-gray-400">Squad:</span>
+                          <span className="text-cyan-400 font-bold ml-1">{playerCount}/8</span>
+                        </span>
+                      )
+                    });
+                  }
+                });
+                
+                // Add current category info
+                if (auctionState?.currentCategory) {
+                  feedItems.push({
+                    type: "category",
+                    key: "current-category",
+                    content: (
+                      <span className="inline-flex items-center">
+                        <span className="text-orange-400 font-bold mr-2">CATEGORY:</span>
+                        <span className="text-white font-medium">{auctionState.currentCategory}</span>
+                        <span className="text-gray-400 ml-2">in progress</span>
+                      </span>
+                    )
+                  });
+                }
+                
+                // Add broadcast messages
+                broadcasts?.forEach((broadcast, idx) => {
+                  feedItems.push({
+                    type: "broadcast",
+                    key: `broadcast-${broadcast.id}-${idx}`,
+                    content: (
+                      <span className="inline-flex items-center">
+                        <span className="text-purple-400 font-medium mr-2">{broadcast.title}:</span>
+                        <span className="text-white">{broadcast.content}</span>
+                      </span>
+                    )
+                  });
+                });
+                
+                // Duplicate for seamless loop
+                const allItems = [...feedItems, ...feedItems];
+                
+                return allItems.map((item, idx) => (
+                  <span key={`${item.key}-${idx}`} className="inline-flex items-center mx-8">
+                    {item.content}
                   </span>
-                ))}
-              </motion.div>
-            </div>
+                ));
+              })()}
+            </motion.div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Team Roster Modal */}
       <Dialog open={showTeamModal} onOpenChange={setShowTeamModal}>
