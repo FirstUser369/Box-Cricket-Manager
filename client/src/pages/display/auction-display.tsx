@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AUCTION_CATEGORIES, type Team, type Player, type AuctionState, type AuctionCategory, type Broadcast } from "@shared/schema";
+import { AUCTION_CATEGORIES, type Team, type Player, type AuctionState, type AuctionCategory, type Broadcast, type CaptainPair } from "@shared/schema";
 
 export default function AuctionDisplay() {
   const [showSold, setShowSold] = useState(false);
@@ -41,8 +41,15 @@ export default function AuctionDisplay() {
     refetchInterval: 5000,
   });
 
+  const { data: captainPairs } = useQuery<CaptainPair[]>({
+    queryKey: ["/api/captain-pairs"],
+    refetchInterval: 1000,
+  });
+
   const currentPlayer = players?.find(p => p.id === auctionState?.currentPlayerId);
   const currentBiddingTeam = teams?.find(t => t.id === auctionState?.currentBiddingTeamId);
+  const currentTeam = teams?.find(t => t.id === auctionState?.currentTeamId);
+  const currentBiddingPair = captainPairs?.find(p => p.id === auctionState?.currentBiddingPairId);
 
   const triggerConfetti = useCallback(() => {
     const duration = 3000;
@@ -158,8 +165,8 @@ export default function AuctionDisplay() {
       </div>
 
       <div className="pt-24 pb-8 px-8">
-        <div className="mb-6 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
-          <div className="flex gap-3 pb-4 px-1" style={{ minWidth: 'max-content' }}>
+        <div className="mb-6 overflow-x-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#4B5563 transparent' }}>
+          <div className="flex gap-3 pb-4 px-1" style={{ minWidth: 'max-content', WebkitOverflowScrolling: 'touch' }}>
             {teams?.map((team) => {
                 const teamPlayers = players?.filter(p => p.teamId === team.id) || [];
                 return (
@@ -226,7 +233,159 @@ export default function AuctionDisplay() {
             </motion.div>
           )}
 
-          {auctionState?.status === "in_progress" && currentPlayer && (
+          {/* Team Names Auction Display */}
+          {auctionState?.status === "in_progress" && auctionState?.currentCategory === "Team Names" && currentTeam && (
+            <motion.div
+              key={currentTeam.id}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col lg:flex-row gap-8 items-center justify-center"
+              data-testid="team-names-auction"
+            >
+              <motion.div
+                initial={{ x: -100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="relative"
+              >
+                <div className="absolute inset-0 neon-purple rounded-3xl opacity-50" />
+                <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-3xl p-8 border border-white/20">
+                  <div className="relative mb-6 flex justify-center">
+                    <motion.div
+                      animate={{ boxShadow: ["0 0 30px rgba(157,78,221,0.5)", "0 0 60px rgba(157,78,221,0.8)", "0 0 30px rgba(157,78,221,0.5)"] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="rounded-xl"
+                    >
+                      <div 
+                        className="w-48 h-48 rounded-xl flex items-center justify-center text-white font-display text-4xl border-4"
+                        style={{ 
+                          backgroundColor: currentTeam.primaryColor,
+                          borderColor: currentTeam.secondaryColor
+                        }}
+                      >
+                        {currentTeam.shortName}
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  <h2 className="font-display text-4xl text-center text-white text-glow-orange mb-4">
+                    {currentTeam.name}
+                  </h2>
+
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="bg-purple-500/20 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 mb-1">PRIMARY</p>
+                      <div 
+                        className="w-8 h-8 rounded-full mx-auto border-2 border-white/30"
+                        style={{ backgroundColor: currentTeam.primaryColor }}
+                      />
+                    </div>
+                    <div className="bg-orange-500/20 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 mb-1">SECONDARY</p>
+                      <div 
+                        className="w-8 h-8 rounded-full mx-auto border-2 border-white/30"
+                        style={{ backgroundColor: currentTeam.secondaryColor }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-gray-400">BASE PRICE</p>
+                    <p className="font-display text-2xl text-yellow-400">{(currentTeam.basePrice || 1000).toLocaleString()}</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ x: 100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-center"
+              >
+                <p className="text-xl text-gray-400 uppercase tracking-widest mb-2">Current Bid</p>
+                <motion.p
+                  key={auctionState.currentBid}
+                  initial={{ scale: 1.5, color: "#ffd60a" }}
+                  animate={{ scale: 1, color: "#ff6b35" }}
+                  transition={{ duration: 0.3 }}
+                  className="font-display text-[10rem] leading-none text-glow-gold animate-pulse-glow"
+                >
+                  {(auctionState.currentBid || currentTeam.basePrice || 1000).toLocaleString()}
+                </motion.p>
+
+                <AnimatePresence>
+                  {currentBiddingPair && (
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -20, opacity: 0 }}
+                      className="mt-8 flex items-center justify-center gap-4 bg-white/10 rounded-2xl p-6"
+                    >
+                      <TrendingUp className="w-8 h-8 text-emerald-400" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                          <Star className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm text-gray-400">LEADING BID</p>
+                          <p className="font-display text-2xl text-white">
+                            {players?.find(p => p.id === currentBiddingPair.captainId)?.name || "Captain"} & {players?.find(p => p.id === currentBiddingPair.viceCaptainId)?.name || "VC"}
+                          </p>
+                          <p className="text-sm text-gray-400">Slot {currentBiddingPair.slotNumber}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Bid History for Team Names */}
+                {auctionState.bidHistory && auctionState.bidHistory.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 bg-white/5 rounded-xl p-4 max-w-md mx-auto"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Bid History
+                    </h3>
+                    <ScrollArea className="h-40">
+                      <div className="space-y-2 pr-3">
+                        {[...auctionState.bidHistory].reverse().slice(0, 8).map((bid, index) => {
+                          const bidPair = captainPairs?.find(p => p.id === bid.teamId);
+                          const captain = players?.find(p => p.id === bidPair?.captainId);
+                          return (
+                            <motion.div
+                              key={`${bid.teamId}-${bid.amount}-${index}`}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className={`flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30' : 'bg-white/5'}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-orange-500 flex items-center justify-center text-white text-xs">
+                                  {bidPair?.slotNumber || '?'}
+                                </div>
+                                <span className="text-sm text-white">{captain?.name || 'Unknown'}</span>
+                              </div>
+                              <span className={`font-display ${index === 0 ? 'text-yellow-400' : 'text-gray-300'}`}>
+                                {bid.amount.toLocaleString()}
+                              </span>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </motion.div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Player Auction Display */}
+          {auctionState?.status === "in_progress" && auctionState?.currentCategory !== "Team Names" && currentPlayer && (
             <motion.div
               key={currentPlayer.id}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -347,7 +506,8 @@ export default function AuctionDisplay() {
                       <TrendingUp className="w-4 h-4" />
                       Bid History
                     </h3>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                    <ScrollArea className="h-40">
+                      <div className="space-y-2 pr-3">
                       {[...auctionState.bidHistory].reverse().slice(0, 8).map((bid, index) => {
                         const bidTeam = teams?.find(t => t.id === bid.teamId);
                         return (
@@ -373,7 +533,8 @@ export default function AuctionDisplay() {
                           </motion.div>
                         );
                       })}
-                    </div>
+                      </div>
+                    </ScrollArea>
                   </motion.div>
                 )}
               </motion.div>

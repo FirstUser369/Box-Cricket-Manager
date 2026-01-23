@@ -442,49 +442,55 @@ export async function registerRoutes(
             return res.json(state);
           }
           
-          // If auction is in progress, mark current player as unsold and switch to first player from new category
+          // If auction is in progress with a player, mark current player as unsold first
           if (currentState?.status === "in_progress" && currentState.currentPlayerId) {
             const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
             if (currentPlayer && currentPlayer.status === "in_auction") {
               await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
             }
-            
-            // Find first available player from new category (registered OR unsold players can be auctioned again)
-            // "Unsold" is special - it means re-auction unsold players from any category
-            const players = await storage.getAllPlayers();
-            let nextPlayer;
-            if (selectedCategory === "Unsold") {
-              nextPlayer = players.find(p => 
-                p.status === "unsold" && 
-                p.paymentStatus === "verified" && 
-                p.approvalStatus === "approved"
-              );
-            } else {
-              nextPlayer = players.find(p => 
-                (p.status === "registered" || p.status === "unsold") && 
-                p.paymentStatus === "verified" && 
-                p.approvalStatus === "approved" &&
-                p.category === selectedCategory
-              );
-            }
-            
-            if (nextPlayer) {
-              await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
-              const state = await storage.updateAuctionState({
-                currentCategory: selectedCategory,
-                currentPlayerId: nextPlayer.id,
-                currentBid: nextPlayer.basePoints,
-                currentBiddingTeamId: null,
-                bidHistory: [],
-                categoryBreak: false,
-                completedCategory: null,
-              });
-              return res.json(state);
-            }
           }
           
+          // Find first available player from new category (registered OR unsold players can be auctioned again)
+          // "Unsold" is special - it means re-auction unsold players from any category
+          const players = await storage.getAllPlayers();
+          let nextPlayer;
+          if (selectedCategory === "Unsold") {
+            nextPlayer = players.find(p => 
+              p.status === "unsold" && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved"
+            );
+          } else {
+            nextPlayer = players.find(p => 
+              (p.status === "registered" || p.status === "unsold") && 
+              p.paymentStatus === "verified" && 
+              p.approvalStatus === "approved" &&
+              p.category === selectedCategory
+            );
+          }
+          
+          if (nextPlayer) {
+            await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
+            const state = await storage.updateAuctionState({
+              currentCategory: selectedCategory,
+              currentPlayerId: nextPlayer.id,
+              currentBid: nextPlayer.basePoints,
+              currentBiddingTeamId: null,
+              currentTeamId: null,
+              currentBiddingPairId: null,
+              bidHistory: [],
+              categoryBreak: false,
+              completedCategory: null,
+            });
+            return res.json(state);
+          }
+          
+          // No players available in this category
           const state = await storage.updateAuctionState({
             currentCategory: selectedCategory,
+            currentPlayerId: null,
+            currentTeamId: null,
+            currentBiddingPairId: null,
             categoryBreak: false,
             completedCategory: null,
           });
