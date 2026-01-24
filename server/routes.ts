@@ -1285,10 +1285,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No player in auction" });
       }
       
-      const isLostGoldRound = state.status === "lost_gold_round";
-      
+      // Mark player as "unsold" so they appear in the Unsold category for Lost Gold round
       await storage.updatePlayer(state.currentPlayerId, {
-        status: isLostGoldRound ? "unsold" : "lost_gold",
+        status: "unsold",
       });
       
       // After marking unsold, clear current player and wait for admin to manually select next player
