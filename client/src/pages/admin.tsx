@@ -235,7 +235,6 @@ export default function Admin() {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [pendingAuctionPlayerId, setPendingAuctionPlayerId] = useState<string>("");
 
   const handleLogin = () => {
     if (password === "admin123") {
@@ -288,6 +287,7 @@ export default function Admin() {
 
 function AdminDashboard() {
   const { toast } = useToast();
+  const [pendingAuctionPlayerId, setPendingAuctionPlayerId] = useState<string>("");
 
   const { data: players, isLoading: playersLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
