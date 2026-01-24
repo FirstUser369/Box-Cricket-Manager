@@ -143,8 +143,8 @@ export class DatabaseStorage implements IStorage {
         id: randomUUID(),
         ...team,
         logoUrl: null,
-        budget: 30000,
-        remainingBudget: 30000,
+        budget: 25000,
+        remainingBudget: 25000,
         captainId: null,
         viceCaptainId: null,
       });
@@ -288,8 +288,8 @@ export class DatabaseStorage implements IStorage {
       primaryColor: team.primaryColor,
       secondaryColor: team.secondaryColor || team.primaryColor,
       logoUrl: team.logoUrl || null,
-      budget: team.budget || 30000,
-      remainingBudget: team.remainingBudget || 30000,
+      budget: team.budget || 25000,
+      remainingBudget: team.remainingBudget || 25000,
     }).returning();
 
     return newTeam;

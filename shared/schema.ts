@@ -52,8 +52,8 @@ export const teams = pgTable("teams", {
   primaryColor: text("primary_color").notNull(),
   secondaryColor: text("secondary_color").notNull(),
   logoUrl: text("logo_url"),
-  budget: integer("budget").notNull().default(30000), // Updated to 30,000 for new auction format
-  remainingBudget: integer("remaining_budget").notNull().default(30000),
+  budget: integer("budget").notNull().default(25000), // Updated to 25,000
+  remainingBudget: integer("remaining_budget").notNull().default(25000),
   groupName: text("group_name"), // A, B, C, D
   captainId: varchar("captain_id", { length: 36 }),
   viceCaptainId: varchar("vice_captain_id", { length: 36 }),
@@ -72,8 +72,8 @@ export const captainPairs = pgTable("captain_pairs", {
   viceCaptainId: varchar("vice_captain_id", { length: 36 }).notNull(), // References player ID
   slotNumber: integer("slot_number").notNull(), // 1-12 slot position
   assignedTeamId: varchar("assigned_team_id", { length: 36 }), // Team ID won in auction (null until team name auction)
-  budget: integer("budget").notNull().default(30000), // Starting budget for team name + player auctions
-  remainingBudget: integer("remaining_budget").notNull().default(30000),
+  budget: integer("budget").notNull().default(25000), // Starting budget for team name + player auctions
+  remainingBudget: integer("remaining_budget").notNull().default(25000),
 });
 
 export const insertCaptainPairSchema = createInsertSchema(captainPairs).omit({ id: true });

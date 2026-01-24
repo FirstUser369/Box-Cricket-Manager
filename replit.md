@@ -25,7 +25,7 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 - **Player Dropdown**: Select specific players from current category (excludes sold players)
 - **Live Category Switching**: Changing category mid-auction immediately shows first player from new category
 - **Incremental Bidding**: +₹200 until bid reaches ₹4000, then +₹250 increments
-- **Budget Enforcement**: Teams cannot exceed their ₹30,000 budget
+- **Budget Enforcement**: Teams cannot exceed their ₹25,000 budget
 - **Roster Limit**: Max 8 players per team (2 captain/VC already assigned + 6 to buy)
 - **Lost Gold Round**: Unsold players get a second chance in the Lost Gold round
 - **Real-time State**: Auction state persisted in database with bid history and current category
