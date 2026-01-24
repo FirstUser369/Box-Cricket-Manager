@@ -613,11 +613,12 @@ export async function registerRoutes(
             return res.json(state);
           }
           
-          // If auction is in progress with a player, mark current player as unsold first
+          // If auction is in progress with a player, return them to registered (not unsold)
+          // Players are only marked unsold when admin explicitly clicks unsold button
           if (currentState?.status === "in_progress" && currentState.currentPlayerId) {
             const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
             if (currentPlayer && currentPlayer.status === "in_auction") {
-              await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
+              await storage.updatePlayer(currentPlayer.id, { status: "registered" });
             }
           }
           
@@ -689,11 +690,12 @@ export async function registerRoutes(
             return res.status(400).json({ error: "Player not approved" });
           }
           
-          // Mark current player as unsold if they're in auction
+          // Return current player to registered status if switching to a different player
+          // Players are only marked unsold when admin explicitly clicks unsold button
           if (currentState?.currentPlayerId && currentState.currentPlayerId !== playerId) {
             const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
             if (currentPlayer && currentPlayer.status === "in_auction") {
-              await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
+              await storage.updatePlayer(currentPlayer.id, { status: "registered" });
             }
           }
           
@@ -719,11 +721,12 @@ export async function registerRoutes(
           // Admin can override category, otherwise use current
           const selectedCategory = category || currentState?.currentCategory || "Batsman";
           
-          // First, mark the current player as unsold if they're in auction
+          // Return current player to registered status (not unsold)
+          // Players are only marked unsold when admin explicitly clicks unsold button
           if (currentState?.currentPlayerId) {
             const currentPlayer = await storage.getPlayer(currentState.currentPlayerId);
             if (currentPlayer && currentPlayer.status === "in_auction") {
-              await storage.updatePlayer(currentPlayer.id, { status: "unsold" });
+              await storage.updatePlayer(currentPlayer.id, { status: "registered" });
             }
           }
           
