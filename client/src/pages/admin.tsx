@@ -32,6 +32,7 @@ import {
   AlertCircle,
   Download,
   RefreshCw,
+  IndianRupee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -2173,6 +2174,17 @@ function AdminDashboard() {
                             }
                           />
                         </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <EditBudgetDialog
+                            team={team}
+                            onSubmit={(data) =>
+                              updateTeamMutation.mutate({
+                                id: team.id,
+                                ...data,
+                              })
+                            }
+                          />
+                        </div>
                         {team.groupName && (
                           <Badge variant="outline" className="mb-2">
                             Group {team.groupName}
@@ -2972,6 +2984,80 @@ function EditTeamDialog({
             data-testid="button-save-team"
           >
             Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditBudgetDialog({
+  team,
+  onSubmit,
+}: {
+  team: Team;
+  onSubmit: (data: { remainingBudget: number }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [remainingBudget, setRemainingBudget] = useState(team.remainingBudget);
+
+  const handleSubmit = () => {
+    onSubmit({ remainingBudget });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          data-testid={`button-edit-budget-${team.id}`}
+        >
+          <IndianRupee className="w-3 h-3" />
+          Edit Budget
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Budget: {team.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Total Budget</Label>
+            <p className="text-lg font-semibold">{team.budget.toLocaleString()}</p>
+          </div>
+          <div>
+            <Label>Remaining Budget</Label>
+            <Input
+              type="number"
+              value={remainingBudget}
+              onChange={(e) => setRemainingBudget(Number(e.target.value))}
+              min={0}
+              max={team.budget}
+              data-testid="input-remaining-budget"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter the correct remaining purse amount
+            </p>
+          </div>
+          <div className="p-3 bg-muted rounded-md">
+            <p className="text-sm">
+              <span className="text-muted-foreground">Spent: </span>
+              <span className="font-medium">{(team.budget - remainingBudget).toLocaleString()}</span>
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            data-testid="button-save-budget"
+          >
+            Save Budget
           </Button>
         </DialogFooter>
       </DialogContent>
