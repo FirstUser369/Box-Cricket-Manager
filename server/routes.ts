@@ -1259,7 +1259,8 @@ export async function registerRoutes(
       
       res.json(updatedState);
     } catch (error) {
-      res.status(500).json({ error: "Failed to sell player" });
+      console.error("Sell player error:", error);
+      res.status(500).json({ error: "Failed to sell player", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
