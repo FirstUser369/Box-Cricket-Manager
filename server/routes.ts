@@ -1190,81 +1190,19 @@ export async function registerRoutes(
         remainingBudget: team.remainingBudget - soldPrice,
       });
       
-      const players = await storage.getAllPlayers();
-      const currentCategory = state.currentCategory;
-      
-      // Find next player from the same category (case-insensitive, fallback to role)
-      const categoryLower = (currentCategory || "").toLowerCase();
-      let nextPlayer = players.find(p => {
-        const playerCat = (p.category || p.role || "").toLowerCase();
-        return p.status === "registered" && playerCat === categoryLower;
-      });
-      
-      if (nextPlayer) {
-        await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
-        const updatedState = await storage.updateAuctionState({
-          currentPlayerId: nextPlayer.id,
-          currentBid: nextPlayer.basePoints,
-          currentBiddingTeamId: null,
-          bidHistory: [],
-          lastSoldPlayerId: soldPlayerId,
-          lastSoldTeamId: soldTeamId,
-          lastSoldPrice: soldPrice,
-          lastSoldTimestamp: soldTimestamp,
-        });
-        return res.json(updatedState);
-      }
-      
-      // No more players in current category - check if other categories have players
-      const remainingPlayers = players.find(p => p.status === "registered");
-      
-      if (remainingPlayers) {
-        // Show break/end of category screen - don't auto-switch
-        const updatedState = await storage.updateAuctionState({
-          currentPlayerId: null,
-          currentBid: null,
-          currentBiddingTeamId: null,
-          bidHistory: [],
-          completedCategory: currentCategory,
-          categoryBreak: true,
-          lastSoldPlayerId: soldPlayerId,
-          lastSoldTeamId: soldTeamId,
-          lastSoldPrice: soldPrice,
-          lastSoldTimestamp: soldTimestamp,
-        });
-        return res.json(updatedState);
-      }
-      
-      const lostGoldPlayers = players.filter(p => p.status === "lost_gold");
-      if (lostGoldPlayers.length > 0) {
-        const player = lostGoldPlayers[0];
-        await storage.updatePlayer(player.id, { status: "in_auction" });
-        const updatedState = await storage.updateAuctionState({
-          status: "lost_gold_round",
-          currentPlayerId: player.id,
-          currentBid: player.basePoints,
-          currentBiddingTeamId: null,
-          bidHistory: [],
-          lastSoldPlayerId: soldPlayerId,
-          lastSoldTeamId: soldTeamId,
-          lastSoldPrice: soldPrice,
-          lastSoldTimestamp: soldTimestamp,
-        });
-        return res.json(updatedState);
-      }
-      
+      // After selling, clear current player and wait for admin to manually select next player
+      // Don't auto-select next player - admin has full control
       const updatedState = await storage.updateAuctionState({
-        status: "completed",
         currentPlayerId: null,
         currentBid: null,
         currentBiddingTeamId: null,
+        bidHistory: [],
         lastSoldPlayerId: soldPlayerId,
         lastSoldTeamId: soldTeamId,
         lastSoldPrice: soldPrice,
         lastSoldTimestamp: soldTimestamp,
       });
-      
-      res.json(updatedState);
+      return res.json(updatedState);
     } catch (error) {
       console.error("Sell player error:", error);
       res.status(500).json({ error: "Failed to sell player", details: error instanceof Error ? error.message : String(error) });
@@ -1285,71 +1223,13 @@ export async function registerRoutes(
         status: isLostGoldRound ? "unsold" : "lost_gold",
       });
       
-      const players = await storage.getAllPlayers();
-      const currentCategory = state.currentCategory;
-      
-      // Find next player from same category (case-insensitive, fallback to role)
-      const catLower = (currentCategory || "").toLowerCase();
-      let nextPlayer;
-      if (isLostGoldRound) {
-        nextPlayer = players.find(p => {
-          const playerCat = (p.category || p.role || "").toLowerCase();
-          return p.status === "lost_gold" && playerCat === catLower;
-        });
-      } else {
-        nextPlayer = players.find(p => {
-          const playerCat = (p.category || p.role || "").toLowerCase();
-          return p.status === "registered" && playerCat === catLower;
-        });
-      }
-      
-      if (nextPlayer) {
-        await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
-        const updatedState = await storage.updateAuctionState({
-          currentPlayerId: nextPlayer.id,
-          currentBid: nextPlayer.basePoints,
-          currentBiddingTeamId: null,
-          bidHistory: [],
-        });
-        return res.json(updatedState);
-      }
-      
-      // No more players in current category - check for remaining players
-      if (!isLostGoldRound) {
-        const remainingInCategory = players.find(p => p.status === "registered");
-        if (remainingInCategory) {
-          // Show break/end of category screen
-          const updatedState = await storage.updateAuctionState({
-            currentPlayerId: null,
-            currentBid: null,
-            currentBiddingTeamId: null,
-            bidHistory: [],
-            completedCategory: currentCategory,
-            categoryBreak: true,
-          });
-          return res.json(updatedState);
-        }
-        
-        const lostGoldPlayers = players.filter(p => p.status === "lost_gold");
-        if (lostGoldPlayers.length > 0) {
-          const player = lostGoldPlayers[0];
-          await storage.updatePlayer(player.id, { status: "in_auction" });
-          const updatedState = await storage.updateAuctionState({
-            status: "lost_gold_round",
-            currentPlayerId: player.id,
-            currentBid: player.basePoints,
-            currentBiddingTeamId: null,
-            bidHistory: [],
-          });
-          return res.json(updatedState);
-        }
-      }
-      
+      // After marking unsold, clear current player and wait for admin to manually select next player
+      // Don't auto-select next player - admin has full control
       const updatedState = await storage.updateAuctionState({
-        status: "completed",
         currentPlayerId: null,
         currentBid: null,
         currentBiddingTeamId: null,
+        bidHistory: [],
       });
       
       res.json(updatedState);
