@@ -258,7 +258,7 @@ export default function AuctionDisplay() {
         </motion.div>
       )}
 
-      <div className={`pb-4 px-2 h-[calc(100vh-80px)] flex ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-32" : "pt-16"}`}>
+      <div className={`pb-2 px-2 flex ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-28 h-[calc(100vh-112px)]" : "pt-16 h-[calc(100vh-64px)]"}`}>
         {/* Left Side - Show Captain Pairs during Team Names auction, otherwise show Teams */}
         <div className="w-80 flex flex-col gap-1">
           {auctionState?.currentCategory === "Team Names" ? (
@@ -431,15 +431,15 @@ export default function AuctionDisplay() {
                   className="relative"
                 >
                   <div className="absolute inset-0 neon-purple rounded-3xl opacity-50" />
-                  <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-3xl p-10 border-2 border-white/20">
-                    <div className="relative mb-8 flex justify-center">
+                  <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-2xl p-6 border-2 border-white/20">
+                    <div className="relative mb-4 flex justify-center">
                       <motion.div
                         animate={{ boxShadow: ["0 0 40px rgba(157,78,221,0.5)", "0 0 80px rgba(157,78,221,0.8)", "0 0 40px rgba(157,78,221,0.5)"] }}
                         transition={{ repeat: Infinity, duration: 2 }}
                         className="rounded-2xl"
                       >
                         <div 
-                          className="w-56 h-56 rounded-2xl flex items-center justify-center text-white font-display text-6xl border-4 overflow-hidden"
+                          className="w-40 h-40 rounded-2xl flex items-center justify-center text-white font-display text-5xl border-4 overflow-hidden"
                           style={{ 
                             backgroundColor: currentTeam.primaryColor,
                             borderColor: currentTeam.secondaryColor
@@ -454,13 +454,13 @@ export default function AuctionDisplay() {
                       </motion.div>
                     </div>
 
-                    <h2 className="font-display text-5xl text-center text-white text-glow-orange mb-6">
+                    <h2 className="font-display text-4xl text-center text-white text-glow-orange mb-4">
                       {currentTeam.name}
                     </h2>
 
-                    <div className="mt-6 text-center">
-                      <p className="text-xl text-gray-400 uppercase tracking-wide">BASE PRICE</p>
-                      <p className="font-display text-6xl text-yellow-400">{(currentTeam.basePrice || 1000).toLocaleString()}</p>
+                    <div className="mt-4 text-center">
+                      <p className="text-lg text-gray-400 uppercase tracking-wide">BASE PRICE</p>
+                      <p className="font-display text-4xl text-yellow-400">{(currentTeam.basePrice || 1000).toLocaleString()}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -471,16 +471,16 @@ export default function AuctionDisplay() {
                   transition={{ delay: 0.3 }}
                   className="text-center"
                 >
-                  <p className="text-2xl text-gray-400 uppercase tracking-widest mb-4">Current Bid</p>
+                  <p className="text-xl text-gray-400 uppercase tracking-widest mb-2">Current Bid</p>
                   <motion.div
-                    className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-yellow-400/70"
+                    className="bg-black/60 rounded-2xl px-8 py-4 border-4 border-yellow-400/70"
                   >
                     <motion.p
                       key={auctionState.currentBid}
                       initial={{ scale: 1.5 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
-                      className="font-display text-[12rem] leading-none text-yellow-400"
+                      className="font-display text-[8rem] leading-none text-yellow-400"
                       style={{ textShadow: "0 0 40px rgba(250, 204, 21, 0.8), 0 0 80px rgba(250, 204, 21, 0.5)" }}
                     >
                       {(auctionState.currentBid || currentTeam.basePrice || 1000).toLocaleString()}
@@ -493,19 +493,19 @@ export default function AuctionDisplay() {
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -20, opacity: 0 }}
-                        className="mt-10 flex items-center justify-center gap-4 bg-white/10 rounded-2xl p-6"
+                        className="mt-6 flex items-center justify-center gap-3 bg-white/10 rounded-2xl p-4"
                       >
-                        <TrendingUp className="w-10 h-10 text-emerald-400" />
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-                            <Star className="w-7 h-7 text-white" />
+                        <TrendingUp className="w-8 h-8 text-emerald-400" />
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                            <Star className="w-6 h-6 text-white" />
                           </div>
                           <div className="text-left">
-                            <p className="text-base text-gray-400 uppercase tracking-wide">LEADING BID</p>
-                            <p className="font-display text-3xl text-white">
+                            <p className="text-sm text-gray-400 uppercase tracking-wide">LEADING BID</p>
+                            <p className="font-display text-2xl text-white">
                               {players?.find(p => p.id === currentBiddingPair.captainId)?.name || "Captain"} & {players?.find(p => p.id === currentBiddingPair.viceCaptainId)?.name || "VC"}
                             </p>
-                            <p className="text-base text-gray-400">Slot {currentBiddingPair.slotNumber}</p>
+                            <p className="text-sm text-gray-400">Slot {currentBiddingPair.slotNumber}</p>
                           </div>
                         </div>
                       </motion.div>
@@ -535,51 +535,51 @@ export default function AuctionDisplay() {
                   className="relative"
                 >
                   <div className="absolute inset-0 neon-purple rounded-3xl opacity-50" />
-                  <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-3xl p-10 border-2 border-white/20">
-                    <div className="relative mb-8 flex justify-center">
+                  <div className="relative bg-gradient-to-b from-white/10 to-white/5 rounded-2xl p-6 border-2 border-white/20">
+                    <div className="relative mb-4 flex justify-center">
                       <motion.div
                         animate={{ boxShadow: ["0 0 40px rgba(157,78,221,0.5)", "0 0 80px rgba(157,78,221,0.8)", "0 0 40px rgba(157,78,221,0.5)"] }}
                         transition={{ repeat: Infinity, duration: 2 }}
                         className="rounded-full"
                       >
-                        <Avatar className="w-56 h-56 border-4 border-purple-500/50">
+                        <Avatar className="w-36 h-36 border-4 border-purple-500/50">
                           <AvatarImage src={currentPlayer.photoUrl} className="object-cover" />
-                          <AvatarFallback className="text-6xl font-display bg-gradient-to-br from-purple-600 to-orange-500">
+                          <AvatarFallback className="text-4xl font-display bg-gradient-to-br from-purple-600 to-orange-500">
                             {currentPlayer.name.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                       </motion.div>
-                      <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-orange-500 border-0 text-white px-4 py-1.5 text-base">
+                      <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-orange-500 border-0 text-white px-3 py-1 text-sm">
                         {getRoleIcon(currentPlayer.role)}
                         <span className="ml-2 uppercase">{currentPlayer.role}</span>
                       </Badge>
                     </div>
 
-                    <h2 className="font-display text-5xl text-center text-white text-glow-orange mb-6">
+                    <h2 className="font-display text-3xl text-center text-white text-glow-orange mb-4">
                       {currentPlayer.name}
                     </h2>
 
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-orange-500/20 rounded-lg p-4">
-                        <Zap className="w-6 h-6 mx-auto text-orange-400 mb-1" />
-                        <p className="text-3xl font-display text-orange-400">{currentPlayer.battingRating}</p>
-                        <p className="text-sm text-gray-400">BATTING</p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-orange-500/20 rounded-lg p-2">
+                        <Zap className="w-5 h-5 mx-auto text-orange-400 mb-1" />
+                        <p className="text-2xl font-display text-orange-400">{currentPlayer.battingRating}</p>
+                        <p className="text-xs text-gray-400">BATTING</p>
                       </div>
-                      <div className="bg-purple-500/20 rounded-lg p-4">
-                        <Target className="w-6 h-6 mx-auto text-purple-400 mb-1" />
-                        <p className="text-3xl font-display text-purple-400">{currentPlayer.bowlingRating}</p>
-                        <p className="text-sm text-gray-400">BOWLING</p>
+                      <div className="bg-purple-500/20 rounded-lg p-2">
+                        <Target className="w-5 h-5 mx-auto text-purple-400 mb-1" />
+                        <p className="text-2xl font-display text-purple-400">{currentPlayer.bowlingRating}</p>
+                        <p className="text-xs text-gray-400">BOWLING</p>
                       </div>
-                      <div className="bg-emerald-500/20 rounded-lg p-4">
-                        <Shield className="w-6 h-6 mx-auto text-emerald-400 mb-1" />
-                        <p className="text-3xl font-display text-emerald-400">{currentPlayer.fieldingRating}</p>
-                        <p className="text-sm text-gray-400">FIELDING</p>
+                      <div className="bg-emerald-500/20 rounded-lg p-2">
+                        <Shield className="w-5 h-5 mx-auto text-emerald-400 mb-1" />
+                        <p className="text-2xl font-display text-emerald-400">{currentPlayer.fieldingRating}</p>
+                        <p className="text-xs text-gray-400">FIELDING</p>
                       </div>
                     </div>
 
-                    <div className="mt-6 text-center">
-                      <p className="text-xl text-gray-400 uppercase tracking-wide">BASE PRICE</p>
-                      <p className="font-display text-4xl text-yellow-400">{currentPlayer.basePoints.toLocaleString()}</p>
+                    <div className="mt-4 text-center">
+                      <p className="text-lg text-gray-400 uppercase tracking-wide">BASE PRICE</p>
+                      <p className="font-display text-3xl text-yellow-400">{currentPlayer.basePoints.toLocaleString()}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -590,14 +590,14 @@ export default function AuctionDisplay() {
                   transition={{ delay: 0.3 }}
                   className="text-center"
                 >
-                  <p className="text-2xl text-gray-400 uppercase tracking-widest mb-4">Current Bid</p>
-                  <motion.div className="bg-black/60 rounded-2xl px-12 py-8 border-4 border-yellow-400/70">
+                  <p className="text-xl text-gray-400 uppercase tracking-widest mb-2">Current Bid</p>
+                  <motion.div className="bg-black/60 rounded-2xl px-8 py-4 border-4 border-yellow-400/70">
                     <motion.p
                       key={auctionState.currentBid}
                       initial={{ scale: 1.5 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
-                      className="font-display text-[12rem] leading-none text-yellow-400"
+                      className="font-display text-[8rem] leading-none text-yellow-400"
                       style={{ textShadow: "0 0 40px rgba(250, 204, 21, 0.8), 0 0 80px rgba(250, 204, 21, 0.5)" }}
                     >
                       {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
@@ -610,15 +610,15 @@ export default function AuctionDisplay() {
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -20, opacity: 0 }}
-                        className="mt-10 flex items-center justify-center gap-4 bg-white/10 rounded-2xl p-6"
+                        className="mt-6 flex items-center justify-center gap-3 bg-white/10 rounded-2xl p-4"
                         style={{ 
                           background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}40 0%, ${currentBiddingTeam.secondaryColor}40 100%)`,
                           borderLeft: `6px solid ${currentBiddingTeam.primaryColor}`
                         }}
                       >
-                        <TrendingUp className="w-10 h-10 text-emerald-400" />
+                        <TrendingUp className="w-8 h-8 text-emerald-400" />
                         <div 
-                          className="w-16 h-16 rounded-xl flex items-center justify-center text-white font-display text-2xl overflow-hidden"
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-display text-xl overflow-hidden"
                           style={{ backgroundColor: currentBiddingTeam.primaryColor }}
                         >
                           {currentBiddingTeam.logoUrl ? (
@@ -628,8 +628,8 @@ export default function AuctionDisplay() {
                           )}
                         </div>
                         <div className="text-left">
-                          <p className="text-base text-gray-400 uppercase tracking-wide">LEADING BID</p>
-                          <p className="font-display text-3xl text-white">{currentBiddingTeam.name}</p>
+                          <p className="text-sm text-gray-400 uppercase tracking-wide">LEADING BID</p>
+                          <p className="font-display text-2xl text-white">{currentBiddingTeam.name}</p>
                         </div>
                       </motion.div>
                     )}
