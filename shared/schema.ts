@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, jsonb, timestamp, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -98,7 +98,7 @@ export const auctionState = pgTable("auction_state", {
   lastSoldPlayerId: varchar("last_sold_player_id", { length: 36 }), // Player ID that was just sold (for animation trigger)
   lastSoldTeamId: varchar("last_sold_team_id", { length: 36 }), // Team ID player was sold to (for animation trigger)
   lastSoldPrice: integer("last_sold_price"), // Price player was sold for (for animation trigger)
-  lastSoldTimestamp: integer("last_sold_timestamp"), // Timestamp of last sale (for animation trigger - changes on each sale)
+  lastSoldTimestamp: bigint("last_sold_timestamp", { mode: "number" }), // Timestamp of last sale (for animation trigger - changes on each sale)
 });
 
 export const insertAuctionStateSchema = createInsertSchema(auctionState).omit({ id: true });
