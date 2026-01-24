@@ -536,6 +536,10 @@ function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
       toast({ title: "Player sold!" });
     },
+    onError: (error: any) => {
+      console.error("Sell error:", error);
+      toast({ title: "Failed to sell player", description: error.message || "Unknown error", variant: "destructive" });
+    },
   });
 
   const unsoldPlayerMutation = useMutation({
