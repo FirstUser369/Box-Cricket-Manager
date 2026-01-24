@@ -372,7 +372,7 @@ export default function AuctionDisplay() {
                       <div className="flex items-center gap-2 text-xl text-white leading-tight">
                         <Wallet className="w-6 h-6 text-green-400" />
                         <span className="font-bold text-green-400 text-2xl">{team.remainingBudget.toLocaleString()}</span>
-                        <span className="text-cyan-300 font-bold text-xl">({playerCount}/8)</span>
+                        <span className="text-cyan-300 font-bold text-xl">({playerCount}/9)</span>
                       </div>
                     </div>
                   </div>
@@ -816,7 +816,7 @@ export default function AuctionDisplay() {
                       <div className="flex items-center gap-2 text-xl text-white leading-tight">
                         <Wallet className="w-6 h-6 text-green-400" />
                         <span className="font-bold text-green-400 text-2xl">{team.remainingBudget.toLocaleString()}</span>
-                        <span className="text-cyan-300 font-bold text-xl">({playerCount}/8)</span>
+                        <span className="text-cyan-300 font-bold text-xl">({playerCount}/9)</span>
                       </div>
                     </div>
                   </div>
@@ -1173,7 +1173,7 @@ export default function AuctionDisplay() {
                           <span className="text-green-400 font-bold ml-2">{team.remainingBudget.toLocaleString()}</span>
                           <span className="text-gray-400 mx-3">|</span>
                           <span className="text-gray-400">Squad:</span>
-                          <span className="text-cyan-400 font-bold ml-2">{playerCount}/8</span>
+                          <span className="text-cyan-400 font-bold ml-2">{playerCount}/9</span>
                         </span>
                       )
                     });

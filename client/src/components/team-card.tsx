@@ -13,6 +13,7 @@ interface TeamCardProps {
 export function TeamCard({ team, players = [], onClick }: TeamCardProps) {
   const squadCount = players.length;
   const minSquadSize = 8;
+  const maxSquadSize = 9;
   const budgetUsed = team.budget - team.remainingBudget;
   const budgetPercentage = (budgetUsed / team.budget) * 100;
 
@@ -39,7 +40,7 @@ export function TeamCard({ team, players = [], onClick }: TeamCardProps) {
               <h3 className="font-semibold text-lg">{team.name}</h3>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="w-4 h-4" />
-                <span>{squadCount}/{minSquadSize} players</span>
+                <span>{squadCount}/{maxSquadSize} players</span>
               </div>
             </div>
           </div>
@@ -66,9 +67,15 @@ export function TeamCard({ team, players = [], onClick }: TeamCardProps) {
             </Badge>
           )}
           
-          {squadCount >= minSquadSize && (
+          {squadCount >= minSquadSize && squadCount < maxSquadSize && (
+            <Badge className="bg-blue-500/20 text-blue-600 dark:text-blue-400">
+              Squad Ready ({maxSquadSize - squadCount} slot left)
+            </Badge>
+          )}
+          
+          {squadCount >= maxSquadSize && (
             <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-              Squad Complete
+              Squad Full
             </Badge>
           )}
         </div>

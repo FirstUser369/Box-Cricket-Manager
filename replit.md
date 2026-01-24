@@ -26,7 +26,7 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 - **Live Category Switching**: Changing category mid-auction immediately shows first player from new category
 - **Incremental Bidding**: +₹200 until bid reaches ₹4000, then +₹250 increments
 - **Budget Enforcement**: Teams cannot exceed their ₹25,000 budget
-- **Roster Limit**: Max 8 players per team (2 captain/VC already assigned + 6 to buy)
+- **Roster Limit**: Min 8, Max 9 players per team (2 captain/VC already assigned + 6-7 to buy)
 - **Lost Gold Round**: Unsold players get a second chance in the Lost Gold round
 - **Real-time State**: Auction state persisted in database with bid history and current category
 - **Category Filtering**: Players appear only when their matching category is selected
@@ -35,7 +35,7 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 - **Ball-by-Ball**: Record runs (0-6), extras (wide, no-ball - no free hit), wickets (bowled, caught, lbw, run_out, stumped)
 - **Batsman/Bowler Selection**: Admin must select opening batsmen and bowler before scoring; wicket requires new batsman selection; end of over requires new bowler selection
 - **Fielder Selection**: For catches, stumpings, and run outs, admin selects the fielder who made the dismissal
-- **8-Player Teams**: Max 7 wickets per innings; last-man-standing rule allows solo batting
+- **8-9 Player Teams**: Max 7-8 wickets per innings; last-man-standing rule allows solo batting
 - **Strike Rotation**: Changes on odd runs and end of over (unless last-man-standing)
 - **Extras Handling**: Wide and no-ball add 1 run, ball doesn't count (reball required)
 - **Power Overs**: Admin selects power over - runs doubled, wicket costs -5 points

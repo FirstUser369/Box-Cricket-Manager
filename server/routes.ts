@@ -384,10 +384,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Team not found" });
       }
       
-      // Check roster limit (8 players max per team)
+      // Check roster limit (9 players max per team)
       const newTeamPlayers = allPlayers.filter(p => p.teamId === newTeamId);
-      if (newTeamPlayers.length >= 8) {
-        return res.status(400).json({ error: "New team already has 8 players (maximum roster size)" });
+      if (newTeamPlayers.length >= 9) {
+        return res.status(400).json({ error: "New team already has 9 players (maximum roster size)" });
       }
       
       const soldPrice = player.soldPrice || player.basePoints;
@@ -1020,10 +1020,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Team not found" });
       }
       
-      // Check roster limit: max 8 players per team (2 captain/VC + 6 bought)
+      // Check roster limit: max 9 players per team (2 captain/VC + up to 7 bought)
       const players = await storage.getAllPlayers();
       const teamRoster = players.filter(p => p.teamId === teamId);
-      const MAX_ROSTER_SIZE = 8;
+      const MAX_ROSTER_SIZE = 9;
       if (teamRoster.length >= MAX_ROSTER_SIZE) {
         return res.status(400).json({ error: `Team roster full (${MAX_ROSTER_SIZE} players max)` });
       }

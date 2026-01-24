@@ -2040,7 +2040,7 @@ function AdminDashboard() {
                                 <SelectContent>
                                   {teams?.map((team) => {
                                     const teamRosterCount = players?.filter(p => p.teamId === team.id).length || 0;
-                                    const MAX_ROSTER_SIZE = 8;
+                                    const MAX_ROSTER_SIZE = 9;
                                     const isRosterFull = teamRosterCount >= MAX_ROSTER_SIZE;
                                     return (
                                       <SelectItem 
