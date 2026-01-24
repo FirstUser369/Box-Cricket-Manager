@@ -259,7 +259,7 @@ export default function AuctionDisplay() {
 
       <div className={`pb-2 px-1 flex gap-1 ${auctionState?.status === "in_progress" && auctionState?.currentCategory ? "pt-32 h-[calc(100vh-120px)]" : "pt-16 h-[calc(100vh-64px)]"}`}>
         {/* Left Side - Show Captain Pairs during Team Names auction, otherwise show Teams */}
-        <div className="w-[280px] flex flex-col gap-1">
+        <div className="w-[480px] flex flex-col gap-1">
           {auctionState?.currentCategory === "Team Names" ? (
             // During Team Names auction: Show Captain Pairs (first 6)
             [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber).slice(0, 6).map((pair, index) => {
@@ -283,10 +283,10 @@ export default function AuctionDisplay() {
                   }}
                   data-testid={`captain-pair-${pair.id}`}
                 >
-                  <div className="flex flex-col items-center gap-1 w-full h-full">
+                  <div className="flex items-center gap-4 w-full h-full">
                     {/* Logo placeholder - shows team logo if assigned, otherwise empty slot */}
                     <div 
-                      className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden border-2 border-dashed"
+                      className="w-20 h-20 rounded-xl flex items-center justify-center text-white font-display text-2xl shadow-lg flex-shrink-0 overflow-hidden border-2 border-dashed"
                       style={{ 
                         backgroundColor: assignedTeam?.primaryColor || "#1a1a2e",
                         borderColor: assignedTeam ? assignedTeam.primaryColor : "#4a4a5a"
@@ -299,21 +299,21 @@ export default function AuctionDisplay() {
                           assignedTeam.shortName
                         )
                       ) : (
-                        <span className="text-gray-500 text-xl">?</span>
+                        <span className="text-gray-500 text-2xl">?</span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col items-center justify-center text-center">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
                       {assignedTeam ? (
-                        <span className="font-display text-lg text-white block truncate leading-tight w-full">{assignedTeam.name}</span>
+                        <span className="font-display text-2xl text-white block truncate leading-tight">{assignedTeam.name}</span>
                       ) : (
-                        <span className="font-display text-lg text-gray-400 block truncate leading-tight w-full">Slot #{pair.slotNumber}</span>
+                        <span className="font-display text-2xl text-gray-400 block truncate leading-tight">Slot #{pair.slotNumber}</span>
                       )}
-                      <div className="text-base text-cyan-300 truncate font-bold leading-tight w-full">
+                      <div className="text-xl text-cyan-300 truncate font-bold leading-tight">
                         {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
                       </div>
-                      <div className="flex items-center gap-1 text-base text-white leading-tight">
-                        <Wallet className="w-4 h-4 text-green-400" />
-                        <span className="font-bold text-green-400">{pair.remainingBudget.toLocaleString()}</span>
+                      <div className="flex items-center gap-2 text-xl text-white leading-tight">
+                        <Wallet className="w-6 h-6 text-green-400" />
+                        <span className="font-bold text-green-400 text-2xl">{pair.remainingBudget.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -351,9 +351,9 @@ export default function AuctionDisplay() {
                   }}
                   data-testid={`team-card-${team.id}`}
                 >
-                  <div className="flex flex-col items-center gap-1 w-full h-full">
+                  <div className="flex items-center gap-4 w-full h-full">
                     <div 
-                      className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
+                      className="w-20 h-20 rounded-xl flex items-center justify-center text-white font-display text-2xl shadow-lg flex-shrink-0 overflow-hidden"
                       style={{ backgroundColor: team.primaryColor }}
                     >
                       {team.logoUrl ? (
@@ -362,17 +362,17 @@ export default function AuctionDisplay() {
                         team.shortName
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col items-center justify-center text-center">
-                      <span className="font-display text-lg text-white block truncate leading-tight w-full">{team.name}</span>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="font-display text-2xl text-white block truncate leading-tight">{team.name}</span>
                       {hasOwners ? (
-                        <div className="text-base text-cyan-300 truncate font-bold leading-tight w-full">
+                        <div className="text-xl text-cyan-300 truncate font-bold leading-tight">
                           {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
                         </div>
                       ) : null}
-                      <div className="flex items-center gap-1 text-base text-white leading-tight">
-                        <Wallet className="w-4 h-4 text-green-400" />
-                        <span className="font-bold text-green-400">{team.remainingBudget.toLocaleString()}</span>
-                        <span className="text-cyan-300 font-bold">({playerCount}/8)</span>
+                      <div className="flex items-center gap-2 text-xl text-white leading-tight">
+                        <Wallet className="w-6 h-6 text-green-400" />
+                        <span className="font-bold text-green-400 text-2xl">{team.remainingBudget.toLocaleString()}</span>
+                        <span className="text-cyan-300 font-bold text-xl">({playerCount}/8)</span>
                       </div>
                     </div>
                   </div>
@@ -703,7 +703,7 @@ export default function AuctionDisplay() {
         </div>
 
         {/* Right Side - Show Captain Pairs during Team Names auction, otherwise show Teams */}
-        <div className="w-[280px] flex flex-col gap-1">
+        <div className="w-[480px] flex flex-col gap-1">
           {auctionState?.currentCategory === "Team Names" ? (
             // During Team Names auction: Show Captain Pairs (last 6)
             [...(captainPairs || [])].sort((a, b) => a.slotNumber - b.slotNumber).slice(6, 12).map((pair, index) => {
@@ -727,10 +727,10 @@ export default function AuctionDisplay() {
                   }}
                   data-testid={`captain-pair-${pair.id}`}
                 >
-                  <div className="flex flex-col items-center gap-1 w-full h-full">
+                  <div className="flex items-center gap-4 w-full h-full">
                     {/* Logo placeholder - shows team logo if assigned, otherwise empty slot */}
                     <div 
-                      className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden border-2 border-dashed"
+                      className="w-20 h-20 rounded-xl flex items-center justify-center text-white font-display text-2xl shadow-lg flex-shrink-0 overflow-hidden border-2 border-dashed"
                       style={{ 
                         backgroundColor: assignedTeam?.primaryColor || "#1a1a2e",
                         borderColor: assignedTeam ? assignedTeam.primaryColor : "#4a4a5a"
@@ -743,21 +743,21 @@ export default function AuctionDisplay() {
                           assignedTeam.shortName
                         )
                       ) : (
-                        <span className="text-gray-500 text-xl">?</span>
+                        <span className="text-gray-500 text-2xl">?</span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col items-center justify-center text-center">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
                       {assignedTeam ? (
-                        <span className="font-display text-lg text-white block truncate leading-tight w-full">{assignedTeam.name}</span>
+                        <span className="font-display text-2xl text-white block truncate leading-tight">{assignedTeam.name}</span>
                       ) : (
-                        <span className="font-display text-lg text-gray-400 block truncate leading-tight w-full">Slot #{pair.slotNumber}</span>
+                        <span className="font-display text-2xl text-gray-400 block truncate leading-tight">Slot #{pair.slotNumber}</span>
                       )}
-                      <div className="text-base text-cyan-300 truncate font-bold leading-tight w-full">
+                      <div className="text-xl text-cyan-300 truncate font-bold leading-tight">
                         {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
                       </div>
-                      <div className="flex items-center gap-1 text-base text-white leading-tight">
-                        <Wallet className="w-4 h-4 text-green-400" />
-                        <span className="font-bold text-green-400">{pair.remainingBudget.toLocaleString()}</span>
+                      <div className="flex items-center gap-2 text-xl text-white leading-tight">
+                        <Wallet className="w-6 h-6 text-green-400" />
+                        <span className="font-bold text-green-400 text-2xl">{pair.remainingBudget.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -795,9 +795,9 @@ export default function AuctionDisplay() {
                   }}
                   data-testid={`team-card-${team.id}`}
                 >
-                  <div className="flex flex-col items-center gap-1 w-full h-full">
+                  <div className="flex items-center gap-4 w-full h-full">
                     <div 
-                      className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-display text-xl shadow-lg flex-shrink-0 overflow-hidden"
+                      className="w-20 h-20 rounded-xl flex items-center justify-center text-white font-display text-2xl shadow-lg flex-shrink-0 overflow-hidden"
                       style={{ backgroundColor: team.primaryColor }}
                     >
                       {team.logoUrl ? (
@@ -806,17 +806,17 @@ export default function AuctionDisplay() {
                         team.shortName
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 flex flex-col items-center justify-center text-center">
-                      <span className="font-display text-lg text-white block truncate leading-tight w-full">{team.name}</span>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <span className="font-display text-2xl text-white block truncate leading-tight">{team.name}</span>
                       {hasOwners ? (
-                        <div className="text-base text-cyan-300 truncate font-bold leading-tight w-full">
+                        <div className="text-xl text-cyan-300 truncate font-bold leading-tight">
                           {captain?.name?.split(' ')[0] || ''} & {viceCaptain?.name?.split(' ')[0] || ''}
                         </div>
                       ) : null}
-                      <div className="flex items-center gap-1 text-base text-white leading-tight">
-                        <Wallet className="w-4 h-4 text-green-400" />
-                        <span className="font-bold text-green-400">{team.remainingBudget.toLocaleString()}</span>
-                        <span className="text-cyan-300 font-bold">({playerCount}/8)</span>
+                      <div className="flex items-center gap-2 text-xl text-white leading-tight">
+                        <Wallet className="w-6 h-6 text-green-400" />
+                        <span className="font-bold text-green-400 text-2xl">{team.remainingBudget.toLocaleString()}</span>
+                        <span className="text-cyan-300 font-bold text-xl">({playerCount}/8)</span>
                       </div>
                     </div>
                   </div>
@@ -1100,13 +1100,13 @@ export default function AuctionDisplay() {
       </AnimatePresence>
 
       {/* Live Feed Ticker */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-900/95 via-black/95 to-purple-900/95 border-t border-purple-500/30 z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-900/95 via-black/95 to-purple-900/95 border-t-2 border-purple-500/50 z-40">
         <div className="flex items-center">
-          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600">
-            <Megaphone className="w-5 h-5 text-white" />
-            <span className="font-bold text-white text-sm uppercase tracking-wider">Live</span>
+          <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600">
+            <Megaphone className="w-8 h-8 text-white" />
+            <span className="font-bold text-white text-2xl uppercase tracking-wider">Live</span>
           </div>
-          <div className="overflow-hidden flex-1 py-2">
+          <div className="overflow-hidden flex-1 py-4">
             <motion.div
               className="flex whitespace-nowrap"
               animate={{ x: [0, -2500] }}
@@ -1132,17 +1132,17 @@ export default function AuctionDisplay() {
                       type: "sold",
                       key: `sold-${player.id}-${idx}`,
                       content: (
-                        <span className="inline-flex items-center">
-                          <span className="text-emerald-400 font-bold mr-2">SOLD:</span>
+                        <span className="inline-flex items-center text-2xl">
+                          <span className="text-emerald-400 font-bold mr-3">SOLD:</span>
                           <span className="text-white font-medium">{player.name}</span>
-                          <span className="text-gray-400 mx-2">to</span>
+                          <span className="text-gray-400 mx-3">to</span>
                           <span 
-                            className="px-2 py-0.5 rounded text-white font-medium"
+                            className="px-3 py-1 rounded text-white font-medium"
                             style={{ backgroundColor: playerTeam.primaryColor }}
                           >
                             {playerTeam.shortName}
                           </span>
-                          <span className="text-yellow-400 ml-2 font-bold">{player.soldPrice?.toLocaleString()} pts</span>
+                          <span className="text-yellow-400 ml-3 font-bold">{player.soldPrice?.toLocaleString()} pts</span>
                         </span>
                       )
                     });
@@ -1162,18 +1162,18 @@ export default function AuctionDisplay() {
                       type: "budget",
                       key: `budget-${team.id}-${idx}`,
                       content: (
-                        <span className="inline-flex items-center">
+                        <span className="inline-flex items-center text-2xl">
                           <span 
-                            className="px-2 py-0.5 rounded text-white font-medium mr-2"
+                            className="px-3 py-1 rounded text-white font-medium mr-3"
                             style={{ backgroundColor: team.primaryColor }}
                           >
                             {team.shortName}
                           </span>
                           <span className="text-gray-400">Budget:</span>
-                          <span className="text-green-400 font-bold ml-1">{team.remainingBudget.toLocaleString()}</span>
-                          <span className="text-gray-400 mx-2">|</span>
+                          <span className="text-green-400 font-bold ml-2">{team.remainingBudget.toLocaleString()}</span>
+                          <span className="text-gray-400 mx-3">|</span>
                           <span className="text-gray-400">Squad:</span>
-                          <span className="text-cyan-400 font-bold ml-1">{playerCount}/8</span>
+                          <span className="text-cyan-400 font-bold ml-2">{playerCount}/8</span>
                         </span>
                       )
                     });
@@ -1186,10 +1186,10 @@ export default function AuctionDisplay() {
                     type: "category",
                     key: "current-category",
                     content: (
-                      <span className="inline-flex items-center">
-                        <span className="text-orange-400 font-bold mr-2">CATEGORY:</span>
+                      <span className="inline-flex items-center text-2xl">
+                        <span className="text-orange-400 font-bold mr-3">CATEGORY:</span>
                         <span className="text-white font-medium">{auctionState.currentCategory}</span>
-                        <span className="text-gray-400 ml-2">in progress</span>
+                        <span className="text-gray-400 ml-3">in progress</span>
                       </span>
                     )
                   });
@@ -1199,7 +1199,7 @@ export default function AuctionDisplay() {
                 const allItems = [...feedItems, ...feedItems];
                 
                 return allItems.map((item, idx) => (
-                  <span key={`${item.key}-${idx}`} className="inline-flex items-center mx-8">
+                  <span key={`${item.key}-${idx}`} className="inline-flex items-center mx-12">
                     {item.content}
                   </span>
                 ));
