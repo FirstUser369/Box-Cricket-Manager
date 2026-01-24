@@ -10,6 +10,9 @@ import {
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+
+// Single source of truth for team/captain pair budget
+const TEAM_BUDGET = 25000;
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
@@ -1320,7 +1323,7 @@ export async function registerRoutes(
       const teams = await storage.getAllTeams();
       for (const team of teams) {
         await storage.updateTeam(team.id, {
-          remainingBudget: team.budget,
+          remainingBudget: TEAM_BUDGET,
         });
       }
       
@@ -1329,7 +1332,7 @@ export async function registerRoutes(
       for (const pair of captainPairs) {
         await storage.updateCaptainPair(pair.id, {
           assignedTeamId: null,
-          remainingBudget: pair.budget,
+          remainingBudget: TEAM_BUDGET,
         });
       }
       
