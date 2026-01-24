@@ -288,6 +288,8 @@ export default function Admin() {
 function AdminDashboard() {
   const { toast } = useToast();
   const [pendingAuctionPlayerId, setPendingAuctionPlayerId] = useState<string>("");
+  const [manualBidAmount, setManualBidAmount] = useState<string>("");
+  const [selectedWinningTeamId, setSelectedWinningTeamId] = useState<string>("");
 
   const { data: players, isLoading: playersLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
@@ -527,13 +529,15 @@ function AdminDashboard() {
   });
 
   const sellPlayerMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/auction/sell", {});
+    mutationFn: async (data: { teamId: string; bidAmount: number }) => {
+      return apiRequest("POST", "/api/auction/sell", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      setManualBidAmount("");
+      setSelectedWinningTeamId("");
       toast({ title: "Player sold!" });
     },
     onError: (error: any) => {
@@ -2061,93 +2065,90 @@ function AdminDashboard() {
                           </motion.div>
                         </div>
 
-                        <AnimatePresence>
-                          {currentBiddingTeam && (
+                        {/* Manual Bid Entry */}
+                        <div className="space-y-4 mt-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">
+                                Enter Final Bid Amount
+                              </label>
+                              <Input
+                                type="number"
+                                placeholder="Enter bid amount"
+                                value={manualBidAmount}
+                                onChange={(e) => setManualBidAmount(e.target.value)}
+                                className="h-14 text-2xl font-display text-center"
+                                data-testid="input-manual-bid"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-muted-foreground">
+                                Select Winning Team
+                              </label>
+                              <Select
+                                value={selectedWinningTeamId}
+                                onValueChange={setSelectedWinningTeamId}
+                              >
+                                <SelectTrigger className="h-14 text-lg" data-testid="select-winning-team">
+                                  <SelectValue placeholder="Select team" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {teams?.map((team) => {
+                                    const teamRosterCount = players?.filter(p => p.teamId === team.id).length || 0;
+                                    const MAX_ROSTER_SIZE = 8;
+                                    const isRosterFull = teamRosterCount >= MAX_ROSTER_SIZE;
+                                    return (
+                                      <SelectItem 
+                                        key={team.id} 
+                                        value={team.id}
+                                        disabled={isRosterFull}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span
+                                            className="w-4 h-4 rounded"
+                                            style={{ backgroundColor: team.primaryColor }}
+                                          />
+                                          <span>{team.name}</span>
+                                          <span className="text-muted-foreground text-xs">
+                                            ({team.remainingBudget.toLocaleString()} | {teamRosterCount}/{MAX_ROSTER_SIZE})
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {selectedWinningTeamId && manualBidAmount && (
                             <motion.div
-                              initial={{ opacity: 0, y: 20 }}
+                              initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -20 }}
-                              className="mb-6 p-4 rounded-lg flex items-center justify-center gap-4"
-                              style={{
-                                background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}30 0%, ${currentBiddingTeam.secondaryColor}30 100%)`,
-                                borderLeft: `4px solid ${currentBiddingTeam.primaryColor}`,
-                              }}
+                              className="p-4 rounded-lg bg-emerald-500/20 border border-emerald-500"
                             >
-                              <TrendingUp className="w-5 h-5 text-emerald-400" />
-                              <span className="font-display text-xl text-white">
-                                {currentBiddingTeam.name} LEADS THE BID
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <Check className="w-6 h-6 text-emerald-400" />
+                                <span className="text-lg">
+                                  Ready to sell to <strong>{teams?.find(t => t.id === selectedWinningTeamId)?.name}</strong> for <strong>{Number(manualBidAmount).toLocaleString()}</strong>
+                                </span>
+                              </div>
                             </motion.div>
                           )}
-                        </AnimatePresence>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                          {teams?.map((team, index) => {
-                            const teamRosterCount = players?.filter(p => p.teamId === team.id).length || 0;
-                            const MAX_ROSTER_SIZE = 8;
-                            const isRosterFull = teamRosterCount >= MAX_ROSTER_SIZE;
-                            const canBid =
-                              !isRosterFull &&
-                              team.remainingBudget >=
-                              (auctionState.currentBid ||
-                                currentPlayer.basePoints) +
-                                getBidIncrement(
-                                  auctionState.currentBid ||
-                                    currentPlayer.basePoints,
-                                );
-                            const isLeading =
-                              currentBiddingTeam?.id === team.id;
-                            return (
-                              <motion.div
-                                key={team.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                              >
-                                <Button
-                                  variant="outline"
-                                  disabled={!canBid || isLeading}
-                                  onClick={() =>
-                                    placeBidMutation.mutate(team.id)
-                                  }
-                                  className={cn(
-                                    "w-full flex-col h-auto py-3 transition-all",
-                                    isLeading && "neon-gold animate-pulse-glow",
-                                    isRosterFull && "opacity-50",
-                                  )}
-                                  style={{
-                                    borderColor: team.primaryColor,
-                                    background: isLeading
-                                      ? `${team.primaryColor}30`
-                                      : "transparent",
-                                  }}
-                                  data-testid={`button-bid-${team.id}`}
-                                >
-                                  <span
-                                    className="w-8 h-8 rounded-md flex items-center justify-center text-white text-xs font-display mb-2"
-                                    style={{
-                                      backgroundColor: team.primaryColor,
-                                    }}
-                                  >
-                                    {team.shortName}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {isRosterFull ? "FULL" : team.remainingBudget.toLocaleString()}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {teamRosterCount}/{MAX_ROSTER_SIZE}
-                                  </span>
-                                </Button>
-                              </motion.div>
-                            );
-                          })}
                         </div>
 
                         <div className="flex gap-4 mt-8">
                           <Button
                             className="flex-1 h-14 text-lg font-display bg-gradient-to-r from-emerald-600 to-emerald-500 neon-gold"
-                            onClick={() => sellPlayerMutation.mutate()}
-                            disabled={!currentBiddingTeam}
+                            onClick={() => {
+                              if (selectedWinningTeamId && manualBidAmount) {
+                                sellPlayerMutation.mutate({
+                                  teamId: selectedWinningTeamId,
+                                  bidAmount: Number(manualBidAmount)
+                                });
+                              }
+                            }}
+                            disabled={!selectedWinningTeamId || !manualBidAmount || sellPlayerMutation.isPending}
                             data-testid="button-sold"
                           >
                             <Check className="w-5 h-5 mr-2" />

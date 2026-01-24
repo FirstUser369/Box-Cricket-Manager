@@ -340,10 +340,6 @@ export default function AuctionDisplay() {
                 <motion.div
                   key={team.id}
                   id={`team-box-left-${index}`}
-                  animate={{
-                    scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
-                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                  }}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => {
@@ -352,8 +348,7 @@ export default function AuctionDisplay() {
                   }}
                   className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
                   style={{ 
-                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                    background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}30, transparent)` : undefined
+                    borderColor: "rgba(255,255,255,0.1)"
                   }}
                   data-testid={`team-card-${team.id}`}
                 >
@@ -590,51 +585,19 @@ export default function AuctionDisplay() {
                   transition={{ delay: 0.3 }}
                   className="text-center"
                 >
-                  <p className="text-xl text-gray-400 uppercase tracking-widest mb-2">Current Bid</p>
+                  <p className="text-xl text-gray-400 uppercase tracking-widest mb-2">Base Price</p>
                   <motion.div className="bg-black/60 rounded-2xl px-8 py-4 border-4 border-yellow-400/70">
                     <motion.p
-                      key={auctionState.currentBid}
-                      initial={{ scale: 1.5 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.3 }}
                       className="font-display text-[8rem] leading-none text-yellow-400"
                       style={{ textShadow: "0 0 40px rgba(250, 204, 21, 0.8), 0 0 80px rgba(250, 204, 21, 0.5)" }}
                     >
-                      {(auctionState.currentBid || currentPlayer.basePoints).toLocaleString()}
+                      {(currentPlayer.basePoints).toLocaleString()}
                     </motion.p>
                   </motion.div>
 
-                  <AnimatePresence>
-                    {currentBiddingTeam && (
-                      <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -20, opacity: 0 }}
-                        className="mt-6 flex items-center justify-center gap-3 bg-white/10 rounded-2xl p-4"
-                        style={{ 
-                          background: `linear-gradient(135deg, ${currentBiddingTeam.primaryColor}40 0%, ${currentBiddingTeam.secondaryColor}40 100%)`,
-                          borderLeft: `6px solid ${currentBiddingTeam.primaryColor}`
-                        }}
-                      >
-                        <TrendingUp className="w-10 h-10 text-emerald-400" />
-                        <div 
-                          className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-display text-2xl overflow-hidden"
-                          style={{ backgroundColor: currentBiddingTeam.primaryColor }}
-                        >
-                          {currentBiddingTeam.logoUrl ? (
-                            <img src={currentBiddingTeam.logoUrl} alt={currentBiddingTeam.name} className="w-full h-full object-cover" />
-                          ) : (
-                            currentBiddingTeam.shortName
-                          )}
-                        </div>
-                        <div className="text-left">
-                          <p className="text-base text-gray-400 uppercase tracking-wide">LEADING BID</p>
-                          <p className="font-display text-3xl text-white">{currentBiddingTeam.name}</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
+                  <div className="mt-6 text-2xl text-gray-400 uppercase tracking-widest">
+                    Bidding in Progress...
+                  </div>
                 </motion.div>
               </div>
             </motion.div>
@@ -823,10 +786,6 @@ export default function AuctionDisplay() {
                 <motion.div
                   key={team.id}
                   id={`team-box-right-${index}`}
-                  animate={{
-                    scale: currentBiddingTeam?.id === team.id ? 1.02 : 1,
-                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                  }}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => {
@@ -835,8 +794,7 @@ export default function AuctionDisplay() {
                   }}
                   className="flex-1 bg-white/5 rounded-xl p-2 border-2 cursor-pointer transition-all hover:bg-white/10 flex items-center"
                   style={{ 
-                    borderColor: currentBiddingTeam?.id === team.id ? team.primaryColor : "rgba(255,255,255,0.1)",
-                    background: currentBiddingTeam?.id === team.id ? `linear-gradient(135deg, ${team.primaryColor}30, transparent)` : undefined
+                    borderColor: "rgba(255,255,255,0.1)"
                   }}
                   data-testid={`team-card-${team.id}`}
                 >

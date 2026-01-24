@@ -1158,19 +1158,26 @@ export async function registerRoutes(
   app.post("/api/auction/sell", async (req, res) => {
     try {
       const state = await storage.getAuctionState();
+      const { teamId, bidAmount } = req.body;
       
-      if (!state?.currentPlayerId || !state?.currentBiddingTeamId) {
-        return res.status(400).json({ error: "No player or bidding team" });
+      if (!state?.currentPlayerId) {
+        return res.status(400).json({ error: "No player selected for auction" });
       }
       
-      const team = await storage.getTeam(state.currentBiddingTeamId);
+      // Use manual input if provided, otherwise fall back to current state
+      const soldTeamId = teamId || state.currentBiddingTeamId;
+      const soldPrice = bidAmount !== undefined ? Number(bidAmount) : (state.currentBid || 0);
+      
+      if (!soldTeamId) {
+        return res.status(400).json({ error: "No team selected" });
+      }
+      
+      const team = await storage.getTeam(soldTeamId);
       if (!team) {
         return res.status(404).json({ error: "Team not found" });
       }
       
       const soldPlayerId = state.currentPlayerId;
-      const soldTeamId = state.currentBiddingTeamId;
-      const soldPrice = state.currentBid || 0;
       const soldTimestamp = Date.now();
       
       await storage.updatePlayer(soldPlayerId, {
