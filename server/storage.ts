@@ -113,12 +113,18 @@ export interface IStorage {
   deleteCaptainPair(id: string): Promise<void>;
 }
 
+// Single source of truth for budget
+const TEAM_BUDGET = 25000;
+
 export class DatabaseStorage implements IStorage {
   private initialized = false;
 
   private async ensureDefaultTeams() {
     if (this.initialized) return;
     this.initialized = true;
+    
+    // Fix any incorrect budget values on startup
+    await this.fixBudgetValues();
 
     const existingTeams = await db.select().from(teams);
     if (existingTeams.length > 0) return;
@@ -149,6 +155,20 @@ export class DatabaseStorage implements IStorage {
         viceCaptainId: null,
       });
     }
+  }
+
+  private async fixBudgetValues() {
+    // Fix any teams with incorrect budget values
+    await db.update(teams).set({ 
+      budget: TEAM_BUDGET, 
+      remainingBudget: TEAM_BUDGET 
+    }).where(sql`budget != ${TEAM_BUDGET} OR remaining_budget != ${TEAM_BUDGET}`);
+    
+    // Fix any captain pairs with incorrect budget values
+    await db.update(captainPairs).set({ 
+      budget: TEAM_BUDGET, 
+      remainingBudget: TEAM_BUDGET 
+    }).where(sql`budget != ${TEAM_BUDGET} OR remaining_budget != ${TEAM_BUDGET}`);
   }
 
   private calculateBasePoints(batting: number, bowling: number, fielding: number): number {
