@@ -7,17 +7,17 @@ import type { OrangeCapLeader, PurpleCapLeader, MVPLeader, Team } from "@shared/
 export default function LeaderboardDisplay() {
   const { data: orangeCapLeaders } = useQuery<OrangeCapLeader[]>({
     queryKey: ["/api/leaderboards/orange-cap"],
-    refetchInterval: 5000,
+    refetchInterval: 15000, // Leaderboards update after matches
   });
 
   const { data: purpleCapLeaders } = useQuery<PurpleCapLeader[]>({
     queryKey: ["/api/leaderboards/purple-cap"],
-    refetchInterval: 5000,
+    refetchInterval: 15000,
   });
 
   const { data: mvpLeaders } = useQuery<MVPLeader[]>({
     queryKey: ["/api/leaderboards/mvp"],
-    refetchInterval: 5000,
+    refetchInterval: 15000,
   });
 
   const { data: teams } = useQuery<Team[]>({

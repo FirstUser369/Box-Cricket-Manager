@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AUCTION_CATEGORIES, type Team, type Player, type AuctionState, type AuctionCategory, type Broadcast, type CaptainPair } from "@shared/schema";
+import { AUCTION_CATEGORIES, type Team, type Player, type AuctionState, type AuctionCategory, type CaptainPair } from "@shared/schema";
 
 export default function AuctionDisplay() {
   const [showSold, setShowSold] = useState(false);
@@ -49,11 +49,6 @@ export default function AuctionDisplay() {
   const { data: players } = useQuery<Player[]>({
     queryKey: ["/api/players"],
     refetchInterval: isAuctionActive ? 3000 : 10000, // 3s during auction, 10s otherwise
-  });
-
-  const { data: broadcasts } = useQuery<Broadcast[]>({
-    queryKey: ["/api/broadcasts/active"],
-    refetchInterval: 10000, // Broadcasts rarely change
   });
 
   const { data: captainPairs } = useQuery<CaptainPair[]>({
@@ -1203,20 +1198,6 @@ export default function AuctionDisplay() {
                     )
                   });
                 }
-                
-                // Add broadcast messages
-                broadcasts?.forEach((broadcast, idx) => {
-                  feedItems.push({
-                    type: "broadcast",
-                    key: `broadcast-${broadcast.id}-${idx}`,
-                    content: (
-                      <span className="inline-flex items-center">
-                        <span className="text-purple-400 font-medium mr-2">{broadcast.title}:</span>
-                        <span className="text-white">{broadcast.content}</span>
-                      </span>
-                    )
-                  });
-                });
                 
                 // Duplicate for seamless loop
                 const allItems = [...feedItems, ...feedItems];

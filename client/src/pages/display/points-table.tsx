@@ -11,12 +11,12 @@ interface TeamWithPoints extends Team {
 export default function PointsTableDisplay() {
   const { data: teams } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
-    refetchInterval: 5000,
+    refetchInterval: 30000, // Teams rarely change
   });
 
   const { data: pointsTable } = useQuery<PointsTable[]>({
     queryKey: ["/api/points-table"],
-    refetchInterval: 5000,
+    refetchInterval: 15000, // Points update after matches
   });
 
   const teamsWithPoints: TeamWithPoints[] = (teams || []).map(team => ({

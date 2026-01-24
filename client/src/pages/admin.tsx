@@ -28,7 +28,6 @@ import {
   DollarSign,
   CreditCard,
   Save,
-  Megaphone,
   AlertTriangle,
   AlertCircle,
   Download,
@@ -75,7 +74,6 @@ import {
   type AuctionState,
   type TournamentSettings,
   type AuctionCategory,
-  type Broadcast,
   type CaptainPair,
 } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -542,7 +540,12 @@ function AdminDashboard() {
     },
     onError: (error: any) => {
       console.error("Sell error:", error);
-      toast({ title: "Failed to sell player", description: error.message || "Unknown error", variant: "destructive" });
+      const errorMsg = error?.message || error?.error || "Unknown error";
+      toast({ 
+        title: "Cannot complete sale", 
+        description: errorMsg,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -850,14 +853,6 @@ function AdminDashboard() {
             >
               <Play className="w-4 h-4" />
               Scoring
-            </TabsTrigger>
-            <TabsTrigger
-              value="broadcasts"
-              className="gap-2"
-              data-testid="admin-tab-broadcasts"
-            >
-              <Megaphone className="w-4 h-4" />
-              Broadcasts
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -2777,10 +2772,6 @@ function AdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="broadcasts" className="space-y-6">
-            <BroadcastsManagementPanel />
-          </TabsContent>
-
           <TabsContent value="settings" className="space-y-6">
             <TournamentSettingsPanel />
           </TabsContent>
@@ -4466,317 +4457,6 @@ function PlayerApprovalPanel({
         </DialogContent>
       </Dialog>
     </Card>
-  );
-}
-
-function BroadcastsManagementPanel() {
-  const { toast } = useToast();
-  const [newTitle, setNewTitle] = useState("");
-  const [newContent, setNewContent] = useState("");
-  const [newType, setNewType] = useState<"announcement" | "rule" | "ticker">(
-    "announcement",
-  );
-  const [newPriority, setNewPriority] = useState("0");
-
-  const { data: broadcasts, isLoading } = useQuery<Broadcast[]>({
-    queryKey: ["/api/broadcasts"],
-  });
-
-  const createBroadcastMutation = useMutation({
-    mutationFn: async (data: {
-      title: string;
-      content: string;
-      type: string;
-      priority: number;
-    }) => {
-      return apiRequest("POST", "/api/broadcasts", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/broadcasts"] });
-      setNewTitle("");
-      setNewContent("");
-      setNewType("announcement");
-      setNewPriority("0");
-      toast({ title: "Broadcast created" });
-    },
-    onError: () => {
-      toast({ title: "Failed to create broadcast", variant: "destructive" });
-    },
-  });
-
-  const updateBroadcastMutation = useMutation({
-    mutationFn: async ({
-      id,
-      ...data
-    }: {
-      id: string;
-      title?: string;
-      content?: string;
-      type?: string;
-      priority?: number;
-      isActive?: boolean;
-    }) => {
-      return apiRequest("PATCH", `/api/broadcasts/${id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/broadcasts"] });
-      toast({ title: "Broadcast updated" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update broadcast", variant: "destructive" });
-    },
-  });
-
-  const deleteBroadcastMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/broadcasts/${id}`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/broadcasts"] });
-      toast({ title: "Broadcast deleted" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete broadcast", variant: "destructive" });
-    },
-  });
-
-  const handleCreate = () => {
-    if (!newTitle || !newContent) {
-      toast({
-        title: "Please fill in title and content",
-        variant: "destructive",
-      });
-      return;
-    }
-    createBroadcastMutation.mutate({
-      title: newTitle,
-      content: newContent,
-      type: newType,
-      priority: parseInt(newPriority) || 0,
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Skeleton className="h-64" />
-        <Skeleton className="h-64" />
-      </div>
-    );
-  }
-
-  const activeBroadcasts = broadcasts?.filter((b) => b.isActive) || [];
-  const inactiveBroadcasts = broadcasts?.filter((b) => !b.isActive) || [];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Broadcasts & Announcements</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage announcements displayed on the tournament screens
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Megaphone className="w-5 h-5" />
-              Create Broadcast
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="broadcast-title">Title</Label>
-              <Input
-                id="broadcast-title"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Important Announcement"
-                data-testid="input-broadcast-title"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="broadcast-content">Content</Label>
-              <Input
-                id="broadcast-content"
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="Enter the message to display..."
-                data-testid="input-broadcast-content"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="broadcast-type">Type</Label>
-                <Select
-                  value={newType}
-                  onValueChange={(v) => setNewType(v as typeof newType)}
-                >
-                  <SelectTrigger
-                    id="broadcast-type"
-                    data-testid="select-broadcast-type"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="announcement">Announcement</SelectItem>
-                    <SelectItem value="rule">Rule</SelectItem>
-                    <SelectItem value="ticker">Ticker</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="broadcast-priority">Priority</Label>
-                <Input
-                  id="broadcast-priority"
-                  type="number"
-                  value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value)}
-                  placeholder="0"
-                  data-testid="input-broadcast-priority"
-                />
-              </div>
-            </div>
-            <Button
-              onClick={handleCreate}
-              disabled={createBroadcastMutation.isPending}
-              className="w-full"
-              data-testid="button-create-broadcast"
-            >
-              {createBroadcastMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              Create Broadcast
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Active Broadcasts
-              <Badge>{activeBroadcasts.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeBroadcasts.length > 0 ? (
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-3 pr-4">
-                  {activeBroadcasts.map((broadcast) => (
-                    <div
-                      key={broadcast.id}
-                      className="p-3 rounded-md border bg-muted/50 space-y-2"
-                      data-testid={`broadcast-${broadcast.id}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {broadcast.type}
-                          </Badge>
-                          <span className="font-medium text-sm">
-                            {broadcast.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              updateBroadcastMutation.mutate({
-                                id: broadcast.id,
-                                isActive: false,
-                              })
-                            }
-                            data-testid={`button-deactivate-${broadcast.id}`}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                data-testid={`button-delete-${broadcast.id}`}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete Broadcast?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete this broadcast.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    deleteBroadcastMutation.mutate(broadcast.id)
-                                  }
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {broadcast.content}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Megaphone className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No active broadcasts</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {inactiveBroadcasts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-muted-foreground">
-              Inactive Broadcasts ({inactiveBroadcasts.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {inactiveBroadcasts.map((broadcast) => (
-                <Badge
-                  key={broadcast.id}
-                  variant="outline"
-                  className="cursor-pointer opacity-60 hover-elevate"
-                  onClick={() =>
-                    updateBroadcastMutation.mutate({
-                      id: broadcast.id,
-                      isActive: true,
-                    })
-                  }
-                  data-testid={`button-activate-${broadcast.id}`}
-                >
-                  {broadcast.title}
-                  <Check className="w-3 h-3 ml-1" />
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
   );
 }
 

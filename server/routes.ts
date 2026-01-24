@@ -6,7 +6,6 @@ import * as schema from "@shared/schema";
 import { 
   playerRegistrationSchema, 
   insertTournamentSettingsSchema,
-  insertBroadcastSchema,
   insertCaptainPairSchema
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -1172,6 +1171,14 @@ export async function registerRoutes(
       const team = await storage.getTeam(soldTeamId);
       if (!team) {
         return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Budget validation - prevent negative purse
+      if (soldPrice > team.remainingBudget) {
+        return res.status(400).json({ 
+          error: "Insufficient budget", 
+          message: `Cannot buy player for ₹${soldPrice.toLocaleString()}. ${team.name} only has ₹${team.remainingBudget.toLocaleString()} remaining.`
+        });
       }
       
       const soldPlayerId = state.currentPlayerId;
@@ -2492,64 +2499,6 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete player" });
-    }
-  });
-
-  // ============ BROADCASTS ============
-  
-  app.get("/api/broadcasts", async (req, res) => {
-    try {
-      const allBroadcasts = await storage.getAllBroadcasts();
-      res.json(allBroadcasts);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch broadcasts" });
-    }
-  });
-
-  app.get("/api/broadcasts/active", async (req, res) => {
-    try {
-      const activeBroadcasts = await storage.getActiveBroadcasts();
-      res.json(activeBroadcasts);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch active broadcasts" });
-    }
-  });
-
-  app.post("/api/broadcasts", async (req, res) => {
-    try {
-      const validation = insertBroadcastSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ error: validation.error.errors[0].message });
-      }
-      const broadcast = await storage.createBroadcast(validation.data);
-      res.status(201).json(broadcast);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create broadcast" });
-    }
-  });
-
-  app.patch("/api/broadcasts/:id", async (req, res) => {
-    try {
-      const validation = insertBroadcastSchema.partial().safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ error: validation.error.errors[0].message });
-      }
-      const broadcast = await storage.updateBroadcast(req.params.id, validation.data);
-      if (!broadcast) {
-        return res.status(404).json({ error: "Broadcast not found" });
-      }
-      res.json(broadcast);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update broadcast" });
-    }
-  });
-
-  app.delete("/api/broadcasts/:id", async (req, res) => {
-    try {
-      await storage.deleteBroadcast(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete broadcast" });
     }
   });
 
