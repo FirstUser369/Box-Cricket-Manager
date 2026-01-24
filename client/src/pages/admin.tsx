@@ -420,30 +420,19 @@ function AdminDashboard() {
     },
   });
 
-  const undoBidMutation = useMutation({
+  const undoLastSoldMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/auction/undo-bid", {});
+      return apiRequest("POST", "/api/auction/undo-last-sold", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
-      toast({ title: "Last bid undone" });
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/captain-pairs"] });
+      toast({ title: "Last sold player undone successfully" });
     },
     onError: (error: any) => {
-      const message = error?.message || "No bids to undo";
-      toast({ title: message, variant: "destructive" });
-    },
-  });
-
-  const resetPlayerMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/auction/reset-player", {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auction/state"] });
-      toast({ title: "Player bids reset to base price" });
-    },
-    onError: (error: any) => {
-      const message = error?.message || "Failed to reset player";
+      const message = error?.message || "No sold players to undo";
       toast({ title: message, variant: "destructive" });
     },
   });
@@ -1675,16 +1664,6 @@ function AdminDashboard() {
                       </Button>
                     );
                   })()}
-                  {auctionState?.status === "in_progress" && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        auctionControlMutation.mutate({ action: "pause" })
-                      }
-                    >
-                      Pause Auction
-                    </Button>
-                  )}
                   {auctionState?.status === "paused" && (
                     <Button
                       onClick={() =>
@@ -1694,43 +1673,15 @@ function AdminDashboard() {
                       Resume Auction
                     </Button>
                   )}
-                  {(auctionState?.status === "in_progress" ||
-                    auctionState?.status === "paused") && (
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        auctionControlMutation.mutate({
-                          action: "next",
-                          category: auctionState?.currentCategory || "Batsman",
-                        })
-                      }
-                    >
-                      Next Player
-                    </Button>
-                  )}
-                  {(auctionState?.status === "in_progress" ||
-                    auctionState?.status === "lost_gold_round") && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        onClick={() => undoBidMutation.mutate()}
-                        disabled={!auctionState?.bidHistory?.length}
-                        data-testid="button-undo-bid"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Undo Last Bid
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => resetPlayerMutation.mutate()}
-                        disabled={!auctionState?.currentPlayerId}
-                        data-testid="button-reset-player"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Reset Player
-                      </Button>
-                    </>
-                  )}
+                  {/* Undo Last Sold Player button */}
+                  <Button
+                    variant="secondary"
+                    onClick={() => undoLastSoldMutation.mutate()}
+                    data-testid="button-undo-last-sold"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Undo Last Sold
+                  </Button>
                   {auctionState?.status !== "not_started" &&
                     auctionState?.status !== "completed" && (
                       <Button

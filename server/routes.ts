@@ -1068,6 +1068,67 @@ export async function registerRoutes(
     }
   });
 
+  // Undo last sold player - restores player to pending and refunds team budget
+  app.post("/api/auction/undo-last-sold", async (req, res) => {
+    try {
+      // Find the last sold player (most recently updated player with status "sold")
+      const allPlayers = await storage.getAllPlayers();
+      const soldPlayers = allPlayers
+        .filter((p: schema.Player) => p.status === "sold" && p.teamId && p.soldPrice)
+        .sort((a: schema.Player, b: schema.Player) => {
+          // Sort by ID string comparison (UUID strings can be compared lexicographically)
+          return b.id.localeCompare(a.id);
+        });
+      
+      if (soldPlayers.length === 0) {
+        return res.status(400).json({ error: "No sold players to undo" });
+      }
+      
+      const lastSoldPlayer = soldPlayers[0];
+      const teamId = lastSoldPlayer.teamId;
+      const soldPrice = lastSoldPlayer.soldPrice || 0;
+      
+      // Get the team to restore budget
+      const team = teamId ? await storage.getTeam(teamId) : null;
+      
+      // Check if this player is a captain/vice-captain (they are assigned during Team Names auction, not sold)
+      if (team && (team.captainId === lastSoldPlayer.id || team.viceCaptainId === lastSoldPlayer.id)) {
+        return res.status(400).json({ error: "Cannot undo captain/vice-captain assignments. They are not auction purchases." });
+      }
+      
+      // Reset the player
+      await storage.updatePlayer(lastSoldPlayer.id, {
+        status: "pending",
+        teamId: null,
+        soldPrice: null,
+      });
+      
+      // Restore team budget
+      if (team) {
+        await storage.updateTeam(teamId!, {
+          remainingBudget: team.remainingBudget + soldPrice,
+        });
+        
+        // Also update captain pair budget if exists
+        const captainPairs = await storage.getAllCaptainPairs();
+        const pair = captainPairs.find((p: schema.CaptainPair) => p.assignedTeamId === teamId);
+        if (pair) {
+          await storage.updateCaptainPair(pair.id, {
+            remainingBudget: pair.remainingBudget + soldPrice,
+          });
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Undone: ${lastSoldPlayer.name} removed from team, ${soldPrice} points refunded` 
+      });
+    } catch (error) {
+      console.error("Error undoing last sold:", error);
+      res.status(500).json({ error: "Failed to undo last sold player" });
+    }
+  });
+
   // Reset all bids for current player (back to base price)
   app.post("/api/auction/reset-player", async (req, res) => {
     try {
