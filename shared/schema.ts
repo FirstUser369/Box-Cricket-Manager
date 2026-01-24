@@ -17,7 +17,6 @@ export const players = pgTable("players", {
   photoUrl: text("photo_url").notNull(),
   tshirtSize: text("tshirt_size"), // S, M, L, XL
   basePoints: integer("base_points").notNull(),
-  category: text("category").default("Batsman"), // Batsman, Bowler, All-rounder, Unsold
   isLocked: boolean("is_locked").default(false),
   isCaptain: boolean("is_captain").default(false),
   isViceCaptain: boolean("is_vice_captain").default(false),
@@ -35,7 +34,6 @@ export const insertPlayerSchema = createInsertSchema(players).omit({
   status: true,
   paymentStatus: true,
   approvalStatus: true,
-  category: true,
   isLocked: true,
   isCaptain: true,
   isViceCaptain: true,

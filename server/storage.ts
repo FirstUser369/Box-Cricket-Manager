@@ -40,7 +40,6 @@ export type ImportPlayerData = {
   photoUrl?: string;
   tshirtSize?: string | null;
   basePoints?: number;
-  category?: string | null;
   isLocked?: boolean;
   isCaptain?: boolean;
   isViceCaptain?: boolean;
@@ -187,9 +186,6 @@ export class DatabaseStorage implements IStorage {
       player.fieldingRating || 5
     );
 
-    // Category is based on player's role
-    const category = player.role || "Batsman";
-
     const [newPlayer] = await db.insert(players).values({
       id,
       name: player.name,
@@ -204,7 +200,6 @@ export class DatabaseStorage implements IStorage {
       photoUrl: player.photoUrl,
       tshirtSize: player.tshirtSize || null,
       basePoints,
-      category,
       isLocked: false,
       isCaptain: false,
       isViceCaptain: false,
@@ -231,25 +226,16 @@ export class DatabaseStorage implements IStorage {
     const fieldingRating = playerData.fieldingRating ?? 50;
     const basePoints = playerData.basePoints ?? this.calculateBasePoints(battingRating, bowlingRating, fieldingRating);
     
-    // Normalize role/category to match expected values (handles case variations)
-    const normalizeRole = (role: string | null | undefined, category: string | null | undefined): string => {
-      const value = (role || category || "Batsman").toLowerCase();
+    // Normalize role to match expected values (handles case variations)
+    const normalizeRole = (role: string | null | undefined): string => {
+      const value = (role || "Batsman").toLowerCase();
       if (value === "batsman") return "Batsman";
       if (value === "bowler") return "Bowler";
       if (value === "all-rounder" || value === "allrounder") return "All-rounder";
       return "Batsman"; // default fallback
     };
     
-    const normalizeCategory = (cat: string | null | undefined, role: string): string => {
-      if (!cat) return role;
-      const lower = cat.toLowerCase();
-      if (lower === "batsman") return "Batsman";
-      if (lower === "bowler") return "Bowler";
-      if (lower === "all-rounder" || lower === "allrounder") return "All-rounder";
-      return role; // fallback to role
-    };
-    
-    const normalizedRole = normalizeRole(playerData.role, playerData.category);
+    const normalizedRole = normalizeRole(playerData.role);
     
     const [newPlayer] = await db.insert(players).values({
       id,
@@ -265,7 +251,6 @@ export class DatabaseStorage implements IStorage {
       photoUrl: playerData.photoUrl || "",
       tshirtSize: playerData.tshirtSize || null,
       basePoints,
-      category: normalizeCategory(playerData.category, normalizedRole),
       isLocked: playerData.isLocked ?? false,
       isCaptain: playerData.isCaptain ?? false,
       isViceCaptain: playerData.isViceCaptain ?? false,

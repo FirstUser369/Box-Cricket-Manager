@@ -947,7 +947,6 @@ function AdminDashboard() {
                       "Bowling Rating": player.bowlingRating,
                       "Fielding Rating": player.fieldingRating,
                       "Base Points": player.basePoints,
-                      "Category": player.category || "",
                       "Payment Status": player.paymentStatus,
                       "Approval Status": player.approvalStatus,
                       "Status": player.status,
@@ -1392,8 +1391,8 @@ function AdminDashboard() {
                 {/* Category Summary - Show player counts before auction */}
                 {(() => {
                   const verifiedPlayers = players?.filter(p => p.paymentStatus === "verified" && p.approvalStatus === "approved") || [];
-                  // Use category or fall back to role, case-insensitive matching
-                  const getPlayerCategory = (p: Player) => (p.category || p.role || "").toLowerCase();
+                  // Use role for category matching
+                  const getPlayerCategory = (p: Player) => (p.role || "").toLowerCase();
                   const batsmen = verifiedPlayers.filter(p => getPlayerCategory(p) === "batsman");
                   const bowlers = verifiedPlayers.filter(p => getPlayerCategory(p) === "bowler");
                   const allrounders = verifiedPlayers.filter(p => getPlayerCategory(p) === "all-rounder");
@@ -1556,11 +1555,11 @@ function AdminDashboard() {
                                   p.approvalStatus === "approved"
                                 ) || [];
                               } else {
-                                // Case-insensitive matching, fallback to role if category not set
+                                // Case-insensitive matching using role
                                 const categoryLower = currentCategory.toLowerCase();
                                 availablePlayers = players?.filter(p => {
-                                  const playerCat = (p.category || p.role || "").toLowerCase();
-                                  return playerCat === categoryLower &&
+                                  const playerRole = (p.role || "").toLowerCase();
+                                  return playerRole === categoryLower &&
                                     p.paymentStatus === "verified" &&
                                     p.approvalStatus === "approved" &&
                                     (p.status === "registered" || p.status === "unsold" || p.status === "in_auction");
@@ -1614,11 +1613,11 @@ function AdminDashboard() {
                   } else if (currentCategory === "Unsold") {
                     availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
                   } else {
-                    // Case-insensitive matching, fallback to role if category not set
+                    // Case-insensitive matching using role
                     const categoryLower = currentCategory.toLowerCase();
                     availableInCategory = verifiedPlayers.filter(p => {
-                      const playerCat = (p.category || p.role || "").toLowerCase();
-                      return playerCat === categoryLower && 
+                      const playerRole = (p.role || "").toLowerCase();
+                      return playerRole === categoryLower && 
                         (p.status === "registered" || p.status === "unsold" || p.status === "in_auction");
                     }).length;
                   }
@@ -1660,7 +1659,7 @@ function AdminDashboard() {
                       availableInCategory = verifiedPlayers.filter(p => p.status === "unsold").length;
                     } else {
                       availableInCategory = verifiedPlayers.filter(p => 
-                        p.category === currentCategory && 
+                        p.role.toLowerCase() === currentCategory.toLowerCase() && 
                         (p.status === "registered" || p.status === "unsold" || p.status === "in_auction")
                       ).length;
                     }

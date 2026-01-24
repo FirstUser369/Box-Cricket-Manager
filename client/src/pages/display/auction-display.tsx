@@ -1456,12 +1456,12 @@ export default function AuctionDisplay() {
                   </div>
                 )}
 
-                {/* Category */}
-                {selectedPlayer.category && (
+                {/* Role */}
+                {selectedPlayer.role && (
                   <div className="flex items-center justify-center">
-                    <Badge className={`bg-gradient-to-r ${getCategoryColor(selectedPlayer.category)} text-white border-0 px-4 py-1`}>
+                    <Badge className={`bg-gradient-to-r ${getCategoryColor(selectedPlayer.role)} text-white border-0 px-4 py-1`}>
                       <Crown className="w-4 h-4 mr-2" />
-                      {getCategoryName(selectedPlayer.category)}
+                      {getCategoryName(selectedPlayer.role)}
                     </Badge>
                   </div>
                 )}

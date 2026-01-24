@@ -235,7 +235,7 @@ export async function registerRoutes(
     approvalStatus: z.string().optional(),
   }).refine(
     // Require at least one of role or category
-    (data) => data.role || data.category,
+    (data) => data.role,
     { message: "Either role or category is required" }
   );
   
@@ -266,8 +266,8 @@ export async function registerRoutes(
           if (existingPlayer) {
             if (mode === "overwrite") {
               // Normalize role/category for update (handles case variations)
-              const normalizeRole = (role: string | null | undefined, category: string | null | undefined): string => {
-                const value = (role || category || "Batsman").toLowerCase();
+              const normalizeRole = (role: string | null | undefined): string => {
+                const value = (role || "Batsman").toLowerCase();
                 if (value === "batsman") return "Batsman";
                 if (value === "bowler") return "Bowler";
                 if (value === "all-rounder" || value === "allrounder") return "All-rounder";
@@ -283,7 +283,7 @@ export async function registerRoutes(
                 return role;
               };
               
-              const normalizedRole = normalizeRole(validatedData.role, validatedData.category);
+              const normalizedRole = normalizeRole(validatedData.role);
               
               // Update existing player with validated fields, preserving existing values for undefined fields
               await storage.updatePlayer(existingPlayer.id, {
@@ -298,7 +298,6 @@ export async function registerRoutes(
                 photoUrl: validatedData.photoUrl ?? existingPlayer.photoUrl,
                 tshirtSize: validatedData.tshirtSize ?? existingPlayer.tshirtSize,
                 basePoints: validatedData.basePoints ?? existingPlayer.basePoints,
-                category: normalizeCategory(validatedData.category, normalizedRole),
                 isLocked: validatedData.isLocked ?? existingPlayer.isLocked,
                 isCaptain: validatedData.isCaptain ?? existingPlayer.isCaptain,
                 isViceCaptain: validatedData.isViceCaptain ?? existingPlayer.isViceCaptain,
@@ -321,15 +320,13 @@ export async function registerRoutes(
               email: validatedData.email,
               phone: validatedData.phone,
               address: validatedData.address,
-              // Use role or category - storage layer will normalize
-              role: validatedData.role || validatedData.category || "Batsman",
+              role: validatedData.role || "Batsman",
               battingRating: validatedData.battingRating,
               bowlingRating: validatedData.bowlingRating,
               fieldingRating: validatedData.fieldingRating,
               photoUrl: validatedData.photoUrl,
               tshirtSize: validatedData.tshirtSize,
               basePoints: validatedData.basePoints,
-              category: validatedData.category,
               isLocked: validatedData.isLocked,
               isCaptain: validatedData.isCaptain,
               isViceCaptain: validatedData.isViceCaptain,
@@ -530,14 +527,14 @@ export async function registerRoutes(
               p.approvalStatus === "approved"
             );
           } else {
-            // Case-insensitive matching, fallback to role if category not set
+            // Case-insensitive matching using role
             const categoryLower = selectedCategory.toLowerCase();
             availablePlayer = players.find(p => {
-              const playerCat = (p.category || p.role || "").toLowerCase();
+              const playerRole = (p.role || "").toLowerCase();
               return (p.status === "registered" || p.status === "unsold") && 
                 p.paymentStatus === "verified" && 
                 p.approvalStatus === "approved" &&
-                playerCat === categoryLower;
+                playerRole === categoryLower;
             });
           }
           
@@ -749,14 +746,14 @@ export async function registerRoutes(
               p.approvalStatus === "approved"
             );
           } else {
-            // Case-insensitive matching, fallback to role if category not set
+            // Case-insensitive matching using role
             const categoryLower = selectedCategory.toLowerCase();
             nextPlayer = updatedPlayers.find(p => {
-              const playerCat = (p.category || p.role || "").toLowerCase();
+              const playerRole = (p.role || "").toLowerCase();
               return (p.status === "registered" || p.status === "unsold") && 
                 p.paymentStatus === "verified" && 
                 p.approvalStatus === "approved" &&
-                playerCat === categoryLower;
+                playerRole === categoryLower;
             });
           }
           
@@ -776,7 +773,7 @@ export async function registerRoutes(
                 currentBid: player.basePoints,
                 currentBiddingTeamId: null,
                 bidHistory: [],
-                currentCategory: player.category || "Batsman",
+                currentCategory: player.role || "Batsman",
               });
               return res.json(state);
             }
@@ -2438,12 +2435,9 @@ export async function registerRoutes(
       }
       
       // Category is based on player's role (Batsman, Bowler, All-rounder)
-      const category = existingPlayer.role || "Batsman";
-      
       const player = await storage.updatePlayer(req.params.id, {
         approvalStatus: "approved",
         status: "registered",
-        category: category,
       });
       
       res.json(player);
