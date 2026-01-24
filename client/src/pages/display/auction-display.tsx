@@ -32,29 +32,33 @@ export default function AuctionDisplay() {
   const [targetPairIndex, setTargetPairIndex] = useState<number | null>(null);
   const previousAssignedTeamsRef = useRef<Set<string>>(new Set());
 
+  // Optimized polling - auction state is the main driver, others poll less frequently
   const { data: auctionState } = useQuery<AuctionState>({
     queryKey: ["/api/auction/state"],
-    refetchInterval: 1000,
+    refetchInterval: 2000, // Main state - check every 2s
   });
 
+  // Only poll teams/players frequently when auction is in progress
+  const isAuctionActive = auctionState?.status === "in_progress" || auctionState?.status === "lost_gold_round";
+  
   const { data: teams } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
-    refetchInterval: 1000,
+    refetchInterval: isAuctionActive ? 3000 : 10000, // 3s during auction, 10s otherwise
   });
 
   const { data: players } = useQuery<Player[]>({
     queryKey: ["/api/players"],
-    refetchInterval: 1000,
+    refetchInterval: isAuctionActive ? 3000 : 10000, // 3s during auction, 10s otherwise
   });
 
   const { data: broadcasts } = useQuery<Broadcast[]>({
     queryKey: ["/api/broadcasts/active"],
-    refetchInterval: 5000,
+    refetchInterval: 10000, // Broadcasts rarely change
   });
 
   const { data: captainPairs } = useQuery<CaptainPair[]>({
     queryKey: ["/api/captain-pairs"],
-    refetchInterval: 1000,
+    refetchInterval: isAuctionActive ? 3000 : 10000, // 3s during auction, 10s otherwise
   });
 
   const currentPlayer = players?.find(p => p.id === auctionState?.currentPlayerId);

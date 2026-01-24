@@ -12,17 +12,20 @@ import { cn } from "@/lib/utils";
 export default function Auction() {
   const { data: auctionState, isLoading: auctionLoading } = useQuery<AuctionState>({
     queryKey: ["/api/auction/state"],
-    refetchInterval: 2000,
+    refetchInterval: 3000, // Optimized polling
   });
+
+  // Only poll teams/players frequently when auction is active
+  const isAuctionActive = auctionState?.status === "in_progress" || auctionState?.status === "lost_gold_round";
 
   const { data: teams } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
-    refetchInterval: 2000,
+    refetchInterval: isAuctionActive ? 5000 : 15000,
   });
 
   const { data: players } = useQuery<Player[]>({
     queryKey: ["/api/players"],
-    refetchInterval: 2000,
+    refetchInterval: isAuctionActive ? 5000 : 15000,
   });
 
   const currentPlayer = players?.find(p => p.id === auctionState?.currentPlayerId);

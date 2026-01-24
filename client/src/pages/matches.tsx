@@ -20,20 +20,24 @@ export default function Matches() {
   
   const { data: matches, isLoading: matchesLoading } = useQuery<Match[]>({
     queryKey: ["/api/matches"],
-    refetchInterval: 3000,
+    refetchInterval: 5000, // Optimized polling
   });
+
+  const hasLiveMatch = matches?.some(m => m.status === "live");
 
   const { data: teams } = useQuery<Team[]>({
     queryKey: ["/api/teams"],
+    refetchInterval: 30000, // Teams rarely change
   });
 
   const { data: ballEvents } = useQuery<BallEvent[]>({
     queryKey: ["/api/ball-events"],
-    refetchInterval: 2000,
+    refetchInterval: hasLiveMatch ? 3000 : 15000, // Poll faster only during live match
   });
 
   const { data: players } = useQuery<Player[]>({
     queryKey: ["/api/players"],
+    refetchInterval: 30000, // Players rarely change
   });
 
   const { data: matchStats } = useQuery<PlayerMatchStats[]>({
