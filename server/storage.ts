@@ -158,17 +158,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async fixBudgetValues() {
-    // Fix any teams with incorrect budget values
+    // Only fix the base budget field, NOT remaining budget (which tracks auction spending)
     await db.update(teams).set({ 
-      budget: TEAM_BUDGET, 
-      remainingBudget: TEAM_BUDGET 
-    }).where(sql`budget != ${TEAM_BUDGET} OR remaining_budget != ${TEAM_BUDGET}`);
+      budget: TEAM_BUDGET 
+    }).where(sql`budget != ${TEAM_BUDGET}`);
     
-    // Fix any captain pairs with incorrect budget values
+    // Only fix the base budget for captain pairs
     await db.update(captainPairs).set({ 
-      budget: TEAM_BUDGET, 
-      remainingBudget: TEAM_BUDGET 
-    }).where(sql`budget != ${TEAM_BUDGET} OR remaining_budget != ${TEAM_BUDGET}`);
+      budget: TEAM_BUDGET 
+    }).where(sql`budget != ${TEAM_BUDGET}`);
   }
 
   private calculateBasePoints(batting: number, bowling: number, fielding: number): number {
