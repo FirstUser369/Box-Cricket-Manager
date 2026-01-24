@@ -158,7 +158,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async fixBudgetValues() {
-    // Only fix the base budget field, NOT remaining budget (which tracks auction spending)
+    // Only fix the base budget field
     await db.update(teams).set({ 
       budget: TEAM_BUDGET 
     }).where(sql`budget != ${TEAM_BUDGET}`);
@@ -167,6 +167,30 @@ export class DatabaseStorage implements IStorage {
     await db.update(captainPairs).set({ 
       budget: TEAM_BUDGET 
     }).where(sql`budget != ${TEAM_BUDGET}`);
+    
+    // One-time fix: Apply correct remaining budgets based on actual auction sale prices
+    // Teams sold for 700: remaining = 24300
+    // Teams sold for 500: remaining = 24500
+    const teamBudgetCorrections: Record<string, number> = {
+      'Royal Challengers Boston': 24300,
+      'Chelmsford Super Kings': 24300,
+      'Sunrisers Hopkinton': 24500,
+      'Malden Indians': 24500,
+      'Revere Royals': 24500,
+      'Dracut Chargers': 24500,
+      'Acton Lions': 24500,
+      'Lowell Super Giants': 24500,
+      'Kennmore Knight Riders': 24500,
+      'Greenfield Titans': 24500,
+      'Wilmington Chargers': 24500,
+      'Parkdrive Kings': 24500,
+    };
+    
+    for (const [teamName, correctBudget] of Object.entries(teamBudgetCorrections)) {
+      await db.update(teams)
+        .set({ remainingBudget: correctBudget })
+        .where(sql`name = ${teamName} AND remaining_budget = 25000`);
+    }
   }
 
   private calculateBasePoints(batting: number, bowling: number, fielding: number): number {
