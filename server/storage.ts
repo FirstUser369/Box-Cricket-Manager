@@ -25,6 +25,32 @@ import {
   type CaptainPair, type InsertCaptainPair
 } from "@shared/schema";
 
+// Type for importing players with all fields (for data transfer between environments)
+export type ImportPlayerData = {
+  id?: string;
+  name: string;
+  mobile: string;
+  email?: string | null;
+  phone?: string | null;
+  address: string;
+  role: string;
+  battingRating?: number;
+  bowlingRating?: number;
+  fieldingRating?: number;
+  photoUrl?: string;
+  tshirtSize?: string | null;
+  basePoints?: number;
+  category?: string | null;
+  isLocked?: boolean;
+  isCaptain?: boolean;
+  isViceCaptain?: boolean;
+  teamId?: string | null;
+  soldPrice?: number | null;
+  status?: string;
+  paymentStatus?: string;
+  approvalStatus?: string;
+};
+
 export interface IStorage {
   getAllPlayers(): Promise<Player[]>;
   getPlayer(id: string): Promise<Player | undefined>;
@@ -33,6 +59,7 @@ export interface IStorage {
   getPendingPlayers(): Promise<Player[]>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
+  importPlayer(playerData: ImportPlayerData): Promise<Player>;
   deletePlayer(id: string): Promise<void>;
 
   getAllTeams(): Promise<Team[]>;
@@ -194,6 +221,62 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined> {
     const [updated] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return updated || undefined;
+  }
+
+  // Import a player with all fields (for data transfer between environments)
+  async importPlayer(playerData: ImportPlayerData): Promise<Player> {
+    const id = playerData.id || randomUUID();
+    const battingRating = playerData.battingRating ?? 50;
+    const bowlingRating = playerData.bowlingRating ?? 50;
+    const fieldingRating = playerData.fieldingRating ?? 50;
+    const basePoints = playerData.basePoints ?? this.calculateBasePoints(battingRating, bowlingRating, fieldingRating);
+    
+    // Normalize role/category to match expected values (handles case variations)
+    const normalizeRole = (role: string | null | undefined, category: string | null | undefined): string => {
+      const value = (role || category || "Batsman").toLowerCase();
+      if (value === "batsman") return "Batsman";
+      if (value === "bowler") return "Bowler";
+      if (value === "all-rounder" || value === "allrounder") return "All-rounder";
+      return "Batsman"; // default fallback
+    };
+    
+    const normalizeCategory = (cat: string | null | undefined, role: string): string => {
+      if (!cat) return role;
+      const lower = cat.toLowerCase();
+      if (lower === "batsman") return "Batsman";
+      if (lower === "bowler") return "Bowler";
+      if (lower === "all-rounder" || lower === "allrounder") return "All-rounder";
+      return role; // fallback to role
+    };
+    
+    const normalizedRole = normalizeRole(playerData.role, playerData.category);
+    
+    const [newPlayer] = await db.insert(players).values({
+      id,
+      name: playerData.name,
+      mobile: playerData.mobile,
+      email: playerData.email || null,
+      phone: playerData.phone || null,
+      address: playerData.address,
+      role: normalizedRole,
+      battingRating,
+      bowlingRating,
+      fieldingRating,
+      photoUrl: playerData.photoUrl || "",
+      tshirtSize: playerData.tshirtSize || null,
+      basePoints,
+      category: normalizeCategory(playerData.category, normalizedRole),
+      isLocked: playerData.isLocked ?? false,
+      isCaptain: playerData.isCaptain ?? false,
+      isViceCaptain: playerData.isViceCaptain ?? false,
+      teamId: playerData.teamId || null,
+      soldPrice: playerData.soldPrice || null,
+      status: playerData.status || "pending",
+      paymentStatus: playerData.paymentStatus || "pending",
+      approvalStatus: playerData.approvalStatus || "pending",
+    }).returning();
+
+    return newPlayer;
   }
 
   async deletePlayer(id: string): Promise<void> {

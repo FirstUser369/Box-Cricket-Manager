@@ -189,6 +189,174 @@ export async function registerRoutes(
     }
   });
 
+  // Export all players as JSON (for data transfer between environments)
+  app.get("/api/players/export/all", async (req, res) => {
+    try {
+      const players = await storage.getAllPlayers();
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename=players-export.json');
+      res.json({
+        exportDate: new Date().toISOString(),
+        playerCount: players.length,
+        players: players
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to export players" });
+    }
+  });
+
+  // Import players from JSON (for data transfer between environments)
+  // Relaxed validation schema - accepts case variations and allows role OR category
+  const importPlayerSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, "Name is required"),
+    mobile: z.string().min(1, "Mobile is required"),
+    email: z.string().optional().nullable(), // Allow invalid emails during import
+    phone: z.string().optional().nullable(),
+    address: z.string().min(1, "Address is required"),
+    // Accept any role string (will be normalized in storage layer)
+    role: z.string().optional(),
+    // Accept any category string (will be normalized in storage layer)
+    category: z.string().optional().nullable(),
+    battingRating: z.number().min(0).max(100).optional(),
+    bowlingRating: z.number().min(0).max(100).optional(),
+    fieldingRating: z.number().min(0).max(100).optional(),
+    photoUrl: z.string().optional(),
+    tshirtSize: z.string().optional().nullable(),
+    basePoints: z.number().optional(),
+    isLocked: z.boolean().optional(),
+    isCaptain: z.boolean().optional(),
+    isViceCaptain: z.boolean().optional(),
+    teamId: z.string().optional().nullable(),
+    soldPrice: z.number().optional().nullable(),
+    status: z.string().optional(),
+    paymentStatus: z.string().optional(),
+    approvalStatus: z.string().optional(),
+  }).refine(
+    // Require at least one of role or category
+    (data) => data.role || data.category,
+    { message: "Either role or category is required" }
+  );
+  
+  app.post("/api/players/import/all", async (req, res) => {
+    try {
+      const { players: importedPlayers, mode } = req.body;
+      
+      if (!Array.isArray(importedPlayers)) {
+        return res.status(400).json({ error: "Invalid format: expected players array" });
+      }
+      
+      const results = { created: 0, updated: 0, skipped: 0, errors: [] as string[] };
+      
+      for (const playerData of importedPlayers) {
+        try {
+          // Validate the player data
+          const validation = importPlayerSchema.safeParse(playerData);
+          if (!validation.success) {
+            results.errors.push(`Validation failed for ${playerData.name || 'unknown'}: ${validation.error.errors[0].message}`);
+            continue;
+          }
+          
+          const validatedData = validation.data;
+          
+          // Check if player already exists by mobile
+          const existingPlayer = validatedData.mobile ? await storage.getPlayerByMobile(validatedData.mobile) : null;
+          
+          if (existingPlayer) {
+            if (mode === "overwrite") {
+              // Normalize role/category for update (handles case variations)
+              const normalizeRole = (role: string | null | undefined, category: string | null | undefined): string => {
+                const value = (role || category || "Batsman").toLowerCase();
+                if (value === "batsman") return "Batsman";
+                if (value === "bowler") return "Bowler";
+                if (value === "all-rounder" || value === "allrounder") return "All-rounder";
+                return "Batsman";
+              };
+              
+              const normalizeCategory = (cat: string | null | undefined, role: string): string => {
+                if (!cat) return role;
+                const lower = cat.toLowerCase();
+                if (lower === "batsman") return "Batsman";
+                if (lower === "bowler") return "Bowler";
+                if (lower === "all-rounder" || lower === "allrounder") return "All-rounder";
+                return role;
+              };
+              
+              const normalizedRole = normalizeRole(validatedData.role, validatedData.category);
+              
+              // Update existing player with validated fields, preserving existing values for undefined fields
+              await storage.updatePlayer(existingPlayer.id, {
+                name: validatedData.name,
+                email: validatedData.email ?? existingPlayer.email,
+                phone: validatedData.phone ?? existingPlayer.phone,
+                address: validatedData.address,
+                role: normalizedRole,
+                battingRating: validatedData.battingRating ?? existingPlayer.battingRating,
+                bowlingRating: validatedData.bowlingRating ?? existingPlayer.bowlingRating,
+                fieldingRating: validatedData.fieldingRating ?? existingPlayer.fieldingRating,
+                photoUrl: validatedData.photoUrl ?? existingPlayer.photoUrl,
+                tshirtSize: validatedData.tshirtSize ?? existingPlayer.tshirtSize,
+                basePoints: validatedData.basePoints ?? existingPlayer.basePoints,
+                category: normalizeCategory(validatedData.category, normalizedRole),
+                isLocked: validatedData.isLocked ?? existingPlayer.isLocked,
+                isCaptain: validatedData.isCaptain ?? existingPlayer.isCaptain,
+                isViceCaptain: validatedData.isViceCaptain ?? existingPlayer.isViceCaptain,
+                teamId: validatedData.teamId ?? existingPlayer.teamId,
+                soldPrice: validatedData.soldPrice ?? existingPlayer.soldPrice,
+                status: validatedData.status ?? existingPlayer.status,
+                paymentStatus: validatedData.paymentStatus ?? existingPlayer.paymentStatus,
+                approvalStatus: validatedData.approvalStatus ?? existingPlayer.approvalStatus,
+              });
+              results.updated++;
+            } else {
+              results.skipped++;
+            }
+          } else {
+            // Create new player using storage layer (handles role normalization)
+            await storage.importPlayer({
+              id: validatedData.id,
+              name: validatedData.name,
+              mobile: validatedData.mobile,
+              email: validatedData.email,
+              phone: validatedData.phone,
+              address: validatedData.address,
+              // Use role or category - storage layer will normalize
+              role: validatedData.role || validatedData.category || "Batsman",
+              battingRating: validatedData.battingRating,
+              bowlingRating: validatedData.bowlingRating,
+              fieldingRating: validatedData.fieldingRating,
+              photoUrl: validatedData.photoUrl,
+              tshirtSize: validatedData.tshirtSize,
+              basePoints: validatedData.basePoints,
+              category: validatedData.category,
+              isLocked: validatedData.isLocked,
+              isCaptain: validatedData.isCaptain,
+              isViceCaptain: validatedData.isViceCaptain,
+              teamId: validatedData.teamId,
+              soldPrice: validatedData.soldPrice,
+              status: validatedData.status,
+              paymentStatus: validatedData.paymentStatus,
+              approvalStatus: validatedData.approvalStatus,
+            });
+            results.created++;
+          }
+        } catch (playerError: any) {
+          results.errors.push(`Failed to import ${playerData.name || 'unknown'}: ${playerError.message}`);
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Import complete: ${results.created} created, ${results.updated} updated, ${results.skipped} skipped`,
+        results
+      });
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to import players: " + error.message });
+    }
+  });
+
   // Player reassignment (post-auction)
   app.post("/api/players/:id/reassign", async (req, res) => {
     try {

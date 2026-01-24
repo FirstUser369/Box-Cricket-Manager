@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import {
@@ -981,6 +981,131 @@ function AdminDashboard() {
                         <Download className="w-4 h-4 mr-2" />
                         Download Excel
                       </Button>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Data Import/Export for transferring players between environments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Data Transfer
+                </CardTitle>
+                <CardDescription>
+                  Export all players to a JSON file or import players from another environment
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const fileInputRef = useRef<HTMLInputElement>(null);
+                  const [importing, setImporting] = useState(false);
+                  const [importMode, setImportMode] = useState<"skip" | "overwrite">("skip");
+                  
+                  const exportPlayers = async () => {
+                    try {
+                      const response = await fetch("/api/players/export/all");
+                      const data = await response.json();
+                      
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `players-export-${new Date().toISOString().split('T')[0]}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      
+                      toast({ title: `Exported ${data.playerCount} players` });
+                    } catch (error) {
+                      toast({ title: "Export failed", variant: "destructive" });
+                    }
+                  };
+                  
+                  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    
+                    setImporting(true);
+                    try {
+                      const text = await file.text();
+                      const data = JSON.parse(text);
+                      
+                      const playersToImport = data.players || data;
+                      if (!Array.isArray(playersToImport)) {
+                        throw new Error("Invalid file format");
+                      }
+                      
+                      const response = await fetch("/api/players/import/all", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ players: playersToImport, mode: importMode }),
+                      });
+                      
+                      const result = await response.json();
+                      if (result.success) {
+                        toast({ title: result.message });
+                        queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+                      } else {
+                        toast({ title: result.error, variant: "destructive" });
+                      }
+                    } catch (error: any) {
+                      toast({ title: `Import failed: ${error.message}`, variant: "destructive" });
+                    } finally {
+                      setImporting(false);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }
+                  };
+                  
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <Button
+                          onClick={exportPlayers}
+                          variant="outline"
+                          data-testid="button-export-players-json"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Export All Players (JSON)
+                        </Button>
+                        
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".json"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            data-testid="input-import-players"
+                          />
+                          <Select value={importMode} onValueChange={(v) => setImportMode(v as "skip" | "overwrite")}>
+                            <SelectTrigger className="w-32" data-testid="select-import-mode">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="skip">Skip existing</SelectItem>
+                              <SelectItem value="overwrite">Overwrite</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={importing}
+                            data-testid="button-import-players-json"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {importing ? "Importing..." : "Import Players (JSON)"}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground">
+                        Use Export to download all player data from your production app. Then use Import here to load that data into this environment.
+                      </p>
                     </div>
                   );
                 })()}
