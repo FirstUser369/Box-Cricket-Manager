@@ -621,50 +621,16 @@ export async function registerRoutes(
             }
           }
           
-          // Find first available player from new category (registered OR unsold players can be auctioned again)
-          // "Unsold" is special - it means re-auction unsold players from any category
-          const players = await storage.getAllPlayers();
-          let nextPlayer;
-          if (selectedCategory === "Unsold") {
-            nextPlayer = players.find(p => 
-              p.status === "unsold" && 
-              p.paymentStatus === "verified" && 
-              p.approvalStatus === "approved"
-            );
-          } else {
-            // Case-insensitive matching, fallback to role if category not set
-            const categoryLower = selectedCategory.toLowerCase();
-            nextPlayer = players.find(p => {
-              const playerCat = (p.category || p.role || "").toLowerCase();
-              return (p.status === "registered" || p.status === "unsold") && 
-                p.paymentStatus === "verified" && 
-                p.approvalStatus === "approved" &&
-                playerCat === categoryLower;
-            });
-          }
-          
-          if (nextPlayer) {
-            await storage.updatePlayer(nextPlayer.id, { status: "in_auction" });
-            const state = await storage.updateAuctionState({
-              currentCategory: selectedCategory,
-              currentPlayerId: nextPlayer.id,
-              currentBid: nextPlayer.basePoints,
-              currentBiddingTeamId: null,
-              currentTeamId: null,
-              currentBiddingPairId: null,
-              bidHistory: [],
-              categoryBreak: false,
-              completedCategory: null,
-            });
-            return res.json(state);
-          }
-          
-          // No players available in this category
+          // Just set the category - don't auto-select a player
+          // Admin will select a player from the dropdown and click "Start Category"
           const state = await storage.updateAuctionState({
             currentCategory: selectedCategory,
             currentPlayerId: null,
+            currentBid: 0,
+            currentBiddingTeamId: null,
             currentTeamId: null,
             currentBiddingPairId: null,
+            bidHistory: [],
             categoryBreak: false,
             completedCategory: null,
           });

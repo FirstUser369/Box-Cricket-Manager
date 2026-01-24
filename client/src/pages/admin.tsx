@@ -235,6 +235,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
+  const [pendingAuctionPlayerId, setPendingAuctionPlayerId] = useState<string>("");
 
   const handleLogin = () => {
     if (password === "admin123") {
@@ -1463,12 +1464,13 @@ function AdminDashboard() {
                         </Label>
                         <Select
                           value={currentCategory}
-                          onValueChange={(value) =>
+                          onValueChange={(value) => {
+                            setPendingAuctionPlayerId("");
                             auctionControlMutation.mutate({
                               action: "select_category",
                               category: value,
-                            })
-                          }
+                            });
+                          }}
                         >
                           <SelectTrigger
                             className="w-40"
@@ -1502,13 +1504,19 @@ function AdminDashboard() {
                           {currentCategory === "Team Names" ? "Select Team:" : "Select Player:"}
                         </Label>
                         <Select
-                          value={auctionState?.currentPlayerId || ""}
-                          onValueChange={(id) =>
-                            auctionControlMutation.mutate({
-                              action: "select_player",
-                              playerId: id,
-                            })
-                          }
+                          value={auctionState?.currentPlayerId || pendingAuctionPlayerId || ""}
+                          onValueChange={(id) => {
+                            // If there's already a player in auction, switch immediately
+                            // Otherwise, just set the pending player
+                            if (auctionState?.currentPlayerId) {
+                              auctionControlMutation.mutate({
+                                action: "select_player",
+                                playerId: id,
+                              });
+                            } else {
+                              setPendingAuctionPlayerId(id);
+                            }
+                          }}
                         >
                           <SelectTrigger
                             className="w-56"
@@ -1564,6 +1572,24 @@ function AdminDashboard() {
                           </SelectContent>
                         </Select>
                       </div>
+                      
+                      {/* Start Category Button - shows when no player is active but one is selected */}
+                      {!auctionState?.currentPlayerId && pendingAuctionPlayerId && (
+                        <Button
+                          onClick={() => {
+                            auctionControlMutation.mutate({
+                              action: "select_player",
+                              playerId: pendingAuctionPlayerId,
+                            });
+                            setPendingAuctionPlayerId("");
+                          }}
+                          className="bg-green-600 hover:bg-green-700"
+                          data-testid="button-start-category"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Start {currentCategory === "Team Names" ? "Team" : "Player"}
+                        </Button>
+                      )}
                     </div>
                   );
                 })()}
