@@ -1789,43 +1789,47 @@ function AdminDashboard() {
               </Card>
             )}
 
-            <div className="space-y-4">
-              <h3 className="font-semibold">Scheduled Matches</h3>
-              {matches
-                ?.filter((m) => m.status === "scheduled")
-                .map((match) => {
-                  const team1 = teams?.find((t) => t.id === match.team1Id);
-                  const team2 = teams?.find((t) => t.id === match.team2Id);
-                  return (
-                    <Card
-                      key={match.id}
-                      data-testid={`admin-match-${match.id}`}
-                    >
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm text-muted-foreground">
-                            #{match.matchNumber}
-                          </span>
-                          <span className="font-medium">
-                            {team1?.shortName} vs {team2?.shortName}
-                          </span>
-                        </div>
-                        <StartMatchDialog
-                          match={match}
-                          teams={teams || []}
-                          players={players || []}
-                          onStart={(data) =>
-                            startMatchMutation.mutate({
-                              matchId: match.id,
-                              ...data,
-                            })
-                          }
-                        />
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-            </div>
+            {(() => {
+              const scheduledMatches = matches?.filter((m) => m.status === "scheduled") || [];
+              if (scheduledMatches.length === 0) return null;
+              return (
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Scheduled Matches</h3>
+                  {scheduledMatches.map((match) => {
+                    const team1 = teams?.find((t) => t.id === match.team1Id);
+                    const team2 = teams?.find((t) => t.id === match.team2Id);
+                    return (
+                      <Card
+                        key={match.id}
+                        data-testid={`admin-match-${match.id}`}
+                      >
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm text-muted-foreground">
+                              #{match.matchNumber}
+                            </span>
+                            <span className="font-medium">
+                              {team1?.shortName} vs {team2?.shortName}
+                            </span>
+                          </div>
+                          <StartMatchDialog
+                            match={match}
+                            teams={teams || []}
+                            players={players || []}
+                            onStart={(data) =>
+                              startMatchMutation.mutate({
+                                matchId: match.id,
+                                ...data,
+                              })
+                            }
+                          />
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
