@@ -424,6 +424,65 @@ export async function registerRoutes(
     }
   });
 
+  // Manual player assignment (for adding unsold/unassigned players to teams)
+  app.post("/api/players/:id/assign", async (req, res) => {
+    try {
+      const { teamId, soldPrice } = req.body;
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "Team ID is required" });
+      }
+      
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      
+      if (player.teamId) {
+        return res.status(400).json({ error: "Player is already assigned to a team. Use reassign instead." });
+      }
+      
+      const [team, allPlayers] = await Promise.all([
+        storage.getTeam(teamId),
+        storage.getAllPlayers(),
+      ]);
+      
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Check roster limit (9 players max per team)
+      const teamPlayers = allPlayers.filter(p => p.teamId === teamId);
+      if (teamPlayers.length >= 9) {
+        return res.status(400).json({ error: "Team already has 9 players (maximum roster size)" });
+      }
+      
+      const price = soldPrice || player.basePoints;
+      
+      // Check if team has enough budget
+      if (team.remainingBudget < price) {
+        return res.status(400).json({ error: "Team does not have enough budget" });
+      }
+      
+      // Update player with team assignment
+      const updatedPlayer = await storage.updatePlayer(player.id, { 
+        teamId, 
+        soldPrice: price,
+        status: "sold",
+      });
+      
+      // Update team budget
+      await storage.updateTeam(teamId, { 
+        remainingBudget: team.remainingBudget - price 
+      });
+      
+      res.json(updatedPlayer);
+    } catch (error) {
+      console.error("Assign player error:", error);
+      res.status(500).json({ error: "Failed to assign player" });
+    }
+  });
+
   // ============ TEAMS ============
   
   app.get("/api/teams", async (req, res) => {

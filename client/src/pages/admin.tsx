@@ -387,6 +387,32 @@ function AdminDashboard() {
     },
   });
 
+  const assignPlayerMutation = useMutation({
+    mutationFn: async ({
+      playerId,
+      teamId,
+      soldPrice,
+    }: {
+      playerId: string;
+      teamId: string;
+      soldPrice: number;
+    }) => {
+      return apiRequest("POST", `/api/players/${playerId}/assign`, { teamId, soldPrice });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      toast({ title: "Player assigned to team" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to assign player",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
   const auctionControlMutation = useMutation({
     mutationFn: async (params: { action: string; category?: string; playerId?: string; pairId?: string }) => {
       return apiRequest("POST", "/api/auction/control", params);
@@ -1674,12 +1700,24 @@ function AdminDashboard() {
                           <div className="flex items-center gap-2">
                             <div className="text-right">
                               <p className="text-xs text-muted-foreground">
-                                Base Points
+                                {player.soldPrice ? "Sold Price" : "Base Points"}
                               </p>
                               <p className="font-display text-xl">
-                                {player.basePoints.toLocaleString()}
+                                {(player.soldPrice || player.basePoints).toLocaleString()}
                               </p>
                             </div>
+                            {!player.teamId && (
+                              <AssignPlayerDialog
+                                player={player}
+                                teams={teams || []}
+                                onAssign={(data) =>
+                                  assignPlayerMutation.mutate({
+                                    playerId: player.id,
+                                    ...data,
+                                  })
+                                }
+                              />
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -2128,6 +2166,110 @@ function EditBudgetDialog({
             data-testid="button-save-budget"
           >
             Save Budget
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssignPlayerDialog({
+  player,
+  teams,
+  onAssign,
+}: {
+  player: Player;
+  teams: Team[];
+  onAssign: (data: { teamId: string; soldPrice: number }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
+  const [soldPrice, setSoldPrice] = useState(player.basePoints);
+
+  const selectedTeam = teams.find(t => t.id === selectedTeamId);
+  const canAssign = selectedTeam && selectedTeam.remainingBudget >= soldPrice;
+
+  const handleSubmit = () => {
+    if (selectedTeamId && soldPrice) {
+      onAssign({ teamId: selectedTeamId, soldPrice });
+      setOpen(false);
+      setSelectedTeamId("");
+      setSoldPrice(player.basePoints);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          data-testid={`button-assign-player-${player.id}`}
+        >
+          <Plus className="w-3 h-3" />
+          Assign to Team
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assign Player: {player.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={player.photoUrl} alt={player.name} />
+              <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium">{player.name}</p>
+              <p className="text-sm text-muted-foreground">{player.role} • Base: {player.basePoints}</p>
+            </div>
+          </div>
+          <div>
+            <Label>Select Team</Label>
+            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+              <SelectTrigger data-testid="select-assign-team">
+                <SelectValue placeholder="Choose a team" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name} (Budget: {team.remainingBudget.toLocaleString()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Sold Price</Label>
+            <Input
+              type="number"
+              value={soldPrice}
+              onChange={(e) => setSoldPrice(Number(e.target.value))}
+              min={0}
+              data-testid="input-sold-price"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter the price at which player was sold
+            </p>
+          </div>
+          {selectedTeam && !canAssign && (
+            <p className="text-sm text-destructive">
+              Team doesn't have enough budget ({selectedTeam.remainingBudget.toLocaleString()} available)
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!selectedTeamId || !canAssign}
+            data-testid="button-confirm-assign"
+          >
+            Assign Player
           </Button>
         </DialogFooter>
       </DialogContent>
