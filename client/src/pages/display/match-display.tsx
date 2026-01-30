@@ -660,8 +660,8 @@ export default function MatchDisplay() {
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="w-full px-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <Card className="bg-white/5 border-white/10">
               <CardHeader className="pb-3">
                 <CardTitle className="text-2xl text-white flex items-center gap-3">
@@ -830,46 +830,46 @@ export default function MatchDisplay() {
             </Card>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Batting</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-2xl md:text-3xl text-white font-display">Batting</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full">
                     <thead>
-                      <tr className="text-gray-400 text-xs border-b border-white/10">
-                        <th className="text-left py-2 px-3">Batter</th>
-                        <th className="text-center py-2 px-2">R</th>
-                        <th className="text-center py-2 px-2">B</th>
-                        <th className="text-center py-2 px-2">4s</th>
-                        <th className="text-center py-2 px-2">6s</th>
-                        <th className="text-center py-2 px-2">SR</th>
+                      <tr className="text-white/80 text-lg md:text-xl border-b border-white/10">
+                        <th className="text-left py-3 px-4">Batter</th>
+                        <th className="text-center py-3 px-3">R</th>
+                        <th className="text-center py-3 px-3">B</th>
+                        <th className="text-center py-3 px-3">4s</th>
+                        <th className="text-center py-3 px-3">6s</th>
+                        <th className="text-center py-3 px-3">SR</th>
                       </tr>
                     </thead>
                     <tbody>
                       {battingScorecard.map((batter, idx) => (
                         <tr key={batter!.id} className={`border-b border-white/5 ${batter!.isStriker ? 'bg-emerald-500/10' : batter!.isNonStriker ? 'bg-white/5' : ''}`}>
-                          <td className="py-2 px-3">
-                            <div className="flex items-center gap-1">
-                              {batter!.isStriker && <span className="text-emerald-400">*</span>}
-                              <span className={batter!.isOut ? 'text-gray-500' : 'text-white'}>{batter!.name}</span>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              {batter!.isStriker && <span className="text-emerald-400 text-xl">*</span>}
+                              <span className={`text-lg md:text-xl font-medium ${batter!.isOut ? 'text-white/50' : 'text-white'}`}>{batter!.name}</span>
                             </div>
                             {batter!.isOut && (
-                              <p className="text-xs text-gray-500">{batter!.dismissal} {batter!.dismissedBy && `b ${batter!.dismissedBy}`}</p>
+                              <p className="text-base text-white/50 mt-1">{batter!.dismissal} {batter!.dismissedBy && `b ${batter!.dismissedBy}`}</p>
                             )}
                           </td>
-                          <td className="text-center py-2 px-2 font-medium">{batter!.runs}</td>
-                          <td className="text-center py-2 px-2 text-gray-400">{batter!.balls}</td>
-                          <td className="text-center py-2 px-2 text-gray-400">{batter!.fours}</td>
-                          <td className="text-center py-2 px-2 text-gray-400">{batter!.sixes}</td>
-                          <td className="text-center py-2 px-2 text-gray-400">{batter!.strikeRate}</td>
+                          <td className="text-center py-3 px-3 font-display text-2xl md:text-3xl text-white">{batter!.runs}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{batter!.balls}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{batter!.fours}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{batter!.sixes}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{batter!.strikeRate}</td>
                         </tr>
                       ))}
                       {battingScorecard.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="text-center py-4 text-gray-500">No batters yet</td>
+                          <td colSpan={6} className="text-center py-6 text-white/50 text-lg">No batters yet</td>
                         </tr>
                       )}
                     </tbody>
@@ -879,39 +879,39 @@ export default function MatchDisplay() {
             </Card>
 
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Bowling</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-2xl md:text-3xl text-white font-display">Bowling</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full">
                     <thead>
-                      <tr className="text-gray-400 text-xs border-b border-white/10">
-                        <th className="text-left py-2 px-3">Bowler</th>
-                        <th className="text-center py-2 px-2">O</th>
-                        <th className="text-center py-2 px-2">R</th>
-                        <th className="text-center py-2 px-2">W</th>
-                        <th className="text-center py-2 px-2">Eco</th>
+                      <tr className="text-white/80 text-lg md:text-xl border-b border-white/10">
+                        <th className="text-left py-3 px-4">Bowler</th>
+                        <th className="text-center py-3 px-3">O</th>
+                        <th className="text-center py-3 px-3">R</th>
+                        <th className="text-center py-3 px-3">W</th>
+                        <th className="text-center py-3 px-3">Eco</th>
                       </tr>
                     </thead>
                     <tbody>
                       {bowlingScorecard.map((bowler, idx) => (
                         <tr key={bowler!.id} className={`border-b border-white/5 ${bowler!.isCurrent ? 'bg-purple-500/10' : ''}`}>
-                          <td className="py-2 px-3">
-                            <div className="flex items-center gap-1">
-                              {bowler!.isCurrent && <Zap className="w-3 h-3 text-purple-400" />}
-                              <span className="text-white">{bowler!.name}</span>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              {bowler!.isCurrent && <Zap className="w-5 h-5 text-purple-400" />}
+                              <span className="text-lg md:text-xl font-medium text-white">{bowler!.name}</span>
                             </div>
                           </td>
-                          <td className="text-center py-2 px-2 text-gray-400">{bowler!.overs}</td>
-                          <td className="text-center py-2 px-2 text-gray-400">{bowler!.runs}</td>
-                          <td className="text-center py-2 px-2 font-medium text-purple-300">{bowler!.wickets}</td>
-                          <td className="text-center py-2 px-2 text-gray-400">{bowler!.economy}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{bowler!.overs}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{bowler!.runs}</td>
+                          <td className="text-center py-3 px-3 font-display text-2xl md:text-3xl text-purple-300">{bowler!.wickets}</td>
+                          <td className="text-center py-3 px-3 text-xl text-white">{bowler!.economy}</td>
                         </tr>
                       ))}
                       {bowlingScorecard.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="text-center py-4 text-gray-500">No bowlers yet</td>
+                          <td colSpan={5} className="text-center py-6 text-white/50 text-lg">No bowlers yet</td>
                         </tr>
                       )}
                     </tbody>
