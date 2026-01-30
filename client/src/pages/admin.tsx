@@ -594,6 +594,8 @@ function AdminDashboard() {
       matchId: string;
       tossWinnerId: string;
       tossDecision: string;
+      team1PlayingXI?: string[];
+      team2PlayingXI?: string[];
     }) => {
       return apiRequest("POST", `/api/matches/${matchId}/start`, data);
     },
@@ -1751,10 +1753,14 @@ function AdminDashboard() {
               <div>
                 <h2 className="text-xl font-semibold">Match Scoring</h2>
                 <p className="text-sm text-muted-foreground">
-                  Matches are auto-generated when groups are assigned in
-                  Tournament tab
+                  Create matches manually and start scoring
                 </p>
               </div>
+              <CreateMatchDialog
+                teams={teams || []}
+                matches={matches || []}
+                onSubmit={(data) => createMatchMutation.mutate(data)}
+              />
             </div>
 
             {liveMatch ? (
@@ -1830,6 +1836,7 @@ function AdminDashboard() {
                         <StartMatchDialog
                           match={match}
                           teams={teams || []}
+                          players={players || []}
                           onStart={(data) =>
                             startMatchMutation.mutate({
                               matchId: match.id,
@@ -2288,26 +2295,177 @@ function AssignPlayerDialog({
   );
 }
 
+function CreateMatchDialog({
+  teams,
+  matches,
+  onSubmit,
+}: {
+  teams: Team[];
+  matches: Match[];
+  onSubmit: (data: { team1Id: string; team2Id: string; matchNumber: number }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [team1Id, setTeam1Id] = useState("");
+  const [team2Id, setTeam2Id] = useState("");
+
+  const team1 = teams.find((t) => t.id === team1Id);
+  const team2 = teams.find((t) => t.id === team2Id);
+  
+  const differentGroups = team1 && team2 && team1.groupName && team2.groupName && team1.groupName !== team2.groupName;
+  const nextMatchNumber = matches.length > 0 ? Math.max(...matches.map(m => m.matchNumber)) + 1 : 1;
+
+  const handleSubmit = () => {
+    if (team1Id && team2Id) {
+      onSubmit({ team1Id, team2Id, matchNumber: nextMatchNumber });
+      setOpen(false);
+      setTeam1Id("");
+      setTeam2Id("");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button data-testid="button-create-match">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Match
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Match</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Team 1</Label>
+            <Select value={team1Id} onValueChange={setTeam1Id}>
+              <SelectTrigger data-testid="select-team1">
+                <SelectValue placeholder="Select first team" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id} disabled={team.id === team2Id}>
+                    {team.name} {team.groupName ? `(Group ${team.groupName})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Team 2</Label>
+            <Select value={team2Id} onValueChange={setTeam2Id}>
+              <SelectTrigger data-testid="select-team2">
+                <SelectValue placeholder="Select second team" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={team.id} disabled={team.id === team1Id}>
+                    {team.name} {team.groupName ? `(Group ${team.groupName})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {differentGroups && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
+              <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Warning: These teams are from different groups ({team1?.groupName} vs {team2?.groupName})
+              </p>
+            </div>
+          )}
+          <div className="p-3 bg-muted rounded-md">
+            <p className="text-sm text-muted-foreground">
+              Match #{nextMatchNumber}
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!team1Id || !team2Id || team1Id === team2Id}
+            data-testid="button-confirm-create-match"
+          >
+            Create Match
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function StartMatchDialog({
   match,
   teams,
+  players,
   onStart,
 }: {
   match: Match;
   teams: Team[];
-  onStart: (data: { tossWinnerId: string; tossDecision: string }) => void;
+  players: Player[];
+  onStart: (data: { 
+    tossWinnerId: string; 
+    tossDecision: string;
+    team1PlayingXI?: string[];
+    team2PlayingXI?: string[];
+  }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [tossWinnerId, setTossWinnerId] = useState("");
   const [tossDecision, setTossDecision] = useState("");
+  const [team1PlayingXI, setTeam1PlayingXI] = useState<string[]>([]);
+  const [team2PlayingXI, setTeam2PlayingXI] = useState<string[]>([]);
 
   const team1 = teams.find((t) => t.id === match.team1Id);
   const team2 = teams.find((t) => t.id === match.team2Id);
+  
+  const team1Players = players.filter(p => p.teamId === match.team1Id);
+  const team2Players = players.filter(p => p.teamId === match.team2Id);
+  
+  const team1Needs8 = team1Players.length === 9;
+  const team2Needs8 = team2Players.length === 9;
+  
+  const togglePlayer = (teamNum: 1 | 2, playerId: string) => {
+    if (teamNum === 1) {
+      setTeam1PlayingXI(prev => 
+        prev.includes(playerId) 
+          ? prev.filter(id => id !== playerId)
+          : prev.length < 8 ? [...prev, playerId] : prev
+      );
+    } else {
+      setTeam2PlayingXI(prev => 
+        prev.includes(playerId) 
+          ? prev.filter(id => id !== playerId)
+          : prev.length < 8 ? [...prev, playerId] : prev
+      );
+    }
+  };
 
   const handleSubmit = () => {
-    onStart({ tossWinnerId, tossDecision });
+    const data: {
+      tossWinnerId: string;
+      tossDecision: string;
+      team1PlayingXI?: string[];
+      team2PlayingXI?: string[];
+    } = { tossWinnerId, tossDecision };
+    
+    if (team1Needs8) {
+      data.team1PlayingXI = team1PlayingXI;
+    }
+    if (team2Needs8) {
+      data.team2PlayingXI = team2PlayingXI;
+    }
+    
+    onStart(data);
     setOpen(false);
   };
+  
+  const canStart = tossWinnerId && tossDecision && 
+    (!team1Needs8 || team1PlayingXI.length === 8) && 
+    (!team2Needs8 || team2PlayingXI.length === 8);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -2317,7 +2475,7 @@ function StartMatchDialog({
           Start
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Start Match #{match.matchNumber}</DialogTitle>
         </DialogHeader>
@@ -2346,11 +2504,75 @@ function StartMatchDialog({
               </SelectContent>
             </Select>
           </div>
+          
+          {team1Needs8 && (
+            <div className="space-y-2">
+              <Label className="flex items-center justify-between">
+                <span>{team1?.shortName} Playing 8 ({team1PlayingXI.length}/8 selected)</span>
+                {team1PlayingXI.length === 8 && <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-600">Ready</Badge>}
+              </Label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
+                {team1Players.map(p => (
+                  <div 
+                    key={p.id}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
+                      team1PlayingXI.includes(p.id) 
+                        ? "bg-primary/20 border border-primary" 
+                        : "hover:bg-muted-foreground/10"
+                    )}
+                    onClick={() => togglePlayer(1, p.id)}
+                    data-testid={`toggle-player-t1-${p.id}`}
+                  >
+                    <div className={cn(
+                      "w-4 h-4 rounded border flex items-center justify-center",
+                      team1PlayingXI.includes(p.id) ? "bg-primary border-primary" : "border-muted-foreground"
+                    )}>
+                      {team1PlayingXI.includes(p.id) && <Check className="w-3 h-3 text-primary-foreground" />}
+                    </div>
+                    <span className="text-sm truncate">{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {team2Needs8 && (
+            <div className="space-y-2">
+              <Label className="flex items-center justify-between">
+                <span>{team2?.shortName} Playing 8 ({team2PlayingXI.length}/8 selected)</span>
+                {team2PlayingXI.length === 8 && <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-600">Ready</Badge>}
+              </Label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
+                {team2Players.map(p => (
+                  <div 
+                    key={p.id}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
+                      team2PlayingXI.includes(p.id) 
+                        ? "bg-primary/20 border border-primary" 
+                        : "hover:bg-muted-foreground/10"
+                    )}
+                    onClick={() => togglePlayer(2, p.id)}
+                    data-testid={`toggle-player-t2-${p.id}`}
+                  >
+                    <div className={cn(
+                      "w-4 h-4 rounded border flex items-center justify-center",
+                      team2PlayingXI.includes(p.id) ? "bg-primary border-primary" : "border-muted-foreground"
+                    )}>
+                      {team2PlayingXI.includes(p.id) && <Check className="w-3 h-3 text-primary-foreground" />}
+                    </div>
+                    <span className="text-sm truncate">{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button
             onClick={handleSubmit}
-            disabled={!tossWinnerId || !tossDecision}
+            disabled={!canStart}
           >
             Start Match
           </Button>

@@ -682,7 +682,7 @@ export async function registerRoutes(
 
   app.post("/api/matches/:id/start", async (req, res) => {
     try {
-      const { tossWinnerId, tossDecision } = req.body;
+      const { tossWinnerId, tossDecision, team1PlayingXI, team2PlayingXI } = req.body;
       
       const match = await storage.updateMatch(req.params.id, {
         status: "live",
@@ -693,6 +693,8 @@ export async function registerRoutes(
         innings2BattingOrder: [],
         innings1BowlingOrder: [],
         innings2BowlingOrder: [],
+        team1PlayingXI: team1PlayingXI || null,
+        team2PlayingXI: team2PlayingXI || null,
       });
       
       if (!match) {

@@ -141,6 +141,9 @@ export const matches = pgTable("matches", {
   // Bowling order for each innings
   innings1BowlingOrder: jsonb("innings1_bowling_order").$type<string[]>(),
   innings2BowlingOrder: jsonb("innings2_bowling_order").$type<string[]>(),
+  // Playing XI - selected 8 players per team for this match
+  team1PlayingXI: jsonb("team1_playing_xi").$type<string[]>(),
+  team2PlayingXI: jsonb("team2_playing_xi").$type<string[]>(),
 });
 
 export const insertMatchSchema = createInsertSchema(matches).omit({ id: true });
