@@ -110,7 +110,7 @@ export default function MatchDisplay() {
     ? { score: liveMatch.team1Score, wickets: liveMatch.team1Wickets, overs: liveMatch.team1Overs }
     : { score: liveMatch?.team2Score, wickets: liveMatch?.team2Wickets, overs: liveMatch?.team2Overs };
 
-  const target = liveMatch?.currentInnings === 2 ? (liveMatch.team1Score + 1) : null;
+  const target = liveMatch?.currentInnings === 2 ? ((liveMatch.team1Score || 0) + 1) : null;
   const requiredRuns = target ? target - (liveMatch?.team2Score || 0) : null;
   const remainingBalls = liveMatch?.currentInnings === 2 
     ? Math.max(0, 36 - (parseFloat(liveMatch?.team2Overs || "0") * 6))
@@ -131,7 +131,7 @@ export default function MatchDisplay() {
     if (!liveMatch?.strikerId || !matchStats) return null;
     const stats = matchStats.find(s => s.playerId === liveMatch.strikerId && s.innings === liveMatch.currentInnings);
     return {
-      name: getPlayerShortName(liveMatch.strikerId),
+      name: getPlayerName(liveMatch.strikerId),
       runs: stats?.runsScored || 0,
       balls: stats?.ballsFaced || 0,
       fours: stats?.fours || 0,
@@ -145,7 +145,7 @@ export default function MatchDisplay() {
     if (!liveMatch?.nonStrikerId || !matchStats) return null;
     const stats = matchStats.find(s => s.playerId === liveMatch.nonStrikerId && s.innings === liveMatch.currentInnings);
     return {
-      name: getPlayerShortName(liveMatch.nonStrikerId),
+      name: getPlayerName(liveMatch.nonStrikerId),
       runs: stats?.runsScored || 0,
       balls: stats?.ballsFaced || 0,
       fours: stats?.fours || 0,
@@ -160,7 +160,7 @@ export default function MatchDisplay() {
     const stats = matchStats.find(s => s.playerId === liveMatch.currentBowlerId && s.innings === liveMatch.currentInnings);
     const overs = parseFloat(stats?.oversBowled || "0.0");
     return {
-      name: getPlayerShortName(liveMatch.currentBowlerId),
+      name: getPlayerName(liveMatch.currentBowlerId),
       overs: stats?.oversBowled || "0.0",
       runs: stats?.runsConceded || 0,
       wickets: stats?.wicketsTaken || 0,
@@ -179,7 +179,7 @@ export default function MatchDisplay() {
         if (!stats || (stats.ballsFaced === 0 && !stats.isOut)) return null;
         return {
           id: player.id,
-          name: getPlayerShortName(player.id),
+          name: getPlayerName(player.id),
           runs: stats.runsScored || 0,
           balls: stats.ballsFaced || 0,
           fours: stats.fours || 0,
@@ -187,7 +187,7 @@ export default function MatchDisplay() {
           strikeRate: stats.ballsFaced ? ((stats.runsScored || 0) / stats.ballsFaced * 100).toFixed(1) : "0.0",
           isOut: stats.isOut || false,
           dismissal: stats.dismissalType || "not out",
-          dismissedBy: stats.dismissedBy ? getPlayerShortName(stats.dismissedBy) : null,
+          dismissedBy: stats.dismissedBy ? getPlayerName(stats.dismissedBy) : null,
           isStriker: player.id === liveMatch.strikerId,
           isNonStriker: player.id === liveMatch.nonStrikerId,
         };
@@ -208,7 +208,7 @@ export default function MatchDisplay() {
         const overs = parseFloat(stats.oversBowled || "0.0");
         return {
           id: player.id,
-          name: getPlayerShortName(player.id),
+          name: getPlayerName(player.id),
           overs: stats.oversBowled || "0.0",
           maidens: 0,
           runs: stats.runsConceded || 0,
@@ -250,7 +250,7 @@ export default function MatchDisplay() {
         if (!playerStats || (playerStats.ballsFaced === 0 && !playerStats.isOut)) return null;
         return {
           id: player.id,
-          name: getPlayerShortName(player.id),
+          name: getPlayerName(player.id),
           runs: playerStats.runsScored || 0,
           balls: playerStats.ballsFaced || 0,
           fours: playerStats.fours || 0,
@@ -258,7 +258,7 @@ export default function MatchDisplay() {
           strikeRate: playerStats.ballsFaced ? ((playerStats.runsScored || 0) / playerStats.ballsFaced * 100).toFixed(1) : "0.0",
           isOut: playerStats.isOut || false,
           dismissal: playerStats.dismissalType || "not out",
-          dismissedBy: playerStats.dismissedBy ? getPlayerShortName(playerStats.dismissedBy) : null,
+          dismissedBy: playerStats.dismissedBy ? getPlayerName(playerStats.dismissedBy) : null,
         };
       })
       .filter(Boolean);
@@ -270,7 +270,7 @@ export default function MatchDisplay() {
         const overs = parseFloat(playerStats.oversBowled || "0.0");
         return {
           id: player.id,
-          name: getPlayerShortName(player.id),
+          name: getPlayerName(player.id),
           overs: playerStats.oversBowled || "0.0",
           runs: playerStats.runsConceded || 0,
           wickets: playerStats.wicketsTaken || 0,
@@ -573,48 +573,67 @@ export default function MatchDisplay() {
       </div>
 
       <div className="pt-20 px-4 pb-8">
-        <div className="flex items-center justify-center gap-8 mb-6">
+        {/* Giant Score Display - 75% of screen */}
+        <div className="flex items-center justify-center gap-4 md:gap-12 mb-8 min-h-[60vh]">
           <motion.div 
-            className="text-center flex-1 max-w-xs cursor-pointer"
-            animate={{ scale: liveMatch.currentInnings === 1 ? 1.05 : 1 }}
+            className="text-center flex-1 cursor-pointer"
+            animate={{ scale: liveMatch.currentInnings === 1 ? 1.02 : 1 }}
             onClick={() => team1 && setSelectedLiveTeamId({ id: team1.id, name: team1.name })}
           >
-            <div 
-              className="w-16 h-16 mx-auto rounded-xl flex items-center justify-center text-white font-display text-xl mb-2"
-              style={{ backgroundColor: team1?.primaryColor }}
-              data-testid="team1-logo"
-            >
-              {team1?.shortName}
-            </div>
-            <p className="font-display text-lg">{team1?.name}</p>
-            <p className="font-display text-4xl text-white mt-1" data-testid="team1-score">
+            {team1?.logoUrl ? (
+              <img 
+                src={team1.logoUrl} 
+                alt={team1.name} 
+                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl object-cover mb-4"
+                data-testid="team1-logo"
+              />
+            ) : (
+              <div 
+                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-3xl mb-4"
+                style={{ backgroundColor: team1?.primaryColor }}
+                data-testid="team1-logo"
+              >
+                {team1?.shortName}
+              </div>
+            )}
+            <p className="font-display text-xl md:text-2xl text-gray-300 uppercase tracking-wider">{team1?.name}</p>
+            <p className="font-display text-[8vw] md:text-[10vw] text-white leading-none mt-2" data-testid="team1-score">
               {liveMatch.team1Score}/{liveMatch.team1Wickets}
-              <span className="text-lg text-gray-400 ml-2">({liveMatch.team1Overs})</span>
             </p>
+            <p className="text-2xl md:text-3xl text-gray-400 mt-1">({liveMatch.team1Overs})</p>
           </motion.div>
 
-          <div className="text-center">
-            <p className="text-gray-500 text-lg mb-1">VS</p>
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-600 to-transparent mx-auto" />
+          <div className="text-center shrink-0">
+            <p className="text-gray-500 text-2xl md:text-3xl font-display">VS</p>
+            <div className="w-px h-16 md:h-24 bg-gradient-to-b from-transparent via-gray-500 to-transparent mx-auto mt-2" />
           </div>
 
           <motion.div 
-            className="text-center flex-1 max-w-xs cursor-pointer"
-            animate={{ scale: liveMatch.currentInnings === 2 ? 1.05 : 1 }}
+            className="text-center flex-1 cursor-pointer"
+            animate={{ scale: liveMatch.currentInnings === 2 ? 1.02 : 1 }}
             onClick={() => team2 && setSelectedLiveTeamId({ id: team2.id, name: team2.name })}
           >
-            <div 
-              className="w-16 h-16 mx-auto rounded-xl flex items-center justify-center text-white font-display text-xl mb-2"
-              style={{ backgroundColor: team2?.primaryColor }}
-              data-testid="team2-logo"
-            >
-              {team2?.shortName}
-            </div>
-            <p className="font-display text-lg">{team2?.name}</p>
-            <p className="font-display text-4xl text-white mt-1" data-testid="team2-score">
+            {team2?.logoUrl ? (
+              <img 
+                src={team2.logoUrl} 
+                alt={team2.name} 
+                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl object-cover mb-4"
+                data-testid="team2-logo"
+              />
+            ) : (
+              <div 
+                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-3xl mb-4"
+                style={{ backgroundColor: team2?.primaryColor }}
+                data-testid="team2-logo"
+              >
+                {team2?.shortName}
+              </div>
+            )}
+            <p className="font-display text-xl md:text-2xl text-gray-300 uppercase tracking-wider">{team2?.name}</p>
+            <p className="font-display text-[8vw] md:text-[10vw] text-white leading-none mt-2" data-testid="team2-score">
               {liveMatch.team2Score}/{liveMatch.team2Wickets}
-              <span className="text-lg text-gray-400 ml-2">({liveMatch.team2Overs})</span>
             </p>
+            <p className="text-2xl md:text-3xl text-gray-400 mt-1">({liveMatch.team2Overs})</p>
           </motion.div>
         </div>
 
@@ -916,7 +935,7 @@ export default function MatchDisplay() {
                // Team 2 = Innings 2
                const isTeam1 = selectedLiveTeamId.id === liveMatch.team1Id;
                const targetInnings = isTeam1 ? 1 : 2;
-               const teamHasStarted = liveMatch.currentInnings >= targetInnings;
+               const teamHasStarted = (liveMatch.currentInnings || 1) >= targetInnings;
                
                if (!teamHasStarted) {
                  return (
