@@ -584,12 +584,12 @@ export default function MatchDisplay() {
               <img 
                 src={team1.logoUrl} 
                 alt={team1.name} 
-                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl object-cover mb-4"
+                className="w-32 h-32 md:w-48 md:h-48 mx-auto rounded-2xl object-cover mb-4"
                 data-testid="team1-logo"
               />
             ) : (
               <div 
-                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-3xl mb-4"
+                className="w-32 h-32 md:w-48 md:h-48 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-4xl md:text-5xl mb-4"
                 style={{ backgroundColor: team1?.primaryColor }}
                 data-testid="team1-logo"
               >
@@ -617,12 +617,12 @@ export default function MatchDisplay() {
               <img 
                 src={team2.logoUrl} 
                 alt={team2.name} 
-                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl object-cover mb-4"
+                className="w-32 h-32 md:w-48 md:h-48 mx-auto rounded-2xl object-cover mb-4"
                 data-testid="team2-logo"
               />
             ) : (
               <div 
-                className="w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-3xl mb-4"
+                className="w-32 h-32 md:w-48 md:h-48 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-4xl md:text-5xl mb-4"
                 style={{ backgroundColor: team2?.primaryColor }}
                 data-testid="team2-logo"
               >
@@ -663,90 +663,90 @@ export default function MatchDisplay() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Target className="w-5 h-5 text-emerald-400" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-2xl text-white flex items-center gap-3">
+                  <Target className="w-7 h-7 text-emerald-400" />
                   At The Crease
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {strikerStats && (
-                    <div className="flex items-center justify-between bg-emerald-500/10 rounded-lg p-3 border border-emerald-500/30">
-                      <div className="flex items-center gap-3">
-                        <Badge className="bg-emerald-500 text-white text-xs">*</Badge>
-                        <span className="font-medium" data-testid="text-striker-name">{strikerStats.name}</span>
+                    <div className="flex items-center justify-between bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30">
+                      <div className="flex items-center gap-4">
+                        <Badge className="bg-emerald-500 text-white text-lg px-3 py-1">*</Badge>
+                        <span className="font-display text-2xl md:text-3xl text-white" data-testid="text-striker-name">{strikerStats.name}</span>
                       </div>
-                      <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-8">
                         <div className="text-center">
-                          <p className="text-2xl font-display text-white" data-testid="text-striker-runs">{strikerStats.runs}</p>
-                          <p className="text-gray-400 text-xs">({strikerStats.balls})</p>
+                          <p className="text-4xl md:text-5xl font-display text-white" data-testid="text-striker-runs">{strikerStats.runs}</p>
+                          <p className="text-white/70 text-lg">({strikerStats.balls})</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-300">{strikerStats.fours}</p>
-                          <p className="text-gray-500 text-xs">4s</p>
+                          <p className="text-2xl text-white">{strikerStats.fours}</p>
+                          <p className="text-white/70 text-sm">4s</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-300">{strikerStats.sixes}</p>
-                          <p className="text-gray-500 text-xs">6s</p>
+                          <p className="text-2xl text-white">{strikerStats.sixes}</p>
+                          <p className="text-white/70 text-sm">6s</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-300">{strikerStats.strikeRate}</p>
-                          <p className="text-gray-500 text-xs">SR</p>
+                          <p className="text-2xl text-white">{strikerStats.strikeRate}</p>
+                          <p className="text-white/70 text-sm">SR</p>
                         </div>
                       </div>
                     </div>
                   )}
                   
                   {nonStrikerStats && (
-                    <div className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                      <div className="flex items-center gap-3">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-300" data-testid="text-nonstriker-name">{nonStrikerStats.name}</span>
+                    <div className="flex items-center justify-between bg-white/5 rounded-xl p-4">
+                      <div className="flex items-center gap-4">
+                        <User className="w-6 h-6 text-white/70" />
+                        <span className="font-display text-xl md:text-2xl text-white" data-testid="text-nonstriker-name">{nonStrikerStats.name}</span>
                       </div>
-                      <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-8">
                         <div className="text-center">
-                          <p className="text-xl font-display text-gray-300" data-testid="text-nonstriker-runs">{nonStrikerStats.runs}</p>
-                          <p className="text-gray-500 text-xs">({nonStrikerStats.balls})</p>
+                          <p className="text-3xl md:text-4xl font-display text-white" data-testid="text-nonstriker-runs">{nonStrikerStats.runs}</p>
+                          <p className="text-white/60 text-base">({nonStrikerStats.balls})</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">{nonStrikerStats.fours}</p>
-                          <p className="text-gray-600 text-xs">4s</p>
+                          <p className="text-xl text-white">{nonStrikerStats.fours}</p>
+                          <p className="text-white/60 text-sm">4s</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">{nonStrikerStats.sixes}</p>
-                          <p className="text-gray-600 text-xs">6s</p>
+                          <p className="text-xl text-white">{nonStrikerStats.sixes}</p>
+                          <p className="text-white/60 text-sm">6s</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-400">{nonStrikerStats.strikeRate}</p>
-                          <p className="text-gray-600 text-xs">SR</p>
+                          <p className="text-xl text-white">{nonStrikerStats.strikeRate}</p>
+                          <p className="text-white/60 text-sm">SR</p>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {!strikerStats && !nonStrikerStats && (
-                    <div className="text-center text-gray-500 py-4">
+                    <div className="text-center text-white/50 py-6 text-xl">
                       Waiting for batsmen to be selected...
                     </div>
                   )}
                 </div>
 
                 {bowlerStats && (
-                  <div className="mt-4 pt-4 border-t border-white/10">
-                    <div className="flex items-center justify-between bg-purple-500/10 rounded-lg p-3 border border-purple-500/30">
-                      <div className="flex items-center gap-3">
-                        <Zap className="w-4 h-4 text-purple-400" />
-                        <span className="font-medium" data-testid="text-bowler-name">{bowlerStats.name}</span>
+                  <div className="mt-5 pt-5 border-t border-white/10">
+                    <div className="flex items-center justify-between bg-purple-500/10 rounded-xl p-4 border border-purple-500/30">
+                      <div className="flex items-center gap-4">
+                        <Zap className="w-6 h-6 text-purple-400" />
+                        <span className="font-display text-xl md:text-2xl text-white" data-testid="text-bowler-name">{bowlerStats.name}</span>
                       </div>
-                      <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-8">
                         <div className="text-center">
-                          <p className="text-lg font-display text-purple-300" data-testid="text-bowler-figures">{bowlerStats.wickets}-{bowlerStats.runs}</p>
-                          <p className="text-gray-500 text-xs">({bowlerStats.overs})</p>
+                          <p className="text-3xl md:text-4xl font-display text-white" data-testid="text-bowler-figures">{bowlerStats.wickets}-{bowlerStats.runs}</p>
+                          <p className="text-white/60 text-base">({bowlerStats.overs})</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-300">{bowlerStats.economy}</p>
-                          <p className="text-gray-500 text-xs">Econ</p>
+                          <p className="text-xl text-white">{bowlerStats.economy}</p>
+                          <p className="text-white/60 text-sm">Econ</p>
                         </div>
                       </div>
                     </div>
@@ -756,14 +756,14 @@ export default function MatchDisplay() {
             </Card>
 
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Circle className="w-4 h-4 text-emerald-400" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-2xl text-white flex items-center gap-3">
+                  <Circle className="w-6 h-6 text-emerald-400" />
                   This Over
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-center gap-2 flex-wrap min-h-[60px]">
+                <div className="flex items-center justify-center gap-3 flex-wrap min-h-[80px]">
                   {getThisOver().map((ball, i) => (
                     <motion.div
                       key={i}
@@ -785,16 +785,16 @@ export default function MatchDisplay() {
                     </motion.div>
                   ))}
                   {getThisOver().length === 0 && (
-                    <p className="text-gray-500">New over starting...</p>
+                    <p className="text-white/50 text-lg">New over starting...</p>
                   )}
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-2xl text-white flex items-center gap-3">
+                  <TrendingUp className="w-6 h-6 text-blue-400" />
                   Recent Overs
                 </CardTitle>
               </CardHeader>
