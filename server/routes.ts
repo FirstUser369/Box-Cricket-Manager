@@ -457,7 +457,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Team already has 9 players (maximum roster size)" });
       }
       
-      const price = soldPrice || player.basePoints;
+      const price = typeof soldPrice === 'number' ? soldPrice : player.basePoints;
       
       // Check if team has enough budget
       if (team.remainingBudget < price) {

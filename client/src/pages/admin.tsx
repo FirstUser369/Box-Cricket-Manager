@@ -1710,6 +1710,7 @@ function AdminDashboard() {
                               <AssignPlayerDialog
                                 player={player}
                                 teams={teams || []}
+                                allPlayers={players || []}
                                 onAssign={(data) =>
                                   assignPlayerMutation.mutate({
                                     playerId: player.id,
@@ -2176,10 +2177,12 @@ function EditBudgetDialog({
 function AssignPlayerDialog({
   player,
   teams,
+  allPlayers,
   onAssign,
 }: {
   player: Player;
   teams: Team[];
+  allPlayers: Player[];
   onAssign: (data: { teamId: string; soldPrice: number }) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -2187,7 +2190,10 @@ function AssignPlayerDialog({
   const [soldPrice, setSoldPrice] = useState(player.basePoints);
 
   const selectedTeam = teams.find(t => t.id === selectedTeamId);
-  const canAssign = selectedTeam && selectedTeam.remainingBudget >= soldPrice;
+  const teamRosterSize = selectedTeamId ? allPlayers.filter(p => p.teamId === selectedTeamId).length : 0;
+  const hasEnoughBudget = selectedTeam && selectedTeam.remainingBudget >= soldPrice;
+  const hasRosterSpace = teamRosterSize < 9;
+  const canAssign = selectedTeam && hasEnoughBudget && hasRosterSpace;
 
   const handleSubmit = () => {
     if (selectedTeamId && soldPrice) {
@@ -2254,9 +2260,14 @@ function AssignPlayerDialog({
               Enter the price at which player was sold
             </p>
           </div>
-          {selectedTeam && !canAssign && (
+          {selectedTeam && !hasEnoughBudget && (
             <p className="text-sm text-destructive">
               Team doesn't have enough budget ({selectedTeam.remainingBudget.toLocaleString()} available)
+            </p>
+          )}
+          {selectedTeam && !hasRosterSpace && (
+            <p className="text-sm text-destructive">
+              Team already has 9 players (maximum roster size)
             </p>
           )}
         </div>
