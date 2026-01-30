@@ -684,7 +684,39 @@ export async function registerRoutes(
     try {
       const { tossWinnerId, tossDecision, team1PlayingXI, team2PlayingXI } = req.body;
       
-      const match = await storage.updateMatch(req.params.id, {
+      const match = await storage.getMatch(req.params.id);
+      if (!match) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      
+      // Validate playing XI if provided
+      const allPlayers = await storage.getAllPlayers();
+      const team1Players = allPlayers.filter(p => p.teamId === match.team1Id);
+      const team2Players = allPlayers.filter(p => p.teamId === match.team2Id);
+      
+      // If team has 9 players, require 8-player playing XI selection
+      if (team1Players.length === 9) {
+        if (!team1PlayingXI || team1PlayingXI.length !== 8) {
+          return res.status(400).json({ error: "Team 1 has 9 players - must select exactly 8 for playing XI" });
+        }
+        // Validate all selected players belong to the team
+        const validPlayers = team1PlayingXI.every((id: string) => team1Players.some(p => p.id === id));
+        if (!validPlayers) {
+          return res.status(400).json({ error: "Invalid player selection for Team 1" });
+        }
+      }
+      
+      if (team2Players.length === 9) {
+        if (!team2PlayingXI || team2PlayingXI.length !== 8) {
+          return res.status(400).json({ error: "Team 2 has 9 players - must select exactly 8 for playing XI" });
+        }
+        const validPlayers = team2PlayingXI.every((id: string) => team2Players.some(p => p.id === id));
+        if (!validPlayers) {
+          return res.status(400).json({ error: "Invalid player selection for Team 2" });
+        }
+      }
+      
+      const updatedMatch = await storage.updateMatch(req.params.id, {
         status: "live",
         tossWinnerId,
         tossDecision,
@@ -697,12 +729,9 @@ export async function registerRoutes(
         team2PlayingXI: team2PlayingXI || null,
       });
       
-      if (!match) {
-        return res.status(404).json({ error: "Match not found" });
-      }
-      
-      res.json(match);
+      res.json(updatedMatch);
     } catch (error) {
+      console.error("Start match error:", error);
       res.status(500).json({ error: "Failed to start match" });
     }
   });

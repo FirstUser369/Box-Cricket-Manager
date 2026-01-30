@@ -577,7 +577,7 @@ function AdminDashboard() {
   });
 
   const createMatchMutation = useMutation({
-    mutationFn: async (data: { team1Id: string; team2Id: string }) => {
+    mutationFn: async (data: { team1Id: string; team2Id: string; matchNumber: number }) => {
       return apiRequest("POST", "/api/matches", data);
     },
     onSuccess: () => {
