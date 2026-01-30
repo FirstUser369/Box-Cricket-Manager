@@ -576,6 +576,16 @@ function AdminDashboard() {
     },
   });
 
+  const clearMatchesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", "/api/matches/clear-scheduled");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "All scheduled matches cleared" });
+    },
+  });
+
   const startMatchMutation = useMutation({
     mutationFn: async ({
       matchId,
@@ -1733,11 +1743,32 @@ function AdminDashboard() {
                   Create matches manually and start scoring
                 </p>
               </div>
-              <CreateMatchDialog
-                teams={teams || []}
-                matches={matches || []}
-                onSubmit={(data) => createMatchMutation.mutate(data)}
-              />
+              <div className="flex items-center gap-2">
+                {(matches?.filter(m => m.status === "scheduled")?.length ?? 0) > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete ALL scheduled matches? This cannot be undone.")) {
+                        clearMatchesMutation.mutate();
+                      }
+                    }}
+                    disabled={clearMatchesMutation.isPending}
+                    data-testid="button-clear-matches"
+                  >
+                    {clearMatchesMutation.isPending && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All Matches
+                  </Button>
+                )}
+                <CreateMatchDialog
+                  teams={teams || []}
+                  matches={matches || []}
+                  onSubmit={(data) => createMatchMutation.mutate(data)}
+                />
+              </div>
             </div>
 
             {liveMatch ? (

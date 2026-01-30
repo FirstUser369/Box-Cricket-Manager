@@ -650,6 +650,22 @@ export async function registerRoutes(
     }
   });
 
+  // Clear all scheduled matches
+  app.delete("/api/matches/clear-scheduled", async (req, res) => {
+    try {
+      const matches = await storage.getAllMatches();
+      const scheduledMatches = matches.filter(m => m.status === "scheduled");
+      
+      for (const match of scheduledMatches) {
+        await storage.deleteMatch(match.id);
+      }
+      
+      res.json({ deleted: scheduledMatches.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear matches" });
+    }
+  });
+
   app.post("/api/matches/:id/start", async (req, res) => {
     try {
       const { tossWinnerId, tossDecision, team1PlayingXI, team2PlayingXI } = req.body;
