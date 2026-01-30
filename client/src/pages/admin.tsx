@@ -2862,11 +2862,7 @@ function LiveScoringPanel({
   const [selectedFielder, setSelectedFielder] = useState<string>("");
   const [selectedDismissedBatsman, setSelectedDismissedBatsman] =
     useState<string>("");
-  const [wicketDialogState, setWicketDialogState] = useState<{
-    open: boolean;
-    type: string;
-    needsFielder?: boolean;
-  }>({ open: false, type: "" });
+  const [runOutRuns, setRunOutRuns] = useState<number>(0);
   const [lastBowlerId, setLastBowlerId] = useState<string | null>(null);
 
   const team1 = teams.find((t) => t.id === match.team1Id);
@@ -2955,16 +2951,18 @@ function LiveScoringPanel({
         : match.strikerId || undefined;
 
     onRecordBall({
-      runs: 0,
+      runs: pendingWicketType === "run_out" ? runOutRuns : 0,
       isWicket: true,
       wicketType: pendingWicketType,
       dismissedPlayerId: dismissedId,
       fielderId: selectedFielder || undefined,
     });
-    setWicketDialogState({ open: false, type: "" });
+    setShowFielderDialog(false);
+    setPendingWicketType("");
     setSelectedDismissedPlayer("");
     setSelectedFielder("");
     setSelectedDismissedBatsman("");
+    setRunOutRuns(0);
   };
 
   return (
@@ -3358,8 +3356,8 @@ function LiveScoringPanel({
               <Label className="text-sm text-muted-foreground mb-2 block">
                 Wicket
               </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {["bowled", "caught", "lbw", "run_out", "stumped"].map(
+              <div className="grid grid-cols-2 gap-2">
+                {["bowled", "caught", "run_out", "stumped"].map(
                   (type) => (
                     <Button
                       key={type}
@@ -3442,62 +3440,96 @@ function LiveScoringPanel({
         )}
 
         {/* Wicket Details Dialog */}
-        <Dialog open={wicketDialogState.open} onOpenChange={(open) => {
-            if (!open) setWicketDialogState(prev => ({ ...prev, open: false }));
+        <Dialog open={showFielderDialog} onOpenChange={(open) => {
+            if (!open) {
+              setShowFielderDialog(false);
+              setPendingWicketType("");
+              setSelectedFielder("");
+              setSelectedDismissedBatsman("");
+              setRunOutRuns(0);
+            }
         }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="capitalize">
                 {pendingWicketType === "caught"
-                  ? "Select Catcher"
+                  ? "Caught - Select Fielder"
                   : pendingWicketType === "stumped"
-                    ? "Select Wicketkeeper"
-                    : "Select Fielder (Run Out)"}
+                    ? "Stumped - Select Wicketkeeper"
+                    : "Run Out Details"}
               </DialogTitle>
               <DialogDescription>
-                Choose the fielder who made the{" "}
                 {pendingWicketType === "caught"
-                  ? "catch"
+                  ? "Select the fielder who took the catch"
                   : pendingWicketType === "stumped"
-                    ? "stumping"
-                    : "run out"}
+                    ? "Select the wicketkeeper who made the stumping"
+                    : "Select which batsman was run out and runs scored before dismissal"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              {/* For run outs, allow selecting which batsman was dismissed */}
+              {/* For run outs, allow selecting which batsman was dismissed and runs */}
               {pendingWicketType === "run_out" && (
-                <div>
-                  <Label>Dismissed Batsman</Label>
-                  <Select
-                    value={selectedDismissedBatsman}
-                    onValueChange={setSelectedDismissedBatsman}
-                  >
-                    <SelectTrigger data-testid="select-dismissed-batsman">
-                      <SelectValue placeholder="Select dismissed batsman" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {match.strikerId && (
-                        <SelectItem value={match.strikerId}>
-                          {getPlayerName(match.strikerId)} (Striker)
-                        </SelectItem>
-                      )}
-                      {match.nonStrikerId && (
-                        <SelectItem value={match.nonStrikerId}>
-                          {getPlayerName(match.nonStrikerId)} (Non-Striker)
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div>
+                    <Label>Which Batsman was Run Out?</Label>
+                    <Select
+                      value={selectedDismissedBatsman}
+                      onValueChange={setSelectedDismissedBatsman}
+                    >
+                      <SelectTrigger data-testid="select-dismissed-batsman">
+                        <SelectValue placeholder="Select dismissed batsman" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {match.strikerId && (
+                          <SelectItem value={match.strikerId}>
+                            {getPlayerName(match.strikerId)} (Striker)
+                          </SelectItem>
+                        )}
+                        {match.nonStrikerId && (
+                          <SelectItem value={match.nonStrikerId}>
+                            {getPlayerName(match.nonStrikerId)} (Non-Striker)
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Runs Scored Before Run Out</Label>
+                    <div className="flex gap-2 mt-2">
+                      {[0, 1, 2, 3].map((r) => (
+                        <Button
+                          key={r}
+                          type="button"
+                          variant={runOutRuns === r ? "default" : "outline"}
+                          className="flex-1 h-12"
+                          onClick={() => setRunOutRuns(r)}
+                          data-testid={`button-runout-runs-${r}`}
+                        >
+                          {r}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
               <div>
-                <Label>Fielder</Label>
+                <Label>
+                  {pendingWicketType === "caught"
+                    ? "Fielder who caught the ball"
+                    : pendingWicketType === "stumped"
+                      ? "Wicketkeeper"
+                      : "Fielder who made the run out"}
+                </Label>
                 <Select
                   value={selectedFielder}
                   onValueChange={setSelectedFielder}
                 >
                   <SelectTrigger data-testid="select-fielder">
-                    <SelectValue placeholder="Select fielder" />
+                    <SelectValue placeholder={
+                      pendingWicketType === "stumped" 
+                        ? "Select wicketkeeper" 
+                        : "Select fielder"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     {bowlingTeamPlayers.map((player) => (
@@ -3508,36 +3540,25 @@ function LiveScoringPanel({
                   </SelectContent>
                 </Select>
               </div>
-
-              {wicketDialogState.needsFielder && (
-                  <div>
-                    <Label>Fielder</Label>
-                    <Select value={selectedFielder} onValueChange={setSelectedFielder}>
-                      <SelectTrigger data-testid="select-fielder">
-                        <SelectValue placeholder="Select fielder" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bowlingTeamPlayers.map(player => (
-                          <SelectItem key={player.id} value={player.id}>
-                            {player.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-              )}
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setShowFielderDialog(false)}
+                onClick={() => {
+                  setShowFielderDialog(false);
+                  setPendingWicketType("");
+                  setSelectedFielder("");
+                  setSelectedDismissedBatsman("");
+                  setRunOutRuns(0);
+                }}
               >
                 Cancel
               </Button>
               <Button
                 onClick={confirmWicketWithFielder}
                 disabled={
-                  pendingWicketType === "run_out" && !selectedDismissedBatsman
+                  !selectedFielder ||
+                  (pendingWicketType === "run_out" && !selectedDismissedBatsman)
                 }
                 data-testid="button-confirm-wicket"
               >
