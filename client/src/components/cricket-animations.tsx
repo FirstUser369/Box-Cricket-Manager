@@ -13,31 +13,35 @@ interface CricketAnimationProps {
 const eventConfig = {
   wicket: {
     icon: X,
-    text: "WICKET!",
-    bgColor: "from-red-600 via-red-500 to-red-700",
+    text: "OUT!",
+    subtext: "WICKET",
+    bgColor: "from-red-700 via-red-600 to-red-800",
     textColor: "text-white",
-    glowColor: "shadow-[0_0_100px_rgba(239,68,68,0.8)]",
-    duration: 3000,
+    glowColor: "shadow-[0_0_150px_rgba(239,68,68,0.9)]",
+    duration: 3500,
   },
   six: {
     icon: Flame,
-    text: "MAXIMUM SIX!",
+    text: "SIX!",
+    subtext: "MAXIMUM",
     bgColor: "from-yellow-500 via-amber-400 to-orange-500",
     textColor: "text-black",
-    glowColor: "shadow-[0_0_100px_rgba(251,191,36,0.8)]",
-    duration: 3000,
+    glowColor: "shadow-[0_0_150px_rgba(251,191,36,0.9)]",
+    duration: 3500,
   },
   four: {
     icon: Zap,
-    text: "BOUNDARY!",
+    text: "FOUR!",
+    subtext: "BOUNDARY",
     bgColor: "from-emerald-500 via-green-400 to-teal-500",
     textColor: "text-white",
-    glowColor: "shadow-[0_0_100px_rgba(16,185,129,0.8)]",
-    duration: 2500,
+    glowColor: "shadow-[0_0_150px_rgba(16,185,129,0.9)]",
+    duration: 3000,
   },
   "no-ball": {
     icon: AlertTriangle,
     text: "NO BALL",
+    subtext: "",
     bgColor: "from-red-500 via-rose-500 to-pink-600",
     textColor: "text-white",
     glowColor: "shadow-[0_0_60px_rgba(239,68,68,0.6)]",
@@ -46,6 +50,7 @@ const eventConfig = {
   wide: {
     icon: Circle,
     text: "WIDE",
+    subtext: "",
     bgColor: "from-blue-500 via-cyan-500 to-blue-600",
     textColor: "text-white",
     glowColor: "shadow-[0_0_60px_rgba(59,130,246,0.6)]",
@@ -54,6 +59,7 @@ const eventConfig = {
   dot: {
     icon: Target,
     text: "DOT",
+    subtext: "",
     bgColor: "from-gray-600 via-gray-500 to-gray-700",
     textColor: "text-white",
     glowColor: "",
@@ -62,6 +68,7 @@ const eventConfig = {
   single: {
     icon: null,
     text: "1",
+    subtext: "",
     bgColor: "from-purple-500 via-violet-500 to-purple-600",
     textColor: "text-white",
     glowColor: "",
@@ -70,6 +77,7 @@ const eventConfig = {
   double: {
     icon: null,
     text: "2",
+    subtext: "",
     bgColor: "from-purple-500 via-violet-500 to-purple-600",
     textColor: "text-white",
     glowColor: "",
@@ -78,6 +86,7 @@ const eventConfig = {
   triple: {
     icon: null,
     text: "3",
+    subtext: "",
     bgColor: "from-purple-500 via-violet-500 to-purple-600",
     textColor: "text-white",
     glowColor: "",
@@ -152,14 +161,14 @@ export function CricketEventAnimation({ event, onComplete }: CricketAnimationPro
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+        className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none bg-black/60"
       >
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           exit={{ scale: 0, opacity: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
-          className={`relative bg-gradient-to-r ${config.bgColor} rounded-3xl p-12 ${config.glowColor}`}
+          className={`relative bg-gradient-to-br ${config.bgColor} rounded-3xl px-16 py-12 md:px-24 md:py-16 ${config.glowColor} min-w-[60vw] md:min-w-[50vw]`}
         >
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -170,20 +179,30 @@ export function CricketEventAnimation({ event, onComplete }: CricketAnimationPro
             {Icon && (
               <motion.div
                 animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: event === "wicket" ? [0, 10, -10, 0] : 0
+                  scale: [1, 1.3, 1],
+                  rotate: event === "wicket" ? [0, 15, -15, 0] : [0, 5, -5, 0]
                 }}
-                transition={{ repeat: Infinity, duration: 0.5 }}
-                className="flex justify-center mb-4"
+                transition={{ repeat: Infinity, duration: 0.4 }}
+                className="flex justify-center mb-6"
               >
-                <Icon className={`w-20 h-20 ${config.textColor}`} />
+                <Icon className={`w-24 h-24 md:w-32 md:h-32 ${config.textColor} drop-shadow-2xl`} />
               </motion.div>
+            )}
+            {config.subtext && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className={`font-display text-2xl md:text-4xl ${config.textColor} tracking-[0.3em] mb-2 opacity-90`}
+              >
+                {config.subtext}
+              </motion.p>
             )}
             <motion.h1
               initial={{ scale: 0.5 }}
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className={`font-display text-6xl md:text-8xl ${config.textColor} tracking-wider`}
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ delay: 0.1, duration: 0.4, repeat: 2 }}
+              className={`font-display text-[15vw] md:text-[12vw] ${config.textColor} tracking-wider leading-none drop-shadow-2xl`}
             >
               {config.text}
             </motion.h1>
