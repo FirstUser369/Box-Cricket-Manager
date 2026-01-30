@@ -586,6 +586,16 @@ function AdminDashboard() {
     },
   });
 
+  const createSemifinalsMutation = useMutation({
+    mutationFn: async (data: { semifinal1Teams: string[]; semifinal2Teams: string[] }) => {
+      return apiRequest("POST", "/api/tournament/create-semifinals", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "Semi-finals created" });
+    },
+  });
+
   const startMatchMutation = useMutation({
     mutationFn: async ({
       matchId,
@@ -1489,14 +1499,18 @@ function AdminDashboard() {
                                     <span className="text-sm font-medium text-muted-foreground w-4">
                                       {index + 1}.
                                     </span>
-                                    <div
-                                      className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
-                                      style={{
-                                        backgroundColor: team.primaryColor,
-                                      }}
-                                    >
-                                      {team.shortName}
-                                    </div>
+                                    {team.logoUrl ? (
+                                      <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded object-cover shrink-0" />
+                                    ) : (
+                                      <div
+                                        className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display shrink-0"
+                                        style={{
+                                          backgroundColor: team.primaryColor,
+                                        }}
+                                      >
+                                        {team.shortName?.slice(0, 2)}
+                                      </div>
+                                    )}
                                     <span className="text-sm truncate flex-1">
                                       {team.name}
                                     </span>
@@ -1545,15 +1559,19 @@ function AdminDashboard() {
                                               value={team.id}
                                             >
                                               <div className="flex items-center gap-2">
-                                                <div
-                                                  className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display"
-                                                  style={{
-                                                    backgroundColor:
-                                                      team.primaryColor,
-                                                  }}
-                                                >
-                                                  {team.shortName}
-                                                </div>
+                                                {team.logoUrl ? (
+                                                  <img src={team.logoUrl} alt={team.name} className="w-5 h-5 rounded object-cover" />
+                                                ) : (
+                                                  <div
+                                                    className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display"
+                                                    style={{
+                                                      backgroundColor:
+                                                        team.primaryColor,
+                                                    }}
+                                                  >
+                                                    {team.shortName?.slice(0, 2)}
+                                                  </div>
+                                                )}
                                                 <span>{team.name}</span>
                                               </div>
                                             </SelectItem>
@@ -1576,48 +1594,125 @@ function AdminDashboard() {
                   );
                 })()}
 
+                {/* League Stage Matches */}
                 <Card className="bg-muted/30">
                   <CardHeader>
-                    <CardTitle className="text-lg">Tournament Flow</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
-                      <div className="flex-1 p-4 rounded-md bg-card">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          GROUP STAGE
-                        </p>
-                        <p className="font-display text-2xl">12 Matches</p>
-                        <p className="text-sm text-muted-foreground">
-                          Each team plays 2 matches
-                        </p>
-                      </div>
-                      <div className="text-2xl text-muted-foreground hidden md:block">
-                        &rarr;
-                      </div>
-                      <div className="flex-1 p-4 rounded-md bg-card">
-                        <p className="text-xs text-muted-foreground mb-1">
-                          SEMI-FINALS
-                        </p>
-                        <p className="font-display text-2xl">2 Matches</p>
-                        <p className="text-sm text-muted-foreground">
-                          Top team from each group
-                        </p>
-                      </div>
-                      <div className="text-2xl text-muted-foreground hidden md:block">
-                        &rarr;
-                      </div>
-                      <div className="flex-1 p-4 rounded-md bg-primary/10 border border-primary/20">
-                        <p className="text-xs text-primary mb-1">FINAL</p>
-                        <p className="font-display text-2xl text-primary">
-                          1 Match
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Semi-final winners
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">League Stage Matches</CardTitle>
+                      <div className="flex items-center gap-2">
+                        {(matches?.filter(m => m.status === "scheduled" && m.stage === "group")?.length ?? 0) > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete ALL scheduled matches? This cannot be undone.")) {
+                                clearMatchesMutation.mutate();
+                              }
+                            }}
+                            disabled={clearMatchesMutation.isPending}
+                            data-testid="button-clear-matches"
+                          >
+                            {clearMatchesMutation.isPending && (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            )}
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Clear All
+                          </Button>
+                        )}
+                        <CreateMatchDialog
+                          teams={teams || []}
+                          matches={matches || []}
+                          onSubmit={(data) => createMatchMutation.mutate(data)}
+                        />
                       </div>
                     </div>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const groupMatches = matches?.filter((m) => m.stage === "group" || !m.stage) || [];
+                      if (groupMatches.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Play className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p>No matches scheduled yet</p>
+                            <p className="text-sm">Click "Create Match" to add matches</p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {groupMatches.map((match) => {
+                            const team1 = teams?.find((t) => t.id === match.team1Id);
+                            const team2 = teams?.find((t) => t.id === match.team2Id);
+                            return (
+                              <Card key={match.id} className="bg-card" data-testid={`match-${match.id}`}>
+                                <CardContent className="p-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <span className="text-xs text-muted-foreground font-medium">#{match.matchNumber}</span>
+                                      <div className="flex items-center gap-2">
+                                        {team1?.logoUrl ? (
+                                          <img src={team1.logoUrl} alt={team1.name} className="w-6 h-6 rounded object-cover" />
+                                        ) : (
+                                          <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team1?.primaryColor }}>
+                                            {team1?.shortName?.slice(0, 2)}
+                                          </div>
+                                        )}
+                                        <span className="text-sm font-medium">{team1?.shortName}</span>
+                                      </div>
+                                      <span className="text-muted-foreground text-sm">vs</span>
+                                      <div className="flex items-center gap-2">
+                                        {team2?.logoUrl ? (
+                                          <img src={team2.logoUrl} alt={team2.name} className="w-6 h-6 rounded object-cover" />
+                                        ) : (
+                                          <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team2?.primaryColor }}>
+                                            {team2?.shortName?.slice(0, 2)}
+                                          </div>
+                                        )}
+                                        <span className="text-sm font-medium">{team2?.shortName}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {match.status === "scheduled" && (
+                                        <StartMatchDialog
+                                          match={match}
+                                          teams={teams || []}
+                                          players={players || []}
+                                          onStart={(data) =>
+                                            startMatchMutation.mutate({
+                                              matchId: match.id,
+                                              ...data,
+                                            })
+                                          }
+                                        />
+                                      )}
+                                      {match.status === "live" && (
+                                        <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>
+                                      )}
+                                      {match.status === "completed" && (
+                                        <Badge variant="secondary">Completed</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
+
+                {/* Semi-Finals Selection */}
+                <SemiFinalsSection
+                  teams={teams || []}
+                  matches={matches || []}
+                  onCreateSemifinals={(data) => createSemifinalsMutation.mutate(data)}
+                  isCreating={createSemifinalsMutation.isPending}
+                  startMatchMutation={startMatchMutation}
+                  players={players || []}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1736,39 +1831,11 @@ function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="scoring" className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold">Match Scoring</h2>
-                <p className="text-sm text-muted-foreground">
-                  Create matches manually and start scoring
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {(matches?.filter(m => m.status === "scheduled")?.length ?? 0) > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete ALL scheduled matches? This cannot be undone.")) {
-                        clearMatchesMutation.mutate();
-                      }
-                    }}
-                    disabled={clearMatchesMutation.isPending}
-                    data-testid="button-clear-matches"
-                  >
-                    {clearMatchesMutation.isPending && (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    )}
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Clear All Matches
-                  </Button>
-                )}
-                <CreateMatchDialog
-                  teams={teams || []}
-                  matches={matches || []}
-                  onSubmit={(data) => createMatchMutation.mutate(data)}
-                />
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold">Match Scoring</h2>
+              <p className="text-sm text-muted-foreground">
+                Start a match from the Tournament tab to begin scoring here
+              </p>
             </div>
 
             {liveMatch ? (
@@ -1813,54 +1880,12 @@ function AdminDashboard() {
                 <CardContent className="py-12 text-center">
                   <Play className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="font-semibold mb-2">No Live Match</h3>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Create a match and start it to begin scoring
+                  <p className="text-muted-foreground text-sm">
+                    Go to Tournament tab → Start a match to begin scoring
                   </p>
                 </CardContent>
               </Card>
             )}
-
-            {(() => {
-              const scheduledMatches = matches?.filter((m) => m.status === "scheduled") || [];
-              if (scheduledMatches.length === 0) return null;
-              return (
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Scheduled Matches</h3>
-                  {scheduledMatches.map((match) => {
-                    const team1 = teams?.find((t) => t.id === match.team1Id);
-                    const team2 = teams?.find((t) => t.id === match.team2Id);
-                    return (
-                      <Card
-                        key={match.id}
-                        data-testid={`admin-match-${match.id}`}
-                      >
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm text-muted-foreground">
-                              #{match.matchNumber}
-                            </span>
-                            <span className="font-medium">
-                              {team1?.shortName} vs {team2?.shortName}
-                            </span>
-                          </div>
-                          <StartMatchDialog
-                            match={match}
-                            teams={teams || []}
-                            players={players || []}
-                            onStart={(data) =>
-                              startMatchMutation.mutate({
-                                matchId: match.id,
-                                ...data,
-                              })
-                            }
-                          />
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              );
-            })()}
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
@@ -2304,6 +2329,202 @@ function AssignPlayerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SemiFinalsSection({
+  teams,
+  matches,
+  onCreateSemifinals,
+  isCreating,
+  startMatchMutation,
+  players,
+}: {
+  teams: Team[];
+  matches: Match[];
+  onCreateSemifinals: (data: { semifinal1Teams: string[]; semifinal2Teams: string[] }) => void;
+  isCreating: boolean;
+  startMatchMutation: any;
+  players: Player[];
+}) {
+  const [sf1Team1, setSf1Team1] = useState<string>("");
+  const [sf1Team2, setSf1Team2] = useState<string>("");
+  const [sf2Team1, setSf2Team1] = useState<string>("");
+  const [sf2Team2, setSf2Team2] = useState<string>("");
+
+  const existingSemi1 = matches.find(m => m.stage === "semifinal" && m.matchNumber === 1);
+  const existingSemi2 = matches.find(m => m.stage === "semifinal" && m.matchNumber === 2);
+
+  const selectedTeamIds = [sf1Team1, sf1Team2, sf2Team1, sf2Team2].filter(Boolean);
+  const availableTeams = teams.filter(t => !selectedTeamIds.includes(t.id) || t.id === "");
+
+  const canCreate = sf1Team1 && sf1Team2 && sf2Team1 && sf2Team2 && 
+    sf1Team1 !== sf1Team2 && sf2Team1 !== sf2Team2 &&
+    !existingSemi1 && !existingSemi2;
+
+  const handleCreate = () => {
+    if (canCreate) {
+      onCreateSemifinals({
+        semifinal1Teams: [sf1Team1, sf1Team2],
+        semifinal2Teams: [sf2Team1, sf2Team2],
+      });
+    }
+  };
+
+  const renderTeamOption = (team: Team) => (
+    <SelectItem key={team.id} value={team.id}>
+      <div className="flex items-center gap-2">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt={team.name} className="w-5 h-5 rounded object-cover" />
+        ) : (
+          <div className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team.primaryColor }}>
+            {team.shortName?.slice(0, 2)}
+          </div>
+        )}
+        <span>{team.name}</span>
+      </div>
+    </SelectItem>
+  );
+
+  const renderTeamDisplay = (teamId: string | undefined) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) {
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+            <span className="text-xs">?</span>
+          </div>
+          <span className="text-sm">TBD</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded object-cover" />
+        ) : (
+          <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team.primaryColor }}>
+            {team.shortName?.slice(0, 2)}
+          </div>
+        )}
+        <span className="text-sm font-medium">{team.name}</span>
+      </div>
+    );
+  };
+
+  return (
+    <Card className="bg-muted/30">
+      <CardHeader>
+        <CardTitle className="text-lg">Semi-Finals</CardTitle>
+        <CardDescription>Select 4 teams that advance to semi-finals</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="bg-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Semi-Final 1</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {existingSemi1 ? (
+                <>
+                  <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingSemi1.team1Id)}</div>
+                  <div className="text-center text-muted-foreground text-xs">vs</div>
+                  <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingSemi1.team2Id)}</div>
+                  {existingSemi1.status === "scheduled" && (
+                    <StartMatchDialog
+                      match={existingSemi1}
+                      teams={teams}
+                      players={players}
+                      onStart={(data) => startMatchMutation.mutate({ matchId: existingSemi1.id, ...data })}
+                    />
+                  )}
+                  {existingSemi1.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
+                  {existingSemi1.status === "completed" && <Badge variant="secondary">Completed</Badge>}
+                </>
+              ) : (
+                <>
+                  <Select value={sf1Team1} onValueChange={setSf1Team1}>
+                    <SelectTrigger data-testid="select-sf1-team1">
+                      <SelectValue placeholder="Select Team 1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.filter(t => t.id !== sf1Team2).map(renderTeamOption)}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-center text-muted-foreground text-xs">vs</div>
+                  <Select value={sf1Team2} onValueChange={setSf1Team2}>
+                    <SelectTrigger data-testid="select-sf1-team2">
+                      <SelectValue placeholder="Select Team 2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.filter(t => t.id !== sf1Team1).map(renderTeamOption)}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Semi-Final 2</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {existingSemi2 ? (
+                <>
+                  <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingSemi2.team1Id)}</div>
+                  <div className="text-center text-muted-foreground text-xs">vs</div>
+                  <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingSemi2.team2Id)}</div>
+                  {existingSemi2.status === "scheduled" && (
+                    <StartMatchDialog
+                      match={existingSemi2}
+                      teams={teams}
+                      players={players}
+                      onStart={(data) => startMatchMutation.mutate({ matchId: existingSemi2.id, ...data })}
+                    />
+                  )}
+                  {existingSemi2.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
+                  {existingSemi2.status === "completed" && <Badge variant="secondary">Completed</Badge>}
+                </>
+              ) : (
+                <>
+                  <Select value={sf2Team1} onValueChange={setSf2Team1}>
+                    <SelectTrigger data-testid="select-sf2-team1">
+                      <SelectValue placeholder="Select Team 1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.filter(t => t.id !== sf2Team2 && t.id !== sf1Team1 && t.id !== sf1Team2).map(renderTeamOption)}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-center text-muted-foreground text-xs">vs</div>
+                  <Select value={sf2Team2} onValueChange={setSf2Team2}>
+                    <SelectTrigger data-testid="select-sf2-team2">
+                      <SelectValue placeholder="Select Team 2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.filter(t => t.id !== sf2Team1 && t.id !== sf1Team1 && t.id !== sf1Team2).map(renderTeamOption)}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {!existingSemi1 && !existingSemi2 && (
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={handleCreate} 
+              disabled={!canCreate || isCreating}
+              data-testid="button-create-semifinals"
+            >
+              {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Create Semi-Final Matches
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

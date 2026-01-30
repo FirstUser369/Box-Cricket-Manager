@@ -650,17 +650,19 @@ export async function registerRoutes(
     }
   });
 
-  // Clear all scheduled matches
+  // Clear all scheduled group stage matches (not semis/finals)
   app.delete("/api/matches/clear-scheduled", async (req, res) => {
     try {
       const matches = await storage.getAllMatches();
-      const scheduledMatches = matches.filter(m => m.status === "scheduled");
+      const scheduledGroupMatches = matches.filter(m => 
+        m.status === "scheduled" && (m.stage === "group" || !m.stage)
+      );
       
-      for (const match of scheduledMatches) {
+      for (const match of scheduledGroupMatches) {
         await storage.deleteMatch(match.id);
       }
       
-      res.json({ deleted: scheduledMatches.length });
+      res.json({ deleted: scheduledGroupMatches.length });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear matches" });
     }
