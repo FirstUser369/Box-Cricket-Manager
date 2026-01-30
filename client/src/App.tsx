@@ -11,7 +11,6 @@ import NotFound from "@/pages/not-found";
 import DisplayLogin from "@/pages/display/login";
 import DisplayIndex from "@/pages/display/index";
 import DisplayRegister from "@/pages/display/register";
-import AuctionDisplay from "@/pages/display/auction-display";
 import MatchDisplay from "@/pages/display/match-display";
 import LeaderboardDisplay from "@/pages/display/leaderboard-display";
 import PointsTableDisplay from "@/pages/display/points-table";
@@ -41,9 +40,6 @@ function DisplayRouter() {
         {isAuthenticated ? <DisplayIndex /> : <Redirect to="/display" />}
       </Route>
       <Route path="/display/register" component={DisplayRegister} />
-      <Route path="/display/auction">
-        {isAuthenticated ? <AuctionDisplay /> : <Redirect to="/display" />}
-      </Route>
       <Route path="/display/match">
         {isAuthenticated ? <MatchDisplay /> : <Redirect to="/display" />}
       </Route>

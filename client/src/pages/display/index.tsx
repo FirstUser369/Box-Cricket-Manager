@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Gavel, Play, Trophy, Monitor, UserPlus, Table } from "lucide-react";
+import { Play, Trophy, UserPlus, Table } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const displayOptions = [
@@ -10,13 +10,6 @@ const displayOptions = [
     description: "Register as a player for the tournament with QR code support",
     icon: UserPlus,
     gradient: "from-blue-600 to-purple-500",
-  },
-  {
-    href: "/display/auction",
-    title: "Auction Display",
-    description: "Full-screen live auction broadcast with player reveals and sold celebrations",
-    icon: Gavel,
-    gradient: "from-purple-600 to-orange-500",
   },
   {
     href: "/display/match",
