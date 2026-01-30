@@ -523,16 +523,6 @@ function AdminDashboard() {
     },
   });
 
-  const generateFixturesMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/tournament/generate-fixtures", {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
-      toast({ title: "Group stage fixtures generated" });
-    },
-  });
-
   const placeBidMutation = useMutation({
     mutationFn: async (teamId: string) => {
       return apiRequest("POST", "/api/auction/bid", { teamId });
@@ -1451,19 +1441,6 @@ function AdminDashboard() {
                             All Groups Complete
                           </Badge>
                         )}
-                        <Button
-                          variant="outline"
-                          onClick={() => generateFixturesMutation.mutate()}
-                          disabled={
-                            generateFixturesMutation.isPending || !allGroupsFull
-                          }
-                          data-testid="button-generate-fixtures"
-                        >
-                          {generateFixturesMutation.isPending && (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          )}
-                          Generate Group Fixtures
-                        </Button>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

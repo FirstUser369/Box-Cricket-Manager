@@ -577,36 +577,6 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tournament/generate-fixtures", async (req, res) => {
-    try {
-      const teams = await storage.getAllTeams();
-      const groups = ["A", "B", "C", "D"];
-      const fixtures: any[] = [];
-      
-      for (const group of groups) {
-        const groupTeams = teams.filter(t => t.groupName === group);
-        if (groupTeams.length >= 2) {
-          for (let i = 0; i < groupTeams.length; i++) {
-            for (let j = i + 1; j < groupTeams.length; j++) {
-              const match = await storage.createMatch({
-                matchNumber: fixtures.length + 1,
-                team1Id: groupTeams[i].id,
-                team2Id: groupTeams[j].id,
-                stage: "group",
-                groupName: group,
-              });
-              fixtures.push(match);
-            }
-          }
-        }
-      }
-      
-      res.json(fixtures);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to generate fixtures" });
-    }
-  });
-
   app.post("/api/tournament/create-semifinals", async (req, res) => {
     try {
       const { semifinal1Teams, semifinal2Teams } = req.body;
