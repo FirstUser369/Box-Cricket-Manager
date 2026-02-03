@@ -577,6 +577,44 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/tournament/create-quarterfinals", async (req, res) => {
+    try {
+      const { qf1Teams, qf2Teams, qf3Teams, qf4Teams } = req.body;
+      
+      const qf1 = await storage.createMatch({
+        matchNumber: 0,
+        team1Id: qf1Teams[0],
+        team2Id: qf1Teams[1],
+        stage: "quarterfinal",
+      });
+      
+      const qf2 = await storage.createMatch({
+        matchNumber: 0,
+        team1Id: qf2Teams[0],
+        team2Id: qf2Teams[1],
+        stage: "quarterfinal",
+      });
+      
+      const qf3 = await storage.createMatch({
+        matchNumber: 0,
+        team1Id: qf3Teams[0],
+        team2Id: qf3Teams[1],
+        stage: "quarterfinal",
+      });
+      
+      const qf4 = await storage.createMatch({
+        matchNumber: 0,
+        team1Id: qf4Teams[0],
+        team2Id: qf4Teams[1],
+        stage: "quarterfinal",
+      });
+      
+      res.json([qf1, qf2, qf3, qf4]);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create quarterfinals" });
+    }
+  });
+
   app.post("/api/tournament/create-semifinals", async (req, res) => {
     try {
       const { semifinal1Teams, semifinal2Teams } = req.body;

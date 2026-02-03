@@ -586,6 +586,16 @@ function AdminDashboard() {
     },
   });
 
+  const createQuarterfinalsMutation = useMutation({
+    mutationFn: async (data: { qf1Teams: string[]; qf2Teams: string[]; qf3Teams: string[]; qf4Teams: string[] }) => {
+      return apiRequest("POST", "/api/tournament/create-quarterfinals", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "Quarter-finals created" });
+    },
+  });
+
   const createSemifinalsMutation = useMutation({
     mutationFn: async (data: { semifinal1Teams: string[]; semifinal2Teams: string[] }) => {
       return apiRequest("POST", "/api/tournament/create-semifinals", data);
@@ -1704,6 +1714,16 @@ function AdminDashboard() {
                   </CardContent>
                 </Card>
 
+                {/* Quarter-Finals Selection */}
+                <QuarterFinalsSection
+                  teams={teams || []}
+                  matches={matches || []}
+                  onCreateQuarterfinals={(data) => createQuarterfinalsMutation.mutate(data)}
+                  isCreating={createQuarterfinalsMutation.isPending}
+                  startMatchMutation={startMatchMutation}
+                  players={players || []}
+                />
+
                 {/* Semi-Finals Selection */}
                 <SemiFinalsSection
                   teams={teams || []}
@@ -2329,6 +2349,185 @@ function AssignPlayerDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function QuarterFinalsSection({
+  teams,
+  matches,
+  onCreateQuarterfinals,
+  isCreating,
+  startMatchMutation,
+  players,
+}: {
+  teams: Team[];
+  matches: Match[];
+  onCreateQuarterfinals: (data: { qf1Teams: string[]; qf2Teams: string[]; qf3Teams: string[]; qf4Teams: string[] }) => void;
+  isCreating: boolean;
+  startMatchMutation: any;
+  players: Player[];
+}) {
+  const [qf1Team1, setQf1Team1] = useState<string>("");
+  const [qf1Team2, setQf1Team2] = useState<string>("");
+  const [qf2Team1, setQf2Team1] = useState<string>("");
+  const [qf2Team2, setQf2Team2] = useState<string>("");
+  const [qf3Team1, setQf3Team1] = useState<string>("");
+  const [qf3Team2, setQf3Team2] = useState<string>("");
+  const [qf4Team1, setQf4Team1] = useState<string>("");
+  const [qf4Team2, setQf4Team2] = useState<string>("");
+
+  const existingQF1 = matches.find(m => m.stage === "quarterfinal" && m.matchNumber === 1);
+  const existingQF2 = matches.find(m => m.stage === "quarterfinal" && m.matchNumber === 2);
+  const existingQF3 = matches.find(m => m.stage === "quarterfinal" && m.matchNumber === 3);
+  const existingQF4 = matches.find(m => m.stage === "quarterfinal" && m.matchNumber === 4);
+  
+  const existingQFs = matches.filter(m => m.stage === "quarterfinal");
+  const hasExistingQFs = existingQFs.length > 0;
+
+  const selectedTeamIds = [qf1Team1, qf1Team2, qf2Team1, qf2Team2, qf3Team1, qf3Team2, qf4Team1, qf4Team2].filter(Boolean);
+
+  const canCreate = qf1Team1 && qf1Team2 && qf2Team1 && qf2Team2 && qf3Team1 && qf3Team2 && qf4Team1 && qf4Team2 &&
+    qf1Team1 !== qf1Team2 && qf2Team1 !== qf2Team2 && qf3Team1 !== qf3Team2 && qf4Team1 !== qf4Team2 &&
+    !hasExistingQFs;
+
+  const handleCreate = () => {
+    if (canCreate) {
+      onCreateQuarterfinals({
+        qf1Teams: [qf1Team1, qf1Team2],
+        qf2Teams: [qf2Team1, qf2Team2],
+        qf3Teams: [qf3Team1, qf3Team2],
+        qf4Teams: [qf4Team1, qf4Team2],
+      });
+    }
+  };
+
+  const renderTeamOption = (team: Team, excludeIds: string[] = []) => {
+    if (excludeIds.includes(team.id)) return null;
+    return (
+      <SelectItem key={team.id} value={team.id}>
+        <div className="flex items-center gap-2">
+          {team.logoUrl ? (
+            <img src={team.logoUrl} alt={team.name} className="w-5 h-5 rounded object-cover" />
+          ) : (
+            <div className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team.primaryColor }}>
+              {team.shortName?.slice(0, 2)}
+            </div>
+          )}
+          <span>{team.name}</span>
+        </div>
+      </SelectItem>
+    );
+  };
+
+  const renderTeamDisplay = (teamId: string | undefined) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) {
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+            <span className="text-xs">?</span>
+          </div>
+          <span className="text-sm">TBD</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded object-cover" />
+        ) : (
+          <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team.primaryColor }}>
+            {team.shortName?.slice(0, 2)}
+          </div>
+        )}
+        <span className="text-sm font-medium">{team.name}</span>
+      </div>
+    );
+  };
+
+  const renderQFCard = (
+    qfNumber: number,
+    existingMatch: Match | undefined,
+    team1: string,
+    setTeam1: (v: string) => void,
+    team2: string,
+    setTeam2: (v: string) => void,
+    excludeIds: string[]
+  ) => (
+    <Card className="bg-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm text-muted-foreground">Quarter-Final {qfNumber}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {existingMatch ? (
+          <>
+            <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingMatch.team1Id)}</div>
+            <div className="text-center text-muted-foreground text-xs">vs</div>
+            <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingMatch.team2Id)}</div>
+            {existingMatch.status === "scheduled" && (
+              <StartMatchDialog
+                match={existingMatch}
+                teams={teams}
+                players={players}
+                onStart={(data) => startMatchMutation.mutate({ matchId: existingMatch.id, ...data })}
+              />
+            )}
+            {existingMatch.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
+            {existingMatch.status === "completed" && <Badge variant="secondary">Completed</Badge>}
+          </>
+        ) : (
+          <>
+            <Select value={team1} onValueChange={setTeam1}>
+              <SelectTrigger data-testid={`select-qf${qfNumber}-team1`}>
+                <SelectValue placeholder="Select Team 1" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.filter(t => !excludeIds.includes(t.id) && t.id !== team2).map(t => renderTeamOption(t, []))}
+              </SelectContent>
+            </Select>
+            <div className="text-center text-muted-foreground text-xs">vs</div>
+            <Select value={team2} onValueChange={setTeam2}>
+              <SelectTrigger data-testid={`select-qf${qfNumber}-team2`}>
+                <SelectValue placeholder="Select Team 2" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.filter(t => !excludeIds.includes(t.id) && t.id !== team1).map(t => renderTeamOption(t, []))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Card className="bg-muted/30">
+      <CardHeader>
+        <CardTitle className="text-lg">Quarter-Finals</CardTitle>
+        <CardDescription>Select 8 teams for 4 quarter-final matches</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {renderQFCard(1, existingQFs[0], qf1Team1, setQf1Team1, qf1Team2, setQf1Team2, [qf2Team1, qf2Team2, qf3Team1, qf3Team2, qf4Team1, qf4Team2].filter(Boolean))}
+          {renderQFCard(2, existingQFs[1], qf2Team1, setQf2Team1, qf2Team2, setQf2Team2, [qf1Team1, qf1Team2, qf3Team1, qf3Team2, qf4Team1, qf4Team2].filter(Boolean))}
+          {renderQFCard(3, existingQFs[2], qf3Team1, setQf3Team1, qf3Team2, setQf3Team2, [qf1Team1, qf1Team2, qf2Team1, qf2Team2, qf4Team1, qf4Team2].filter(Boolean))}
+          {renderQFCard(4, existingQFs[3], qf4Team1, setQf4Team1, qf4Team2, setQf4Team2, [qf1Team1, qf1Team2, qf2Team1, qf2Team2, qf3Team1, qf3Team2].filter(Boolean))}
+        </div>
+
+        {!hasExistingQFs && (
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={handleCreate} 
+              disabled={!canCreate || isCreating}
+              data-testid="button-create-quarterfinals"
+            >
+              {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Create Quarter-Final Matches
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
