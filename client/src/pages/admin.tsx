@@ -675,6 +675,19 @@ function AdminDashboard() {
     },
   });
 
+  const penaltyMutation = useMutation({
+    mutationFn: async (matchId: string) => {
+      return apiRequest("POST", `/api/matches/${matchId}/penalty`, { runs: 5 });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "+5 Penalty runs added!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to add penalty", variant: "destructive" });
+    },
+  });
+
   const setBatsmenMutation = useMutation({
     mutationFn: async ({
       matchId,
@@ -1888,8 +1901,10 @@ function AdminDashboard() {
                 }
                 onUndoBall={() => undoBallMutation.mutate(liveMatch.id)}
                 onResetMatch={() => resetMatchMutation.mutate(liveMatch.id)}
+                onAddPenalty={() => penaltyMutation.mutate(liveMatch.id)}
                 isUndoing={undoBallMutation.isPending}
                 isResetting={resetMatchMutation.isPending}
+                isAddingPenalty={penaltyMutation.isPending}
               />
             ) : (
               <Card>
@@ -3621,8 +3636,10 @@ function LiveScoringPanel({
   onNewBatsman,
   onUndoBall,
   onResetMatch,
+  onAddPenalty,
   isUndoing,
   isResetting,
+  isAddingPenalty,
 }: {
   match: Match;
   teams: Team[];
@@ -3641,8 +3658,10 @@ function LiveScoringPanel({
   onNewBatsman: (batsmanId: string) => void;
   onUndoBall: () => void;
   onResetMatch: () => void;
+  onAddPenalty: () => void;
   isUndoing: boolean;
   isResetting: boolean;
+  isAddingPenalty: boolean;
 }) {
   const [selectedStriker, setSelectedStriker] = useState<string>("");
   const [selectedNonStriker, setSelectedNonStriker] = useState<string>("");
@@ -4091,6 +4110,26 @@ function LiveScoringPanel({
                   No Ball (+1)
                 </Button>
               </div>
+            </div>
+
+            <div>
+              <Label className="text-sm text-muted-foreground mb-2 block">
+                Overtime Penalty
+              </Label>
+              <Button
+                variant="outline"
+                className="w-full h-12 bg-red-500/10 border-red-500/30 text-red-600 font-bold"
+                onClick={onAddPenalty}
+                disabled={isRecording || isAddingPenalty}
+                data-testid="button-penalty"
+              >
+                {isAddingPenalty ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                )}
+                +5 Penalty Runs (Overtime)
+              </Button>
             </div>
 
             <div>

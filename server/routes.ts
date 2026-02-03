@@ -1647,6 +1647,49 @@ export async function registerRoutes(
     }
   });
 
+  // Add penalty runs (manual +5 for overtime)
+  const penaltySchema = z.object({
+    runs: z.number().int().min(1).max(10).default(5),
+  });
+  
+  app.post("/api/matches/:id/penalty", async (req, res) => {
+    try {
+      const match = await storage.getMatch(req.params.id);
+      if (!match) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      
+      if (match.status !== "live") {
+        return res.status(400).json({ error: "Match is not live" });
+      }
+      
+      const validation = penaltySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid penalty runs value" });
+      }
+      
+      const { runs } = validation.data;
+      
+      // Add penalty runs to the batting team's score
+      // In this tournament: innings 1 = team1 bats, innings 2 = team2 bats
+      if (match.currentInnings === 1) {
+        await storage.updateMatch(req.params.id, {
+          team1Score: (match.team1Score || 0) + runs,
+        });
+      } else {
+        await storage.updateMatch(req.params.id, {
+          team2Score: (match.team2Score || 0) + runs,
+        });
+      }
+      
+      const updatedMatch = await storage.getMatch(req.params.id);
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to add penalty runs" });
+    }
+  });
+
   function parseOversToDecimal(overs: string): number {
     const parts = overs.split('.');
     const fullOvers = parseInt(parts[0]) || 0;

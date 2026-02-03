@@ -12,7 +12,11 @@ import { cn } from "@/lib/utils";
 export default function Auction() {
   const { data: auctionState, isLoading: auctionLoading } = useQuery<AuctionState>({
     queryKey: ["/api/auction/state"],
-    refetchInterval: 3000, // Optimized polling
+    refetchInterval: (query) => {
+      const data = query.state.data as AuctionState | undefined;
+      const isActive = data?.status === "in_progress" || data?.status === "lost_gold_round";
+      return isActive ? 2000 : 15000; // 2s during active auction, 15s otherwise
+    },
   });
 
   // Only poll teams/players frequently when auction is active

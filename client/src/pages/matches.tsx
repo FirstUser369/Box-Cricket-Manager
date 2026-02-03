@@ -18,7 +18,11 @@ export default function Matches() {
   
   const { data: matches, isLoading: matchesLoading } = useQuery<Match[]>({
     queryKey: ["/api/matches"],
-    refetchInterval: 5000, // Optimized polling
+    refetchInterval: (query) => {
+      const data = query.state.data as Match[] | undefined;
+      const hasLive = data?.some(m => m.status === "live");
+      return hasLive ? 2000 : 10000; // 2s during live match, 10s otherwise
+    },
   });
 
   const hasLiveMatch = matches?.some(m => m.status === "live");
