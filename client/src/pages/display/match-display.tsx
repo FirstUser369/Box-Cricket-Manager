@@ -133,9 +133,9 @@ export default function MatchDisplay() {
     return () => clearInterval(interval);
   }, [liveMatch?.id, liveMatch?.currentInnings, liveMatch?.innings1StartTime, liveMatch?.innings2StartTime]);
 
-  const handleEventComplete = () => {
+  const handleEventComplete = useCallback(() => {
     setCurrentEvent(null);
-  };
+  }, []);
   
   // Calculate timer display and penalty status
   const formatTime = (seconds: number) => {
