@@ -832,6 +832,7 @@ export async function registerRoutes(
       const matches = await storage.getAllMatches();
       res.json(matches);
     } catch (error) {
+      console.error("Error fetching matches:", error);
       res.status(500).json({ error: "Failed to fetch matches" });
     }
   });

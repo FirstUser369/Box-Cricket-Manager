@@ -83,7 +83,7 @@ const eventConfig = {
     bgColor: "from-red-500 via-rose-500 to-pink-600",
     textColor: "text-white",
     glowColor: "shadow-[0_0_60px_rgba(239,68,68,0.6)]",
-    duration: 2000,
+    duration: 1500,
   },
   wide: {
     icon: Circle,
@@ -92,7 +92,7 @@ const eventConfig = {
     bgColor: "from-blue-500 via-cyan-500 to-blue-600",
     textColor: "text-white",
     glowColor: "shadow-[0_0_60px_rgba(59,130,246,0.6)]",
-    duration: 2000,
+    duration: 1500,
   },
   dot: {
     icon: Target,
@@ -101,7 +101,7 @@ const eventConfig = {
     bgColor: "from-gray-600 via-gray-500 to-gray-700",
     textColor: "text-white",
     glowColor: "",
-    duration: 1000,
+    duration: 1500,
   },
   single: {
     icon: null,
@@ -110,7 +110,7 @@ const eventConfig = {
     bgColor: "from-purple-500 via-violet-500 to-purple-600",
     textColor: "text-white",
     glowColor: "",
-    duration: 1000,
+    duration: 1500,
   },
   double: {
     icon: null,
@@ -119,7 +119,7 @@ const eventConfig = {
     bgColor: "from-purple-500 via-violet-500 to-purple-600",
     textColor: "text-white",
     glowColor: "",
-    duration: 1000,
+    duration: 1500,
   },
   triple: {
     icon: null,
