@@ -940,6 +940,7 @@ function AdminDashboard() {
                       "Name": player.name,
                       "Mobile": player.mobile,
                       "Phone": player.phone || "",
+                      "Address": player.address || "",
                       "Role": player.role,
                       "Batting Rating": player.battingRating,
                       "Bowling Rating": player.bowlingRating,
@@ -958,12 +959,12 @@ function AdminDashboard() {
                       { wch: 25 }, // Name
                       { wch: 15 }, // Mobile
                       { wch: 15 }, // Phone
+                      { wch: 40 }, // Address
                       { wch: 12 }, // Role
                       { wch: 15 }, // Batting Rating
                       { wch: 15 }, // Bowling Rating
                       { wch: 15 }, // Fielding Rating
                       { wch: 12 }, // Base Points
-                      { wch: 12 }, // Category
                       { wch: 15 }, // Payment Status
                       { wch: 15 }, // Approval Status
                       { wch: 12 }, // Status
