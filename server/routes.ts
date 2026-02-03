@@ -922,6 +922,7 @@ export async function registerRoutes(
         innings2BowlingOrder: [],
         team1PlayingXI: team1PlayingXI || null,
         team2PlayingXI: team2PlayingXI || null,
+        innings1StartTime: new Date(),
       });
       
       res.json(updatedMatch);
@@ -1195,19 +1196,9 @@ export async function registerRoutes(
       
       const newOversStr = `${newOvers}.${newBalls}`;
       
-      // Check if current over is the power over
-      const isPowerOver = match.powerOverActive && 
-                          match.powerOverNumber === overs + 1 && 
-                          match.powerOverInnings === match.currentInnings;
-      
       // Calculate runs
       let actualRuns = runs || 0;
       let effectiveRuns = actualRuns;
-      
-      // Power Over: Runs are doubled
-      if (isPowerOver && effectiveRuns > 0) {
-        effectiveRuns = effectiveRuns * 2;
-      }
       
       let newScore = (currentScore || 0) + effectiveRuns;
       let newWickets = currentWickets || 0;
@@ -1225,12 +1216,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Cannot take more wickets - last man standing" });
       }
       
-      // Power Over: Wicket costs -5 points
       if (isWicket) {
         newWickets += 1;
-        if (isPowerOver) {
-          newScore = Math.max(0, newScore - 5);
-        }
       }
       
       // Cap wickets at 7 (shouldn't happen due to guard above, but just in case)
@@ -1275,7 +1262,7 @@ export async function registerRoutes(
         wicketType: wicketType || null,
         dismissedPlayerId: dismissedPlayerId || null,
         fielderId: fielderId || null,
-        isPowerOver,
+        isPowerOver: false,
         actualRuns,
       });
       
@@ -1401,6 +1388,7 @@ export async function registerRoutes(
           updateData.strikerId = null;
           updateData.nonStrikerId = null;
           updateData.currentBowlerId = null;
+          updateData.innings2StartTime = new Date();
         }
       } else {
         updateData.team2Score = newScore;
@@ -1435,41 +1423,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Failed to record ball" });
-    }
-  });
-
-  // Set power over for a match
-  app.post("/api/matches/:id/power-over", async (req, res) => {
-    try {
-      const match = await storage.getMatch(req.params.id);
-      if (!match || match.status !== "live") {
-        return res.status(400).json({ error: "Match not live" });
-      }
-      
-      const { overNumber, innings } = req.body;
-      
-      if (!overNumber || !innings) {
-        return res.status(400).json({ error: "Over number and innings required" });
-      }
-      
-      if (overNumber < 1 || overNumber > 6) {
-        return res.status(400).json({ error: "Over number must be between 1 and 6" });
-      }
-      
-      if (innings < 1 || innings > 2) {
-        return res.status(400).json({ error: "Innings must be 1 or 2" });
-      }
-      
-      const updatedMatch = await storage.updateMatch(req.params.id, {
-        powerOverActive: true,
-        powerOverNumber: overNumber,
-        powerOverInnings: innings,
-      });
-      
-      res.json(updatedMatch);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to set power over" });
     }
   });
 

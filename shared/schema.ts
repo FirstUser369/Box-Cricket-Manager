@@ -127,10 +127,13 @@ export const matches = pgTable("matches", {
   superOverTeam1Wickets: integer("super_over_team1_wickets"),
   superOverTeam2Score: integer("super_over_team2_score"),
   superOverTeam2Wickets: integer("super_over_team2_wickets"),
-  // Power Over fields
+  // Power Over fields (deprecated - kept for compatibility)
   powerOverActive: boolean("power_over_active").default(false),
-  powerOverNumber: integer("power_over_number"), // Which over is power over
-  powerOverInnings: integer("power_over_innings"), // 1 or 2
+  powerOverNumber: integer("power_over_number"),
+  powerOverInnings: integer("power_over_innings"),
+  // Innings timing for overtime penalties
+  innings1StartTime: timestamp("innings1_start_time"),
+  innings2StartTime: timestamp("innings2_start_time"),
   // Current batting/bowling tracking
   strikerId: varchar("striker_id", { length: 36 }),
   nonStrikerId: varchar("non_striker_id", { length: 36 }),

@@ -18,10 +18,15 @@ export default function MatchDisplay() {
   const [lastBallCount, setLastBallCount] = useState(0);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [selectedLiveTeamId, setSelectedLiveTeamId] = useState<{ id: string; name: string } | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const { data: matches } = useQuery<Match[]>({
     queryKey: ["/api/matches"],
-    refetchInterval: 3000, // Optimized - check for live match every 3s
+    refetchInterval: (query) => {
+      const data = query.state.data as Match[] | undefined;
+      const hasLive = data?.some(m => m.status === "live");
+      return hasLive ? 1000 : 5000; // 1s when live match, 5s otherwise
+    },
   });
 
   const liveMatch = matches?.find(m => m.status === "live");
@@ -39,7 +44,7 @@ export default function MatchDisplay() {
 
   const { data: ballEvents } = useQuery<BallEvent[]>({
     queryKey: ["/api/ball-events"],
-    refetchInterval: hasLiveMatch ? 2000 : 10000, // Poll faster only during live match
+    refetchInterval: hasLiveMatch ? 1000 : 10000, // Poll every 1s during live match for minimal delay
   });
 
   const completedMatches = matches?.filter(m => m.status === "completed") || [];
@@ -48,7 +53,7 @@ export default function MatchDisplay() {
   const { data: matchStats } = useQuery<PlayerMatchStats[]>({
     queryKey: ["/api/matches", liveMatch?.id, "player-stats"],
     enabled: !!liveMatch?.id,
-    refetchInterval: hasLiveMatch ? 2000 : 10000, // Poll faster only during live match
+    refetchInterval: hasLiveMatch ? 1000 : 10000, // Poll every 1s during live match for minimal delay
   });
 
   const { data: selectedMatchStats } = useQuery<PlayerMatchStats[]>({
@@ -100,9 +105,62 @@ export default function MatchDisplay() {
     setLastBallCount(currentInningsBalls.length);
   }, [currentInningsBalls.length, lastBallCount, currentInningsBalls, triggerEventAnimation]);
 
+  // Innings timer - updates every second
+  useEffect(() => {
+    if (!liveMatch) {
+      setElapsedSeconds(0);
+      return;
+    }
+    
+    const inningsStartTime = liveMatch.currentInnings === 1 
+      ? liveMatch.innings1StartTime 
+      : liveMatch.innings2StartTime;
+    
+    if (!inningsStartTime) {
+      setElapsedSeconds(0);
+      return;
+    }
+    
+    const updateTimer = () => {
+      const startDate = new Date(inningsStartTime);
+      const now = new Date();
+      const diffMs = now.getTime() - startDate.getTime();
+      setElapsedSeconds(Math.floor(diffMs / 1000));
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [liveMatch?.id, liveMatch?.currentInnings, liveMatch?.innings1StartTime, liveMatch?.innings2StartTime]);
+
   const handleEventComplete = () => {
     setCurrentEvent(null);
   };
+  
+  // Calculate timer display and penalty status
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  const getTimerStatus = () => {
+    const OVERTIME_START = 15 * 60; // 15 minutes
+    const PENALTY_START = 20 * 60; // 20 minutes (15 + 5)
+    const PENALTY_INTERVAL = 5 * 60; // 5 minutes
+    
+    if (elapsedSeconds < OVERTIME_START) {
+      return { status: 'normal', message: null, penaltyRuns: 0 };
+    } else if (elapsedSeconds < PENALTY_START) {
+      return { status: 'warning', message: '2 BOUNDARY FIELDERS ONLY', penaltyRuns: 0 };
+    } else {
+      const penaltyPeriods = Math.floor((elapsedSeconds - PENALTY_START) / PENALTY_INTERVAL) + 1;
+      const penaltyRuns = penaltyPeriods * 5;
+      return { status: 'penalty', message: `${penaltyRuns} RUNS PENALTY`, penaltyRuns };
+    }
+  };
+  
+  const timerStatus = getTimerStatus();
 
   const battingTeam = liveMatch?.currentInnings === 1 ? team1 : team2;
   const bowlingTeam = liveMatch?.currentInnings === 1 ? team2 : team1;
@@ -568,6 +626,34 @@ export default function MatchDisplay() {
             </Badge>
             <span className="text-gray-400 text-sm">Match #{liveMatch.matchNumber}</span>
           </div>
+          
+          {/* Innings Timer Display */}
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+            timerStatus.status === 'normal' ? 'bg-white/10' :
+            timerStatus.status === 'warning' ? 'bg-yellow-500/30 border border-yellow-500/50 animate-pulse' :
+            'bg-red-500/30 border border-red-500/50 animate-pulse'
+          }`} data-testid="innings-timer">
+            <Clock className={`w-5 h-5 ${
+              timerStatus.status === 'normal' ? 'text-white' :
+              timerStatus.status === 'warning' ? 'text-yellow-400' :
+              'text-red-400'
+            }`} />
+            <span className={`font-display text-2xl ${
+              timerStatus.status === 'normal' ? 'text-white' :
+              timerStatus.status === 'warning' ? 'text-yellow-400' :
+              'text-red-400'
+            }`}>
+              {formatTime(elapsedSeconds)}
+            </span>
+            {timerStatus.message && (
+              <Badge className={`text-xs ${
+                timerStatus.status === 'warning' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
+              }`}>
+                {timerStatus.message}
+              </Badge>
+            )}
+          </div>
+          
           <h1 className="font-display text-2xl tracking-wide">BCL LIVE</h1>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A comprehensive full-stack web application for managing IPL-style box cricket tournaments with PostgreSQL database persistence. Features include QR-based player registration with approval workflow, 12 IPL-style teams with ₹25,000 budgets, admin-controlled category-based auctions, live ball-by-ball match scoring with power overs, team management with captain/vice-captain assignments, and auto-calculated leaderboards.
+A comprehensive full-stack web application for managing IPL-style box cricket tournaments with PostgreSQL database persistence. Features include QR-based player registration with approval workflow, 12 IPL-style teams with ₹25,000 budgets, admin-controlled category-based auctions, live ball-by-ball match scoring with innings timer and overtime penalties, team management with captain/vice-captain assignments, and auto-calculated leaderboards.
 
 ## Key Features Implemented
 
@@ -38,7 +38,7 @@ A comprehensive full-stack web application for managing IPL-style box cricket to
 - **8-9 Player Teams**: Max 7-8 wickets per innings; last-man-standing rule allows solo batting
 - **Strike Rotation**: Changes on odd runs and end of over (unless last-man-standing)
 - **Extras Handling**: Wide and no-ball add 1 run, ball doesn't count (reball required)
-- **Power Overs**: Admin selects power over - runs doubled, wicket costs -5 points
+- **Innings Timer**: Display shows elapsed time per innings; after 15 mins only 2 boundary fielders allowed; after 20 mins 5-run penalty every 5 mins
 - **Auto-calculation**: Overs increment automatically, innings change at 6 overs
 - **Match Completion**: Points table updates automatically when match ends
 - **Undo Last Ball**: Admin can undo the last recorded ball (reverses all stats)
