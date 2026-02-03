@@ -10,6 +10,44 @@ interface CricketAnimationProps {
   onComplete?: () => void;
 }
 
+function playEventAudio(event: CricketEventType) {
+  if (!event || (event !== "wicket" && event !== "six" && event !== "four")) return;
+  
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  if (event === "six") {
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(1046.50, audioContext.currentTime + 0.1);
+    oscillator.frequency.exponentialRampToValueAtTime(1318.51, audioContext.currentTime + 0.2);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } else if (event === "four") {
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.15);
+    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  } else if (event === "wicket") {
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }
+}
+
 const eventConfig = {
   wicket: {
     icon: X,
@@ -18,7 +56,7 @@ const eventConfig = {
     bgColor: "from-red-700 via-red-600 to-red-800",
     textColor: "text-white",
     glowColor: "shadow-[0_0_150px_rgba(239,68,68,0.9)]",
-    duration: 3500,
+    duration: 1500,
   },
   six: {
     icon: Flame,
@@ -27,7 +65,7 @@ const eventConfig = {
     bgColor: "from-yellow-500 via-amber-400 to-orange-500",
     textColor: "text-black",
     glowColor: "shadow-[0_0_150px_rgba(251,191,36,0.9)]",
-    duration: 3500,
+    duration: 1500,
   },
   four: {
     icon: Zap,
@@ -36,7 +74,7 @@ const eventConfig = {
     bgColor: "from-emerald-500 via-green-400 to-teal-500",
     textColor: "text-white",
     glowColor: "shadow-[0_0_150px_rgba(16,185,129,0.9)]",
-    duration: 3000,
+    duration: 1500,
   },
   "no-ball": {
     icon: AlertTriangle,
@@ -96,7 +134,7 @@ const eventConfig = {
 
 function triggerCelebration(type: CricketEventType) {
   if (type === "six") {
-    const duration = 2000;
+    const duration = 1200;
     const animationEnd = Date.now() + duration;
     const colors = ["#ffd60a", "#ff6b35", "#f59e0b"];
 
@@ -143,6 +181,7 @@ export function CricketEventAnimation({ event, onComplete }: CricketAnimationPro
   useEffect(() => {
     if (event && eventConfig[event]) {
       triggerCelebration(event);
+      playEventAudio(event);
       const timer = setTimeout(() => {
         onComplete?.();
       }, eventConfig[event].duration);
