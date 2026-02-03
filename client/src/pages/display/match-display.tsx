@@ -572,9 +572,9 @@ export default function MatchDisplay() {
         </div>
       </div>
 
-      <div className="pt-20 px-4 pb-8">
+      <div className="pt-16 px-6 pb-4">
         {/* Giant Score Display - Only Batting Team */}
-        <div className="flex flex-col items-center justify-center mb-6">
+        <div className="flex flex-col items-center justify-center mb-4">
           <motion.div 
             className="text-center cursor-pointer"
             initial={{ scale: 0.95 }}
@@ -585,45 +585,45 @@ export default function MatchDisplay() {
               <img 
                 src={battingTeam.logoUrl} 
                 alt={battingTeam.name} 
-                className="w-40 h-40 md:w-56 md:h-56 mx-auto rounded-2xl object-cover mb-4"
+                className="w-48 h-48 md:w-72 md:h-72 mx-auto rounded-3xl object-cover mb-3"
                 data-testid="batting-team-logo"
               />
             ) : (
               <div 
-                className="w-40 h-40 md:w-56 md:h-56 mx-auto rounded-2xl flex items-center justify-center text-white font-display text-5xl md:text-6xl mb-4"
+                className="w-48 h-48 md:w-72 md:h-72 mx-auto rounded-3xl flex items-center justify-center text-white font-display text-6xl md:text-8xl mb-3"
                 style={{ backgroundColor: battingTeam?.primaryColor }}
                 data-testid="batting-team-logo"
               >
                 {battingTeam?.shortName}
               </div>
             )}
-            <p className="font-display text-2xl md:text-3xl text-gray-300 uppercase tracking-wider mb-2">{battingTeam?.name}</p>
-            <p className="font-display text-[12vw] md:text-[14vw] text-white leading-none" data-testid="batting-score">
+            <p className="font-display text-3xl md:text-5xl text-gray-300 uppercase tracking-wider mb-1">{battingTeam?.name}</p>
+            <p className="font-display text-[18vw] md:text-[20vw] text-white leading-none" data-testid="batting-score">
               {battingScore?.score}/{battingScore?.wickets}
             </p>
-            <p className="text-3xl md:text-4xl text-gray-400 mt-2">({battingScore?.overs} overs)</p>
+            <p className="text-4xl md:text-5xl text-gray-400 mt-1">({battingScore?.overs} overs)</p>
           </motion.div>
 
           {/* Second Innings - Required Runs Display */}
           {liveMatch.currentInnings === 2 && target && requiredRuns !== null && remainingBalls !== null && (
             <motion.div 
-              className="mt-8 text-center"
+              className="mt-6 text-center w-full max-w-4xl"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
               {requiredRuns > 0 ? (
-                <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-2xl px-8 py-6 border border-yellow-500/30">
-                  <p className="font-display text-[8vw] md:text-[6vw] text-yellow-400 leading-none" data-testid="text-required-runs">
+                <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-3xl px-10 py-8 border-2 border-yellow-500/40">
+                  <p className="font-display text-[10vw] md:text-[8vw] text-yellow-400 leading-none" data-testid="text-required-runs">
                     Need {requiredRuns} runs
                   </p>
-                  <p className="font-display text-[5vw] md:text-[4vw] text-white mt-2" data-testid="text-remaining-balls">
+                  <p className="font-display text-[7vw] md:text-[5vw] text-white mt-3" data-testid="text-remaining-balls">
                     in {remainingBalls} balls
                   </p>
-                  <p className="text-xl md:text-2xl text-orange-400 mt-3">RRR: {requiredRate}</p>
+                  <p className="text-2xl md:text-4xl text-orange-400 mt-4">RRR: {requiredRate}</p>
                 </div>
               ) : (
-                <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-2xl px-8 py-6 border border-emerald-500/30">
-                  <p className="font-display text-[6vw] md:text-[5vw] text-emerald-400 leading-none">
+                <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-3xl px-10 py-8 border-2 border-emerald-500/40">
+                  <p className="font-display text-[8vw] md:text-[7vw] text-emerald-400 leading-none">
                     {battingTeam?.name} WON!
                   </p>
                 </div>
@@ -633,8 +633,8 @@ export default function MatchDisplay() {
 
           {/* First Innings indicator */}
           {liveMatch.currentInnings === 1 && (
-            <div className="mt-6 text-center">
-              <Badge className="bg-blue-500/20 border-blue-500 text-blue-300 text-lg px-4 py-2">
+            <div className="mt-4 text-center">
+              <Badge className="bg-blue-500/20 border-blue-500 text-blue-300 text-2xl px-6 py-3">
                 1st Innings
               </Badge>
             </div>
@@ -642,65 +642,65 @@ export default function MatchDisplay() {
         </div>
 
         {/* Simplified Display - Only Current Players & This Over */}
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-4">
           {/* Current Batsmen */}
           <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-2xl md:text-3xl text-white flex items-center gap-3">
-                <Target className="w-8 h-8 text-emerald-400" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-3xl md:text-4xl text-white flex items-center gap-4">
+                <Target className="w-10 h-10 text-emerald-400" />
                 At The Crease
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {strikerStats && (
-                  <div className="flex items-center justify-between bg-emerald-500/10 rounded-xl p-5 border border-emerald-500/30">
-                    <div className="flex items-center gap-4">
-                      <Badge className="bg-emerald-500 text-white text-xl px-4 py-2">*</Badge>
-                      <span className="font-display text-2xl md:text-4xl text-white" data-testid="text-striker-name">{strikerStats.name}</span>
+                  <div className="flex items-center justify-between bg-emerald-500/10 rounded-2xl p-6 border border-emerald-500/30">
+                    <div className="flex items-center gap-5">
+                      <Badge className="bg-emerald-500 text-white text-2xl px-5 py-3">*</Badge>
+                      <span className="font-display text-3xl md:text-5xl text-white" data-testid="text-striker-name">{strikerStats.name}</span>
                     </div>
-                    <div className="flex items-center gap-6 md:gap-10">
+                    <div className="flex items-center gap-8 md:gap-14">
                       <div className="text-center">
-                        <p className="text-5xl md:text-7xl font-display text-white" data-testid="text-striker-runs">{strikerStats.runs}</p>
-                        <p className="text-white/70 text-xl">({strikerStats.balls})</p>
+                        <p className="text-6xl md:text-8xl font-display text-white" data-testid="text-striker-runs">{strikerStats.runs}</p>
+                        <p className="text-white/70 text-2xl">({strikerStats.balls})</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl md:text-3xl text-white">{strikerStats.fours}</p>
-                        <p className="text-white/70 text-lg">4s</p>
+                        <p className="text-3xl md:text-4xl text-white">{strikerStats.fours}</p>
+                        <p className="text-white/70 text-xl">4s</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl md:text-3xl text-white">{strikerStats.sixes}</p>
-                        <p className="text-white/70 text-lg">6s</p>
+                        <p className="text-3xl md:text-4xl text-white">{strikerStats.sixes}</p>
+                        <p className="text-white/70 text-xl">6s</p>
                       </div>
                     </div>
                   </div>
                 )}
                 
                 {nonStrikerStats && (
-                  <div className="flex items-center justify-between bg-white/5 rounded-xl p-5">
-                    <div className="flex items-center gap-4">
-                      <User className="w-8 h-8 text-white/70" />
-                      <span className="font-display text-xl md:text-3xl text-white" data-testid="text-nonstriker-name">{nonStrikerStats.name}</span>
+                  <div className="flex items-center justify-between bg-white/5 rounded-2xl p-6">
+                    <div className="flex items-center gap-5">
+                      <User className="w-10 h-10 text-white/70" />
+                      <span className="font-display text-2xl md:text-4xl text-white" data-testid="text-nonstriker-name">{nonStrikerStats.name}</span>
                     </div>
-                    <div className="flex items-center gap-6 md:gap-10">
+                    <div className="flex items-center gap-8 md:gap-14">
                       <div className="text-center">
-                        <p className="text-4xl md:text-5xl font-display text-white" data-testid="text-nonstriker-runs">{nonStrikerStats.runs}</p>
-                        <p className="text-white/60 text-lg">({nonStrikerStats.balls})</p>
+                        <p className="text-5xl md:text-6xl font-display text-white" data-testid="text-nonstriker-runs">{nonStrikerStats.runs}</p>
+                        <p className="text-white/60 text-xl">({nonStrikerStats.balls})</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xl md:text-2xl text-white">{nonStrikerStats.fours}</p>
-                        <p className="text-white/60 text-base">4s</p>
+                        <p className="text-2xl md:text-3xl text-white">{nonStrikerStats.fours}</p>
+                        <p className="text-white/60 text-lg">4s</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xl md:text-2xl text-white">{nonStrikerStats.sixes}</p>
-                        <p className="text-white/60 text-base">6s</p>
+                        <p className="text-2xl md:text-3xl text-white">{nonStrikerStats.sixes}</p>
+                        <p className="text-white/60 text-lg">6s</p>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {!strikerStats && !nonStrikerStats && (
-                  <div className="text-center text-white/50 py-8 text-2xl">
+                  <div className="text-center text-white/50 py-10 text-3xl">
                     Waiting for batsmen to be selected...
                   </div>
                 )}
@@ -711,23 +711,23 @@ export default function MatchDisplay() {
           {/* Current Bowler */}
           {bowlerStats && (
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-2xl md:text-3xl text-white flex items-center gap-3">
-                  <Zap className="w-8 h-8 text-purple-400" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-3xl md:text-4xl text-white flex items-center gap-4">
+                  <Zap className="w-10 h-10 text-purple-400" />
                   Bowler
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between bg-purple-500/10 rounded-xl p-5 border border-purple-500/30">
-                  <span className="font-display text-2xl md:text-4xl text-white" data-testid="text-bowler-name">{bowlerStats.name}</span>
-                  <div className="flex items-center gap-6 md:gap-10">
+                <div className="flex items-center justify-between bg-purple-500/10 rounded-2xl p-6 border border-purple-500/30">
+                  <span className="font-display text-3xl md:text-5xl text-white" data-testid="text-bowler-name">{bowlerStats.name}</span>
+                  <div className="flex items-center gap-8 md:gap-14">
                     <div className="text-center">
-                      <p className="text-5xl md:text-6xl font-display text-white" data-testid="text-bowler-figures">{bowlerStats.wickets}-{bowlerStats.runs}</p>
-                      <p className="text-white/60 text-xl">({bowlerStats.overs} ov)</p>
+                      <p className="text-6xl md:text-8xl font-display text-white" data-testid="text-bowler-figures">{bowlerStats.wickets}-{bowlerStats.runs}</p>
+                      <p className="text-white/60 text-2xl">({bowlerStats.overs} ov)</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl md:text-3xl text-white">{bowlerStats.economy}</p>
-                      <p className="text-white/60 text-lg">Econ</p>
+                      <p className="text-3xl md:text-4xl text-white">{bowlerStats.economy}</p>
+                      <p className="text-white/60 text-xl">Econ</p>
                     </div>
                   </div>
                 </div>
@@ -737,21 +737,21 @@ export default function MatchDisplay() {
 
           {/* This Over */}
           <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-2xl md:text-3xl text-white flex items-center gap-3">
-                <Circle className="w-8 h-8 text-emerald-400" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-3xl md:text-4xl text-white flex items-center gap-4">
+                <Circle className="w-10 h-10 text-emerald-400" />
                 This Over
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center gap-4 flex-wrap min-h-[100px]">
+              <div className="flex items-center justify-center gap-6 flex-wrap min-h-[120px]">
                 {getThisOver().map((ball, i) => (
                   <motion.div
                     key={i}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: i * 0.1 }}
-                    className="transform scale-125"
+                    className="transform scale-150"
                   >
                     <BallIndicator
                       type={
@@ -767,7 +767,7 @@ export default function MatchDisplay() {
                   </motion.div>
                 ))}
                 {getThisOver().length === 0 && (
-                  <p className="text-white/50 text-2xl">New over starting...</p>
+                  <p className="text-white/50 text-3xl">New over starting...</p>
                 )}
               </div>
             </CardContent>
