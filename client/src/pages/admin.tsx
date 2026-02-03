@@ -1700,7 +1700,17 @@ function AdminDashboard() {
                                         <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>
                                       )}
                                       {match.status === "completed" && (
-                                        <Badge variant="secondary">Completed</Badge>
+                                        <div className="flex flex-col items-end gap-1">
+                                          <Badge variant="secondary">Completed</Badge>
+                                          {match.winnerId && (
+                                            <span className="text-xs text-emerald-600 font-medium">
+                                              {teams?.find(t => t.id === match.winnerId)?.shortName} Won
+                                            </span>
+                                          )}
+                                          {!match.winnerId && match.team1Score === match.team2Score && (
+                                            <span className="text-xs text-amber-600 font-medium">Tied</span>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
                                   </div>
@@ -2473,7 +2483,16 @@ function QuarterFinalsSection({
               />
             )}
             {existingMatch.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
-            {existingMatch.status === "completed" && <Badge variant="secondary">Completed</Badge>}
+            {existingMatch.status === "completed" && (
+              <div className="flex flex-col items-center gap-1">
+                <Badge variant="secondary">Completed</Badge>
+                {existingMatch.winnerId && (
+                  <span className="text-xs text-emerald-600 font-medium">
+                    {teams.find(t => t.id === existingMatch.winnerId)?.shortName} Won
+                  </span>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -2638,7 +2657,16 @@ function SemiFinalsSection({
                     />
                   )}
                   {existingSemi1.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
-                  {existingSemi1.status === "completed" && <Badge variant="secondary">Completed</Badge>}
+                  {existingSemi1.status === "completed" && (
+                    <div className="flex flex-col items-center gap-1">
+                      <Badge variant="secondary">Completed</Badge>
+                      {existingSemi1.winnerId && (
+                        <span className="text-xs text-emerald-600 font-medium">
+                          {teams.find(t => t.id === existingSemi1.winnerId)?.shortName} Won
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -2683,7 +2711,16 @@ function SemiFinalsSection({
                     />
                   )}
                   {existingSemi2.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
-                  {existingSemi2.status === "completed" && <Badge variant="secondary">Completed</Badge>}
+                  {existingSemi2.status === "completed" && (
+                    <div className="flex flex-col items-center gap-1">
+                      <Badge variant="secondary">Completed</Badge>
+                      {existingSemi2.winnerId && (
+                        <span className="text-xs text-emerald-600 font-medium">
+                          {teams.find(t => t.id === existingSemi2.winnerId)?.shortName} Won
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
