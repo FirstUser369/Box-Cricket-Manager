@@ -144,6 +144,175 @@ export async function registerRoutes(
     }
   });
 
+  // Get player career stats across all matches
+  app.get("/api/players/:id/career-stats", async (req, res) => {
+    try {
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+
+      const playerStats = await storage.getPlayerStats(req.params.id);
+      const matches = await storage.getAllMatches();
+      const teams = await storage.getAllTeams();
+
+      // Calculate career totals
+      let totalRuns = 0;
+      let totalBalls = 0;
+      let totalFours = 0;
+      let totalSixes = 0;
+      let totalWickets = 0;
+      let totalOversBowled = 0;
+      let totalRunsConceded = 0;
+      let totalCatches = 0;
+      let totalRunOuts = 0;
+      let highestScore = 0;
+      let bestBowling = { wickets: 0, runs: 0 };
+      let matchesPlayed = 0;
+      let timesOut = 0;
+
+      // Track unique matches
+      const uniqueMatches = new Set<string>();
+      
+      // Match details for history
+      const matchHistory: Array<{
+        matchId: string;
+        matchNumber: number;
+        team1: string;
+        team2: string;
+        date: string;
+        runs: number;
+        balls: number;
+        fours: number;
+        sixes: number;
+        isOut: boolean;
+        wickets: number;
+        oversBowled: string;
+        runsConceded: number;
+        catches: number;
+        runOuts: number;
+      }> = [];
+
+      for (const stat of playerStats) {
+        uniqueMatches.add(stat.matchId);
+        
+        // Batting stats
+        totalRuns += stat.runsScored || 0;
+        totalBalls += stat.ballsFaced || 0;
+        totalFours += stat.fours || 0;
+        totalSixes += stat.sixes || 0;
+        if (stat.isOut) timesOut++;
+        
+        // Track highest score
+        if ((stat.runsScored || 0) > highestScore) {
+          highestScore = stat.runsScored || 0;
+        }
+
+        // Bowling stats
+        totalWickets += stat.wicketsTaken || 0;
+        totalCatches += stat.catches || 0;
+        totalRunOuts += stat.runOuts || 0;
+        
+        // Parse overs bowled
+        const oversStr = stat.oversBowled || "0.0";
+        const [overs, balls] = oversStr.split(".").map(Number);
+        totalOversBowled += overs + (balls || 0) / 6;
+        totalRunsConceded += stat.runsConceded || 0;
+
+        // Track best bowling
+        if ((stat.wicketsTaken || 0) > bestBowling.wickets || 
+            ((stat.wicketsTaken || 0) === bestBowling.wickets && (stat.runsConceded || 0) < bestBowling.runs)) {
+          bestBowling = { wickets: stat.wicketsTaken || 0, runs: stat.runsConceded || 0 };
+        }
+
+        // Get match details
+        const match = matches.find(m => m.id === stat.matchId);
+        if (match) {
+          const team1 = teams.find(t => t.id === match.team1Id);
+          const team2 = teams.find(t => t.id === match.team2Id);
+          
+          // Check if this match already exists in history (combine innings)
+          const existingMatch = matchHistory.find(m => m.matchId === stat.matchId);
+          if (existingMatch) {
+            existingMatch.runs += stat.runsScored || 0;
+            existingMatch.balls += stat.ballsFaced || 0;
+            existingMatch.fours += stat.fours || 0;
+            existingMatch.sixes += stat.sixes || 0;
+            existingMatch.isOut = existingMatch.isOut || !!stat.isOut;
+            existingMatch.wickets += stat.wicketsTaken || 0;
+            existingMatch.runsConceded += stat.runsConceded || 0;
+            existingMatch.catches += stat.catches || 0;
+            existingMatch.runOuts += stat.runOuts || 0;
+            // Combine overs bowled
+            const prevOvers = existingMatch.oversBowled.split(".").map(Number);
+            const currOvers = (stat.oversBowled || "0.0").split(".").map(Number);
+            const totalBallsBowled = (prevOvers[0] * 6 + (prevOvers[1] || 0)) + (currOvers[0] * 6 + (currOvers[1] || 0));
+            existingMatch.oversBowled = `${Math.floor(totalBallsBowled / 6)}.${totalBallsBowled % 6}`;
+          } else {
+            matchHistory.push({
+              matchId: stat.matchId,
+              matchNumber: match.matchNumber || 0,
+              team1: team1?.shortName || "TBD",
+              team2: team2?.shortName || "TBD",
+              date: "",
+              runs: stat.runsScored || 0,
+              balls: stat.ballsFaced || 0,
+              fours: stat.fours || 0,
+              sixes: stat.sixes || 0,
+              isOut: !!stat.isOut,
+              wickets: stat.wicketsTaken || 0,
+              oversBowled: stat.oversBowled || "0.0",
+              runsConceded: stat.runsConceded || 0,
+              catches: stat.catches || 0,
+              runOuts: stat.runOuts || 0,
+            });
+          }
+        }
+      }
+
+      matchesPlayed = uniqueMatches.size;
+
+      // Calculate averages and rates
+      const battingAverage = timesOut > 0 ? (totalRuns / timesOut).toFixed(2) : totalRuns > 0 ? "N/A" : "0.00";
+      const strikeRate = totalBalls > 0 ? ((totalRuns / totalBalls) * 100).toFixed(2) : "0.00";
+      const bowlingAverage = totalWickets > 0 ? (totalRunsConceded / totalWickets).toFixed(2) : "N/A";
+      const economyRate = totalOversBowled > 0 ? (totalRunsConceded / totalOversBowled).toFixed(2) : "0.00";
+
+      res.json({
+        player,
+        career: {
+          matchesPlayed,
+          batting: {
+            runs: totalRuns,
+            balls: totalBalls,
+            fours: totalFours,
+            sixes: totalSixes,
+            highestScore,
+            average: battingAverage,
+            strikeRate,
+            timesOut,
+          },
+          bowling: {
+            wickets: totalWickets,
+            oversBowled: totalOversBowled.toFixed(1),
+            runsConceded: totalRunsConceded,
+            bestBowling: `${bestBowling.wickets}/${bestBowling.runs}`,
+            average: bowlingAverage,
+            economyRate,
+          },
+          fielding: {
+            catches: totalCatches,
+            runOuts: totalRunOuts,
+          },
+        },
+        matchHistory: matchHistory.sort((a, b) => b.matchNumber - a.matchNumber),
+      });
+    } catch (error) {
+      console.error("Error fetching player career stats:", error);
+      res.status(500).json({ error: "Failed to fetch player career stats" });
+    }
+  });
+
   app.post("/api/players", async (req, res) => {
     try {
       const validation = playerRegistrationSchema.safeParse(req.body);

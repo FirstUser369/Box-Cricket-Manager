@@ -33,6 +33,7 @@ import {
   Download,
   RefreshCw,
   IndianRupee,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,6 +77,7 @@ import {
   type TournamentSettings,
   type AuctionCategory,
   type CaptainPair,
+  type PlayerMatchStats,
 } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
@@ -1700,16 +1702,23 @@ function AdminDashboard() {
                                         <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>
                                       )}
                                       {match.status === "completed" && (
-                                        <div className="flex flex-col items-end gap-1">
-                                          <Badge variant="secondary">Completed</Badge>
-                                          {match.winnerId && (
-                                            <span className="text-xs text-emerald-600 font-medium">
-                                              {teams?.find(t => t.id === match.winnerId)?.shortName} Won
-                                            </span>
-                                          )}
-                                          {!match.winnerId && match.team1Score === match.team2Score && (
-                                            <span className="text-xs text-amber-600 font-medium">Tied</span>
-                                          )}
+                                        <div className="flex items-center gap-2">
+                                          <MatchScorecardDialog
+                                            match={match}
+                                            teams={teams || []}
+                                            players={players || []}
+                                          />
+                                          <div className="flex flex-col items-end gap-1">
+                                            <Badge variant="secondary">Completed</Badge>
+                                            {match.winnerId && (
+                                              <span className="text-xs text-emerald-600 font-medium">
+                                                {teams?.find(t => t.id === match.winnerId)?.shortName} Won
+                                              </span>
+                                            )}
+                                            {!match.winnerId && match.team1Score === match.team2Score && (
+                                              <span className="text-xs text-amber-600 font-medium">Tied</span>
+                                            )}
+                                          </div>
                                         </div>
                                       )}
                                     </div>
@@ -1833,6 +1842,10 @@ function AdminDashboard() {
                                 }
                               />
                             )}
+                            <PlayerDetailDialog
+                              player={player}
+                              teams={teams || []}
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
@@ -2362,6 +2375,558 @@ function AssignPlayerDialog({
   );
 }
 
+// Player Career Stats Dialog
+function PlayerDetailDialog({
+  player,
+  teams,
+}: {
+  player: Player;
+  teams: Team[];
+}) {
+  const [open, setOpen] = useState(false);
+  
+  const { data: careerStats, isLoading } = useQuery<{
+    player: Player;
+    career: {
+      matchesPlayed: number;
+      batting: {
+        runs: number;
+        balls: number;
+        fours: number;
+        sixes: number;
+        highestScore: number;
+        average: string;
+        strikeRate: string;
+        timesOut: number;
+      };
+      bowling: {
+        wickets: number;
+        oversBowled: string;
+        runsConceded: number;
+        bestBowling: string;
+        average: string;
+        economyRate: string;
+      };
+      fielding: {
+        catches: number;
+        runOuts: number;
+      };
+    };
+    matchHistory: Array<{
+      matchId: string;
+      matchNumber: number;
+      team1: string;
+      team2: string;
+      date: string;
+      runs: number;
+      balls: number;
+      fours: number;
+      sixes: number;
+      isOut: boolean;
+      wickets: number;
+      oversBowled: string;
+      runsConceded: number;
+      catches: number;
+      runOuts: number;
+    }>;
+  }>({
+    queryKey: ["/api/players", player.id, "career-stats"],
+    queryFn: async () => {
+      const response = await fetch(`/api/players/${player.id}/career-stats`);
+      if (!response.ok) throw new Error("Failed to fetch career stats");
+      return response.json();
+    },
+    enabled: open,
+  });
+
+  const playerTeam = teams.find(t => t.id === player.teamId);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1"
+          data-testid={`button-player-stats-${player.id}`}
+        >
+          <TrendingUp className="w-3 h-3" />
+          Stats
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={player.photoUrl} alt={player.name} />
+              <AvatarFallback>{player.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <span>{player.name}</span>
+                <Badge variant="outline">{player.role}</Badge>
+              </div>
+              {playerTeam && (
+                <p className="text-sm text-muted-foreground font-normal">{playerTeam.name}</p>
+              )}
+            </div>
+          </DialogTitle>
+          <DialogDescription>
+            Career statistics and match history
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        ) : careerStats ? (
+          <div className="space-y-6">
+            {/* Career Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-display text-orange-500">
+                    {careerStats.career.batting.runs}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Runs</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-display text-purple-500">
+                    {careerStats.career.bowling.wickets}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Wickets</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-display text-emerald-500">
+                    {careerStats.career.fielding.catches}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Catches</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-display">
+                    {careerStats.career.matchesPlayed}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Matches</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Batting Stats */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <CircleDot className="w-4 h-4 text-orange-500" />
+                  Batting
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-center">
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.batting.runs}</p>
+                    <p className="text-xs text-muted-foreground">Runs</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.batting.balls}</p>
+                    <p className="text-xs text-muted-foreground">Balls</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.batting.highestScore}</p>
+                    <p className="text-xs text-muted-foreground">HS</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.batting.average}</p>
+                    <p className="text-xs text-muted-foreground">Avg</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.batting.strikeRate}</p>
+                    <p className="text-xs text-muted-foreground">SR</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.batting.fours}/{careerStats.career.batting.sixes}</p>
+                    <p className="text-xs text-muted-foreground">4s/6s</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bowling Stats */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Target className="w-4 h-4 text-purple-500" />
+                  Bowling
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-center">
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.bowling.wickets}</p>
+                    <p className="text-xs text-muted-foreground">Wickets</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.bowling.oversBowled}</p>
+                    <p className="text-xs text-muted-foreground">Overs</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.bowling.runsConceded}</p>
+                    <p className="text-xs text-muted-foreground">Runs</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.bowling.bestBowling}</p>
+                    <p className="text-xs text-muted-foreground">Best</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.bowling.average}</p>
+                    <p className="text-xs text-muted-foreground">Avg</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{careerStats.career.bowling.economyRate}</p>
+                    <p className="text-xs text-muted-foreground">Econ</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Match History */}
+            {careerStats.matchHistory.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Trophy className="w-4 h-4" />
+                    Match History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {careerStats.matchHistory.map((match, idx) => (
+                      <div key={idx} className="p-2 bg-muted/50 rounded-md flex items-center justify-between text-sm">
+                        <div>
+                          <p className="font-medium">{match.team1} vs {match.team2}</p>
+                          <p className="text-xs text-muted-foreground">Match #{match.matchNumber}</p>
+                        </div>
+                        <div className="flex gap-4 text-right">
+                          <div>
+                            <p className="font-semibold text-orange-500">{match.runs}({match.balls})</p>
+                            <p className="text-xs text-muted-foreground">Runs</p>
+                          </div>
+                          {match.wickets > 0 && (
+                            <div>
+                              <p className="font-semibold text-purple-500">{match.wickets}/{match.runsConceded}</p>
+                              <p className="text-xs text-muted-foreground">Bowling</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-8">
+            No career data available yet
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Match Scorecard Dialog for completed matches
+function MatchScorecardDialog({
+  match,
+  teams,
+  players,
+}: {
+  match: Match;
+  teams: Team[];
+  players: Player[];
+}) {
+  const [open, setOpen] = useState(false);
+  
+  const { data: matchStats, isLoading } = useQuery<PlayerMatchStats[]>({
+    queryKey: ["/api/matches", match.id, "player-stats"],
+    queryFn: async () => {
+      const response = await fetch(`/api/matches/${match.id}/player-stats`);
+      if (!response.ok) throw new Error("Failed to fetch match stats");
+      return response.json();
+    },
+    enabled: open,
+  });
+
+  const team1 = teams.find(t => t.id === match.team1Id);
+  const team2 = teams.find(t => t.id === match.team2Id);
+  const winner = match.winnerId ? teams.find(t => t.id === match.winnerId) : null;
+  const getPlayer = (id: string) => players.find(p => p.id === id);
+
+  if (!team1 || !team2) return null;
+
+  const innings1Stats = matchStats?.filter(s => s.innings === 1) || [];
+  const innings2Stats = matchStats?.filter(s => s.innings === 2) || [];
+
+  const team1Batters = innings1Stats.filter(s => {
+    const player = getPlayer(s.playerId);
+    return player?.teamId === team1.id;
+  });
+  const team2Batters = innings2Stats.filter(s => {
+    const player = getPlayer(s.playerId);
+    return player?.teamId === team2.id;
+  });
+  const team1Bowlers = innings2Stats.filter(s => {
+    const player = getPlayer(s.playerId);
+    return player?.teamId === team1.id && parseFloat(s.oversBowled || "0") > 0;
+  });
+  const team2Bowlers = innings1Stats.filter(s => {
+    const player = getPlayer(s.playerId);
+    return player?.teamId === team2.id && parseFloat(s.oversBowled || "0") > 0;
+  });
+
+  const sortedTeam1Batters = [...team1Batters].sort((a, b) => (a.battingPosition || 99) - (b.battingPosition || 99));
+  const sortedTeam2Batters = [...team2Batters].sort((a, b) => (a.battingPosition || 99) - (b.battingPosition || 99));
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1"
+          data-testid={`button-scorecard-${match.id}`}
+        >
+          <Eye className="w-3 h-3" />
+          Scorecard
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            Match #{match.matchNumber}: {team1.name} vs {team2.name}
+          </DialogTitle>
+          <DialogDescription>
+            {winner ? (
+              <Badge className="bg-emerald-500/20 text-emerald-600">{winner.name} won</Badge>
+            ) : (
+              <Badge variant="secondary">Match Tied</Badge>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Score Summary */}
+            <div className="flex justify-center gap-8 text-center">
+              <div className="p-4 rounded-md" style={{ borderLeft: `4px solid ${team1.primaryColor}` }}>
+                <p className="text-sm text-muted-foreground">{team1.shortName}</p>
+                <p className="font-display text-3xl">{match.team1Score || 0}/{match.team1Wickets || 0}</p>
+                <p className="text-sm text-muted-foreground">({match.team1Overs || "0.0"} ov)</p>
+              </div>
+              <div className="p-4 rounded-md" style={{ borderLeft: `4px solid ${team2.primaryColor}` }}>
+                <p className="text-sm text-muted-foreground">{team2.shortName}</p>
+                <p className="font-display text-3xl">{match.team2Score || 0}/{match.team2Wickets || 0}</p>
+                <p className="text-sm text-muted-foreground">({match.team2Overs || "0.0"} ov)</p>
+              </div>
+            </div>
+
+            {/* Team 1 Innings */}
+            <Card>
+              <CardHeader className="pb-2" style={{ borderBottom: `3px solid ${team1.primaryColor}` }}>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team1.primaryColor }}>
+                    {team1.shortName?.slice(0, 2)}
+                  </div>
+                  {team1.name} - 1st Innings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Batting</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 pr-4">Batter</th>
+                          <th className="text-center py-2 px-2">R</th>
+                          <th className="text-center py-2 px-2">B</th>
+                          <th className="text-center py-2 px-2">4s</th>
+                          <th className="text-center py-2 px-2">6s</th>
+                          <th className="text-center py-2 px-2">SR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedTeam1Batters.length > 0 ? sortedTeam1Batters.map((stat) => {
+                          const player = getPlayer(stat.playerId);
+                          const sr = stat.ballsFaced && stat.ballsFaced > 0 
+                            ? ((stat.runsScored || 0) / stat.ballsFaced * 100).toFixed(1) 
+                            : "0.0";
+                          return (
+                            <tr key={stat.id} className="border-b border-border/50">
+                              <td className="py-2 pr-4">
+                                <span className={stat.isOut ? "text-muted-foreground" : "font-medium"}>
+                                  {player?.name || "Unknown"}
+                                </span>
+                                {stat.isOut && <span className="text-muted-foreground text-xs ml-1">(out)</span>}
+                              </td>
+                              <td className="text-center py-2 px-2 font-medium">{stat.runsScored || 0}</td>
+                              <td className="text-center py-2 px-2 text-muted-foreground">{stat.ballsFaced || 0}</td>
+                              <td className="text-center py-2 px-2">{stat.fours || 0}</td>
+                              <td className="text-center py-2 px-2">{stat.sixes || 0}</td>
+                              <td className="text-center py-2 px-2 text-muted-foreground">{sr}</td>
+                            </tr>
+                          );
+                        }) : (
+                          <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No batting data</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {team2Bowlers.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Bowling</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 pr-4">Bowler</th>
+                            <th className="text-center py-2 px-2">O</th>
+                            <th className="text-center py-2 px-2">R</th>
+                            <th className="text-center py-2 px-2">W</th>
+                            <th className="text-center py-2 px-2">Econ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {team2Bowlers.map((stat) => {
+                            const player = getPlayer(stat.playerId);
+                            const overs = parseFloat(stat.oversBowled || "0");
+                            const economy = overs > 0 ? ((stat.runsConceded || 0) / overs).toFixed(2) : "0.00";
+                            return (
+                              <tr key={stat.id} className="border-b border-border/50">
+                                <td className="py-2 pr-4 font-medium">{player?.name || "Unknown"}</td>
+                                <td className="text-center py-2 px-2">{stat.oversBowled || "0"}</td>
+                                <td className="text-center py-2 px-2">{stat.runsConceded || 0}</td>
+                                <td className="text-center py-2 px-2 font-medium">{stat.wicketsTaken || 0}</td>
+                                <td className="text-center py-2 px-2 text-muted-foreground">{economy}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Team 2 Innings */}
+            <Card>
+              <CardHeader className="pb-2" style={{ borderBottom: `3px solid ${team2.primaryColor}` }}>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team2.primaryColor }}>
+                    {team2.shortName?.slice(0, 2)}
+                  </div>
+                  {team2.name} - 2nd Innings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Batting</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 pr-4">Batter</th>
+                          <th className="text-center py-2 px-2">R</th>
+                          <th className="text-center py-2 px-2">B</th>
+                          <th className="text-center py-2 px-2">4s</th>
+                          <th className="text-center py-2 px-2">6s</th>
+                          <th className="text-center py-2 px-2">SR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedTeam2Batters.length > 0 ? sortedTeam2Batters.map((stat) => {
+                          const player = getPlayer(stat.playerId);
+                          const sr = stat.ballsFaced && stat.ballsFaced > 0 
+                            ? ((stat.runsScored || 0) / stat.ballsFaced * 100).toFixed(1) 
+                            : "0.0";
+                          return (
+                            <tr key={stat.id} className="border-b border-border/50">
+                              <td className="py-2 pr-4">
+                                <span className={stat.isOut ? "text-muted-foreground" : "font-medium"}>
+                                  {player?.name || "Unknown"}
+                                </span>
+                                {stat.isOut && <span className="text-muted-foreground text-xs ml-1">(out)</span>}
+                              </td>
+                              <td className="text-center py-2 px-2 font-medium">{stat.runsScored || 0}</td>
+                              <td className="text-center py-2 px-2 text-muted-foreground">{stat.ballsFaced || 0}</td>
+                              <td className="text-center py-2 px-2">{stat.fours || 0}</td>
+                              <td className="text-center py-2 px-2">{stat.sixes || 0}</td>
+                              <td className="text-center py-2 px-2 text-muted-foreground">{sr}</td>
+                            </tr>
+                          );
+                        }) : (
+                          <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No batting data</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {team1Bowlers.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Bowling</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 pr-4">Bowler</th>
+                            <th className="text-center py-2 px-2">O</th>
+                            <th className="text-center py-2 px-2">R</th>
+                            <th className="text-center py-2 px-2">W</th>
+                            <th className="text-center py-2 px-2">Econ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {team1Bowlers.map((stat) => {
+                            const player = getPlayer(stat.playerId);
+                            const overs = parseFloat(stat.oversBowled || "0");
+                            const economy = overs > 0 ? ((stat.runsConceded || 0) / overs).toFixed(2) : "0.00";
+                            return (
+                              <tr key={stat.id} className="border-b border-border/50">
+                                <td className="py-2 pr-4 font-medium">{player?.name || "Unknown"}</td>
+                                <td className="text-center py-2 px-2">{stat.oversBowled || "0"}</td>
+                                <td className="text-center py-2 px-2">{stat.runsConceded || 0}</td>
+                                <td className="text-center py-2 px-2 font-medium">{stat.wicketsTaken || 0}</td>
+                                <td className="text-center py-2 px-2 text-muted-foreground">{economy}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function QuarterFinalsSection({
   teams,
   matches,
@@ -2484,13 +3049,20 @@ function QuarterFinalsSection({
             )}
             {existingMatch.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
             {existingMatch.status === "completed" && (
-              <div className="flex flex-col items-center gap-1">
-                <Badge variant="secondary">Completed</Badge>
-                {existingMatch.winnerId && (
-                  <span className="text-xs text-emerald-600 font-medium">
-                    {teams.find(t => t.id === existingMatch.winnerId)?.shortName} Won
-                  </span>
-                )}
+              <div className="flex items-center gap-2">
+                <MatchScorecardDialog
+                  match={existingMatch}
+                  teams={teams}
+                  players={players}
+                />
+                <div className="flex flex-col items-center gap-1">
+                  <Badge variant="secondary">Completed</Badge>
+                  {existingMatch.winnerId && (
+                    <span className="text-xs text-emerald-600 font-medium">
+                      {teams.find(t => t.id === existingMatch.winnerId)?.shortName} Won
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </>
@@ -2658,13 +3230,20 @@ function SemiFinalsSection({
                   )}
                   {existingSemi1.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
                   {existingSemi1.status === "completed" && (
-                    <div className="flex flex-col items-center gap-1">
-                      <Badge variant="secondary">Completed</Badge>
-                      {existingSemi1.winnerId && (
-                        <span className="text-xs text-emerald-600 font-medium">
-                          {teams.find(t => t.id === existingSemi1.winnerId)?.shortName} Won
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <MatchScorecardDialog
+                        match={existingSemi1}
+                        teams={teams}
+                        players={players}
+                      />
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge variant="secondary">Completed</Badge>
+                        {existingSemi1.winnerId && (
+                          <span className="text-xs text-emerald-600 font-medium">
+                            {teams.find(t => t.id === existingSemi1.winnerId)?.shortName} Won
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>
@@ -2712,13 +3291,20 @@ function SemiFinalsSection({
                   )}
                   {existingSemi2.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
                   {existingSemi2.status === "completed" && (
-                    <div className="flex flex-col items-center gap-1">
-                      <Badge variant="secondary">Completed</Badge>
-                      {existingSemi2.winnerId && (
-                        <span className="text-xs text-emerald-600 font-medium">
-                          {teams.find(t => t.id === existingSemi2.winnerId)?.shortName} Won
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <MatchScorecardDialog
+                        match={existingSemi2}
+                        teams={teams}
+                        players={players}
+                      />
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge variant="secondary">Completed</Badge>
+                        {existingSemi2.winnerId && (
+                          <span className="text-xs text-emerald-600 font-medium">
+                            {teams.find(t => t.id === existingSemi2.winnerId)?.shortName} Won
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>
