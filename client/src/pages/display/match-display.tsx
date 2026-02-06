@@ -19,6 +19,7 @@ export default function MatchDisplay() {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [selectedLiveTeamId, setSelectedLiveTeamId] = useState<{ id: string; name: string } | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [displayMatchId, setDisplayMatchId] = useState<string | null>(null);
 
   const { data: matches } = useQuery<Match[]>({
     queryKey: ["/api/matches"],
@@ -29,7 +30,18 @@ export default function MatchDisplay() {
     },
   });
 
-  const liveMatch = matches?.find(m => m.status === "live");
+  const liveMatches = matches?.filter(m => m.status === "live") || [];
+
+  useEffect(() => {
+    if (liveMatches.length > 0 && !liveMatches.find(m => m.id === displayMatchId)) {
+      setDisplayMatchId(liveMatches[0].id);
+    }
+    if (liveMatches.length === 0) {
+      setDisplayMatchId(null);
+    }
+  }, [liveMatches.map(m => m.id).join(",")]);
+
+  const liveMatch = liveMatches.find(m => m.id === displayMatchId) || liveMatches[0] || null;
   const hasLiveMatch = !!liveMatch;
 
   const { data: teams } = useQuery<Team[]>({
@@ -624,7 +636,30 @@ export default function MatchDisplay() {
               <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />
               LIVE
             </Badge>
-            <span className="text-gray-400 text-sm">Match #{liveMatch.matchNumber}</span>
+            {liveMatches.length > 1 ? (
+              <div className="flex items-center gap-2">
+                {liveMatches.map((m) => {
+                  const t1 = teams?.find(t => t.id === m.team1Id);
+                  const t2 = teams?.find(t => t.id === m.team2Id);
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setDisplayMatchId(m.id)}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        displayMatchId === m.id
+                          ? "bg-white/20 text-white border border-white/30"
+                          : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                      }`}
+                      data-testid={`button-display-match-${m.id}`}
+                    >
+                      {t1?.shortName || "?"} vs {t2?.shortName || "?"}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <span className="text-gray-400 text-sm">Match #{liveMatch.matchNumber}</span>
+            )}
           </div>
           
           {/* Innings Timer Display */}

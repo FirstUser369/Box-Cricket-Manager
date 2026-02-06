@@ -801,7 +801,19 @@ function AdminDashboard() {
     (p) => p.id === auctionState?.currentBiddingPairId,
   );
   const isTeamNamesAuction = auctionState?.currentCategory === "Team Names";
-  const liveMatch = matches?.find((m) => m.status === "live");
+  const liveMatches = matches?.filter((m) => m.status === "live") || [];
+  const [activeScoringMatchId, setActiveScoringMatchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (liveMatches.length > 0 && !liveMatches.find(m => m.id === activeScoringMatchId)) {
+      setActiveScoringMatchId(liveMatches[0].id);
+    }
+    if (liveMatches.length === 0) {
+      setActiveScoringMatchId(null);
+    }
+  }, [liveMatches.map(m => m.id).join(",")]);
+
+  const liveMatch = liveMatches.find(m => m.id === activeScoringMatchId) || liveMatches[0] || null;
 
   const getNextPlayer = () => {
     const availablePlayers = players?.filter(
@@ -1893,6 +1905,27 @@ function AdminDashboard() {
                 Start a match from the Tournament tab to begin scoring here
               </p>
             </div>
+
+            {liveMatches.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-muted-foreground">Live Matches:</span>
+                {liveMatches.map((m) => {
+                  const t1 = teams?.find(t => t.id === m.team1Id);
+                  const t2 = teams?.find(t => t.id === m.team2Id);
+                  return (
+                    <Button
+                      key={m.id}
+                      variant={activeScoringMatchId === m.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setActiveScoringMatchId(m.id)}
+                      data-testid={`button-switch-match-${m.id}`}
+                    >
+                      {t1?.shortName || "?"} vs {t2?.shortName || "?"} (#{m.matchNumber})
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
 
             {liveMatch ? (
               <LiveScoringPanel
