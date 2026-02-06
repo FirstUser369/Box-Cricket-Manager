@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
-import { Play, Circle, Target, TrendingUp, Trophy, User, Zap, ChevronRight, ArrowLeft, Clock } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Play, Circle, Target, TrendingUp, Trophy, User, Zap, ChevronRight, ArrowLeft, Clock, Volume2, VolumeX, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -149,17 +149,25 @@ export default function MatchDisplay() {
     setCurrentEvent(null);
   }, []);
   
-  // Calculate timer display and penalty status
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const [sirenMuted, setSirenMuted] = useState(false);
+  const sirenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const COUNTDOWN_FROM = 15 * 60;
+
+  const formatCountdown = (elapsed: number) => {
+    const remaining = COUNTDOWN_FROM - elapsed;
+    const absSecs = Math.abs(remaining);
+    const mins = Math.floor(absSecs / 60);
+    const secs = absSecs % 60;
+    const prefix = remaining < 0 ? "-" : "";
+    return `${prefix}${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   const getTimerStatus = () => {
-    const OVERTIME_START = 15 * 60; // 15 minutes
-    const PENALTY_START = 20 * 60; // 20 minutes (15 + 5)
-    const PENALTY_INTERVAL = 5 * 60; // 5 minutes
+    const OVERTIME_START = 15 * 60;
+    const PENALTY_START = 20 * 60;
+    const PENALTY_INTERVAL = 5 * 60;
     
     if (elapsedSeconds < OVERTIME_START) {
       return { status: 'normal', message: null, penaltyRuns: 0 };
@@ -171,6 +179,50 @@ export default function MatchDisplay() {
       return { status: 'penalty', message: `${penaltyRuns} RUNS PENALTY`, penaltyRuns };
     }
   };
+
+  const playSirenBeep = useCallback(() => {
+    try {
+      const ctx = audioContextRef.current || new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.3);
+      osc.frequency.linearRampToValueAtTime(880, ctx.currentTime + 0.6);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.8);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.8);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const isOvertime = elapsedSeconds >= COUNTDOWN_FROM;
+    if (isOvertime && !sirenMuted) {
+      if (!sirenIntervalRef.current) {
+        playSirenBeep();
+        sirenIntervalRef.current = setInterval(playSirenBeep, 2000);
+      }
+    } else {
+      if (sirenIntervalRef.current) {
+        clearInterval(sirenIntervalRef.current);
+        sirenIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (sirenIntervalRef.current) {
+        clearInterval(sirenIntervalRef.current);
+        sirenIntervalRef.current = null;
+      }
+    };
+  }, [elapsedSeconds >= COUNTDOWN_FROM, sirenMuted, playSirenBeep]);
+
+  useEffect(() => {
+    setSirenMuted(false);
+  }, [liveMatch?.currentInnings]);
   
   const timerStatus = getTimerStatus();
 
@@ -625,12 +677,16 @@ export default function MatchDisplay() {
   const bowlingScorecard = getBowlingScorecard();
   const recentOvers = getRecentOvers();
 
+  const countdownRemaining = COUNTDOWN_FROM - elapsedSeconds;
+  const isOvertime = countdownRemaining <= 0;
+
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden relative">
+    <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden relative flex flex-col">
       <div className="absolute inset-0 stadium-spotlight opacity-30" />
 
-      <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-purple-900/80 via-black/80 to-orange-900/80 backdrop-blur-sm border-b border-white/10 z-40">
-        <div className="flex items-center justify-between px-6 py-3">
+      {/* Top Bar */}
+      <div className="relative bg-gradient-to-r from-purple-900/80 via-black/80 to-orange-900/80 backdrop-blur-sm border-b border-white/10 z-40">
+        <div className="flex items-center justify-between px-6 py-2">
           <div className="flex items-center gap-4">
             <Badge className="bg-red-500/20 border-red-500 text-red-400 text-sm px-3 py-1" data-testid="badge-live">
               <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />
@@ -661,239 +717,266 @@ export default function MatchDisplay() {
               <span className="text-gray-400 text-sm">Match #{liveMatch.matchNumber}</span>
             )}
           </div>
-          
-          {/* Innings Timer Display */}
-          <div className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
-            timerStatus.status === 'normal' ? 'bg-white/10' :
-            timerStatus.status === 'warning' ? 'bg-yellow-500/30 border border-yellow-500/50 animate-pulse' :
-            'bg-red-500/30 border border-red-500/50 animate-pulse'
+          <h1 className="font-display text-2xl tracking-wide">BCL LIVE</h1>
+        </div>
+
+        {/* Big Countdown Timer - center below title */}
+        <div className="flex flex-col items-center pb-3">
+          <div className={`flex items-center gap-4 px-8 py-2 rounded-2xl ${
+            timerStatus.status === 'normal' ? 'bg-white/5' :
+            timerStatus.status === 'warning' ? 'bg-yellow-500/20 border border-yellow-500/40' :
+            'bg-red-500/20 border-2 border-red-500/60 animate-pulse'
           }`} data-testid="innings-timer">
-            <Clock className={`w-5 h-5 ${
+            <Clock className={`w-8 h-8 ${
               timerStatus.status === 'normal' ? 'text-white' :
               timerStatus.status === 'warning' ? 'text-yellow-400' :
               'text-red-400'
             }`} />
-            <span className={`font-display text-2xl ${
+            <span className={`font-display text-[6vw] md:text-[5vw] leading-none ${
               timerStatus.status === 'normal' ? 'text-white' :
               timerStatus.status === 'warning' ? 'text-yellow-400' :
               'text-red-400'
             }`}>
-              {formatTime(elapsedSeconds)}
+              {formatCountdown(elapsedSeconds)}
             </span>
             {timerStatus.message && (
-              <Badge className={`text-xs ${
+              <Badge className={`text-base px-4 py-1 ${
                 timerStatus.status === 'warning' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
               }`}>
                 {timerStatus.message}
               </Badge>
             )}
+            {isOvertime && !sirenMuted && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setSirenMuted(true)}
+                className="text-red-400 border border-red-500/50"
+                data-testid="button-mute-siren"
+              >
+                <VolumeX className="w-6 h-6" />
+              </Button>
+            )}
+            {isOvertime && sirenMuted && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setSirenMuted(false)}
+                className="text-gray-400 border border-white/20"
+                data-testid="button-unmute-siren"
+              >
+                <Volume2 className="w-6 h-6" />
+              </Button>
+            )}
           </div>
-          
-          <h1 className="font-display text-2xl tracking-wide">BCL LIVE</h1>
+          {liveMatch.currentInnings === 1 && (
+            <Badge className="bg-blue-500/20 border-blue-500 text-blue-300 text-lg px-4 py-1 mt-2">
+              1st Innings
+            </Badge>
+          )}
+          {liveMatch.currentInnings === 2 && (
+            <Badge className="bg-orange-500/20 border-orange-500 text-orange-300 text-lg px-4 py-1 mt-2">
+              2nd Innings
+            </Badge>
+          )}
         </div>
       </div>
 
-      <div className="pt-16 px-6 pb-4">
-        {/* Giant Score Display - Only Batting Team */}
-        <div className="flex flex-col items-center justify-center mb-4">
-          <motion.div 
-            className="text-center cursor-pointer"
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            onClick={() => battingTeam && setSelectedLiveTeamId({ id: battingTeam.id, name: battingTeam.name })}
-          >
-            {battingTeam?.logoUrl ? (
-              <img 
-                src={battingTeam.logoUrl} 
-                alt={battingTeam.name} 
-                className="w-48 h-48 md:w-72 md:h-72 mx-auto rounded-3xl object-cover mb-3"
-                data-testid="batting-team-logo"
-              />
-            ) : (
-              <div 
-                className="w-48 h-48 md:w-72 md:h-72 mx-auto rounded-3xl flex items-center justify-center text-white font-display text-6xl md:text-8xl mb-3"
-                style={{ backgroundColor: battingTeam?.primaryColor }}
-                data-testid="batting-team-logo"
-              >
-                {battingTeam?.shortName}
-              </div>
-            )}
-            <p className="font-display text-3xl md:text-5xl text-gray-300 uppercase tracking-wider mb-1">{battingTeam?.name}</p>
-            <p className="font-display text-[18vw] md:text-[20vw] text-white leading-none" data-testid="batting-score">
-              {battingScore?.score}/{battingScore?.wickets}
-            </p>
-            <p className="text-4xl md:text-5xl text-gray-400 mt-1">({battingScore?.overs} overs)</p>
-          </motion.div>
-
-          {/* Second Innings - Required Runs Display */}
-          {liveMatch.currentInnings === 2 && target && requiredRuns !== null && remainingBalls !== null && (
+      {/* Main Content - Side by Side Layout */}
+      <div className="relative flex-1 flex flex-col px-4 py-3 overflow-hidden">
+        <div className="flex gap-4 flex-1 min-h-0">
+          {/* LEFT SIDE - Team Logo + Score */}
+          <div className="w-[40%] flex flex-col items-center justify-center">
             <motion.div 
-              className="mt-6 text-center w-full max-w-4xl"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="text-center cursor-pointer"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              onClick={() => battingTeam && setSelectedLiveTeamId({ id: battingTeam.id, name: battingTeam.name })}
             >
-              {requiredRuns > 0 ? (
-                <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-3xl px-10 py-8 border-2 border-yellow-500/40">
-                  <p className="font-display text-[10vw] md:text-[8vw] text-yellow-400 leading-none" data-testid="text-required-runs">
-                    Need {requiredRuns} runs
-                  </p>
-                  <p className="font-display text-[7vw] md:text-[5vw] text-white mt-3" data-testid="text-remaining-balls">
-                    in {remainingBalls} balls
-                  </p>
-                  <p className="text-2xl md:text-4xl text-orange-400 mt-4">RRR: {requiredRate}</p>
-                </div>
+              {battingTeam?.logoUrl ? (
+                <img 
+                  src={battingTeam.logoUrl} 
+                  alt={battingTeam.name} 
+                  className="w-36 h-36 md:w-48 md:h-48 lg:w-56 lg:h-56 mx-auto rounded-3xl object-cover mb-2"
+                  data-testid="batting-team-logo"
+                />
               ) : (
-                <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-3xl px-10 py-8 border-2 border-emerald-500/40">
-                  <p className="font-display text-[8vw] md:text-[7vw] text-emerald-400 leading-none">
-                    {battingTeam?.name} WON!
-                  </p>
+                <div 
+                  className="w-36 h-36 md:w-48 md:h-48 lg:w-56 lg:h-56 mx-auto rounded-3xl flex items-center justify-center text-white font-display text-5xl md:text-7xl mb-2"
+                  style={{ backgroundColor: battingTeam?.primaryColor }}
+                  data-testid="batting-team-logo"
+                >
+                  {battingTeam?.shortName}
                 </div>
               )}
+              <p className="font-display text-2xl md:text-4xl text-gray-300 uppercase tracking-wider">{battingTeam?.name}</p>
+              <p className="font-display text-[14vw] md:text-[12vw] text-white leading-none" data-testid="batting-score">
+                {battingScore?.score}/{battingScore?.wickets}
+              </p>
+              <p className="text-3xl md:text-4xl text-gray-400">({battingScore?.overs} overs)</p>
             </motion.div>
-          )}
+          </div>
 
-          {/* First Innings indicator */}
-          {liveMatch.currentInnings === 1 && (
-            <div className="mt-4 text-center">
-              <Badge className="bg-blue-500/20 border-blue-500 text-blue-300 text-2xl px-6 py-3">
-                1st Innings
-              </Badge>
-            </div>
-          )}
-        </div>
-
-        {/* Simplified Display - Only Current Players & This Over */}
-        <div className="max-w-6xl mx-auto space-y-4">
-          {/* Current Batsmen */}
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-3xl md:text-4xl text-white flex items-center gap-4">
-                <Target className="w-10 h-10 text-emerald-400" />
-                At The Crease
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {strikerStats && (
-                  <div className="flex items-center justify-between bg-emerald-500/10 rounded-2xl p-6 border border-emerald-500/30">
-                    <div className="flex items-center gap-5">
-                      <Badge className="bg-emerald-500 text-white text-2xl px-5 py-3">*</Badge>
-                      <span className="font-display text-3xl md:text-5xl text-white" data-testid="text-striker-name">{strikerStats.name}</span>
-                    </div>
-                    <div className="flex items-center gap-8 md:gap-14">
-                      <div className="text-center">
-                        <p className="text-6xl md:text-8xl font-display text-white" data-testid="text-striker-runs">{strikerStats.runs}</p>
-                        <p className="text-white/70 text-2xl">({strikerStats.balls})</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-3xl md:text-4xl text-white">{strikerStats.fours}</p>
-                        <p className="text-white/70 text-xl">4s</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-3xl md:text-4xl text-white">{strikerStats.sixes}</p>
-                        <p className="text-white/70 text-xl">6s</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {nonStrikerStats && (
-                  <div className="flex items-center justify-between bg-white/5 rounded-2xl p-6">
-                    <div className="flex items-center gap-5">
-                      <User className="w-10 h-10 text-white/70" />
-                      <span className="font-display text-2xl md:text-4xl text-white" data-testid="text-nonstriker-name">{nonStrikerStats.name}</span>
-                    </div>
-                    <div className="flex items-center gap-8 md:gap-14">
-                      <div className="text-center">
-                        <p className="text-5xl md:text-6xl font-display text-white" data-testid="text-nonstriker-runs">{nonStrikerStats.runs}</p>
-                        <p className="text-white/60 text-xl">({nonStrikerStats.balls})</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl md:text-3xl text-white">{nonStrikerStats.fours}</p>
-                        <p className="text-white/60 text-lg">4s</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl md:text-3xl text-white">{nonStrikerStats.sixes}</p>
-                        <p className="text-white/60 text-lg">6s</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {!strikerStats && !nonStrikerStats && (
-                  <div className="text-center text-white/50 py-10 text-3xl">
-                    Waiting for batsmen to be selected...
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Current Bowler */}
-          {bowlerStats && (
+          {/* RIGHT SIDE - Batsmen, Bowler, This Over */}
+          <div className="w-[60%] flex flex-col gap-3 overflow-y-auto">
+            {/* Current Batsmen */}
             <Card className="bg-white/5 border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-3xl md:text-4xl text-white flex items-center gap-4">
-                  <Zap className="w-10 h-10 text-purple-400" />
-                  Bowler
+              <CardHeader className="pb-1 pt-3 px-4">
+                <CardTitle className="text-2xl md:text-3xl text-white flex items-center gap-3">
+                  <Target className="w-8 h-8 text-emerald-400" />
+                  At The Crease
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between bg-purple-500/10 rounded-2xl p-6 border border-purple-500/30">
-                  <span className="font-display text-3xl md:text-5xl text-white" data-testid="text-bowler-name">{bowlerStats.name}</span>
-                  <div className="flex items-center gap-8 md:gap-14">
-                    <div className="text-center">
-                      <p className="text-6xl md:text-8xl font-display text-white" data-testid="text-bowler-figures">{bowlerStats.wickets}-{bowlerStats.runs}</p>
-                      <p className="text-white/60 text-2xl">({bowlerStats.overs} ov)</p>
+              <CardContent className="px-4 pb-3">
+                <div className="space-y-2">
+                  {strikerStats && (
+                    <div className="flex items-center justify-between bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/30">
+                      <div className="flex items-center gap-3">
+                        <Badge className="bg-emerald-500 text-white text-xl px-3 py-2">*</Badge>
+                        <span className="font-display text-2xl md:text-4xl text-white" data-testid="text-striker-name">{strikerStats.name}</span>
+                      </div>
+                      <div className="flex items-center gap-6 md:gap-10">
+                        <div className="text-center">
+                          <p className="text-5xl md:text-7xl font-display text-white" data-testid="text-striker-runs">{strikerStats.runs}</p>
+                          <p className="text-white/70 text-lg">({strikerStats.balls})</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl md:text-3xl text-white">{strikerStats.fours}</p>
+                          <p className="text-white/70 text-base">4s</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl md:text-3xl text-white">{strikerStats.sixes}</p>
+                          <p className="text-white/70 text-base">6s</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-3xl md:text-4xl text-white">{bowlerStats.economy}</p>
-                      <p className="text-white/60 text-xl">Econ</p>
+                  )}
+                  
+                  {nonStrikerStats && (
+                    <div className="flex items-center justify-between bg-white/5 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <User className="w-8 h-8 text-white/70" />
+                        <span className="font-display text-xl md:text-3xl text-white" data-testid="text-nonstriker-name">{nonStrikerStats.name}</span>
+                      </div>
+                      <div className="flex items-center gap-6 md:gap-10">
+                        <div className="text-center">
+                          <p className="text-4xl md:text-5xl font-display text-white" data-testid="text-nonstriker-runs">{nonStrikerStats.runs}</p>
+                          <p className="text-white/60 text-base">({nonStrikerStats.balls})</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xl md:text-2xl text-white">{nonStrikerStats.fours}</p>
+                          <p className="text-white/60 text-sm">4s</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xl md:text-2xl text-white">{nonStrikerStats.sixes}</p>
+                          <p className="text-white/60 text-sm">6s</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {!strikerStats && !nonStrikerStats && (
+                    <div className="text-center text-white/50 py-6 text-2xl">
+                      Waiting for batsmen...
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* This Over */}
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-3xl md:text-4xl text-white flex items-center gap-4">
-                <Circle className="w-10 h-10 text-emerald-400" />
-                This Over
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center gap-6 flex-wrap min-h-[120px]">
-                {getThisOver().map((ball, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="transform scale-150"
-                  >
-                    <BallIndicator
-                      type={
-                        ball.isWicket ? "wicket" :
-                        ball.extraType === "wide" ? "wide" :
-                        ball.extraType === "no-ball" ? "no-ball" :
-                        ball.runs === 6 ? "six" :
-                        ball.runs === 4 ? "boundary" :
-                        "normal"
-                      }
-                      runs={ball.runs + (ball.extras || 0)}
-                    />
-                  </motion.div>
-                ))}
-                {getThisOver().length === 0 && (
-                  <p className="text-white/50 text-3xl">New over starting...</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            {/* Current Bowler */}
+            {bowlerStats && (
+              <Card className="bg-white/5 border-white/10">
+                <CardHeader className="pb-1 pt-3 px-4">
+                  <CardTitle className="text-2xl md:text-3xl text-white flex items-center gap-3">
+                    <Zap className="w-8 h-8 text-purple-400" />
+                    Bowler
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <div className="flex items-center justify-between bg-purple-500/10 rounded-xl p-4 border border-purple-500/30">
+                    <span className="font-display text-2xl md:text-4xl text-white" data-testid="text-bowler-name">{bowlerStats.name}</span>
+                    <div className="flex items-center gap-6 md:gap-10">
+                      <div className="text-center">
+                        <p className="text-5xl md:text-7xl font-display text-white" data-testid="text-bowler-figures">{bowlerStats.wickets}-{bowlerStats.runs}</p>
+                        <p className="text-white/60 text-lg">({bowlerStats.overs} ov)</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl md:text-3xl text-white">{bowlerStats.economy}</p>
+                        <p className="text-white/60 text-base">Econ</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* This Over */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader className="pb-1 pt-3 px-4">
+                <CardTitle className="text-2xl md:text-3xl text-white flex items-center gap-3">
+                  <Circle className="w-8 h-8 text-emerald-400" />
+                  This Over
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-3">
+                <div className="flex items-center justify-center gap-5 flex-wrap min-h-[80px]">
+                  {getThisOver().map((ball, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="transform scale-150"
+                    >
+                      <BallIndicator
+                        type={
+                          ball.isWicket ? "wicket" :
+                          ball.extraType === "wide" ? "wide" :
+                          ball.extraType === "no-ball" ? "no-ball" :
+                          ball.runs === 6 ? "six" :
+                          ball.runs === 4 ? "boundary" :
+                          "normal"
+                        }
+                        runs={ball.runs + (ball.extras || 0)}
+                      />
+                    </motion.div>
+                  ))}
+                  {getThisOver().length === 0 && (
+                    <p className="text-white/50 text-2xl">New over starting...</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {/* Bottom - Equation (2nd innings) or 1st innings spacer */}
+        {liveMatch.currentInnings === 2 && target && requiredRuns !== null && remainingBalls !== null && (
+          <motion.div 
+            className="mt-3 w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {requiredRuns > 0 ? (
+              <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-2xl px-8 py-4 border-2 border-yellow-500/40 flex items-center justify-center gap-8">
+                <p className="font-display text-[8vw] md:text-[6vw] text-yellow-400 leading-none" data-testid="text-required-runs">
+                  Need {requiredRuns}
+                </p>
+                <p className="font-display text-[6vw] md:text-[4vw] text-white leading-none" data-testid="text-remaining-balls">
+                  from {remainingBalls} balls
+                </p>
+                <p className="font-display text-[4vw] md:text-[3vw] text-orange-400 leading-none">RRR: {requiredRate}</p>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-2xl px-8 py-6 border-2 border-emerald-500/40 text-center">
+                <p className="font-display text-[8vw] md:text-[6vw] text-emerald-400 leading-none">
+                  {battingTeam?.name} WON!
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 {/* Live Team Scorecard Dialog */}
       <Dialog open={!!selectedLiveTeamId} onOpenChange={(open) => !open && setSelectedLiveTeamId(null)}>
