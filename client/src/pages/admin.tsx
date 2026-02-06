@@ -608,6 +608,16 @@ function AdminDashboard() {
     },
   });
 
+  const createFinalMutation = useMutation({
+    mutationFn: async (data: { team1Id: string; team2Id: string }) => {
+      return apiRequest("POST", "/api/tournament/create-final", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "Final match created" });
+    },
+  });
+
   const startMatchMutation = useMutation({
     mutationFn: async ({
       matchId,
@@ -1742,6 +1752,16 @@ function AdminDashboard() {
                   matches={matches || []}
                   onCreateSemifinals={(data) => createSemifinalsMutation.mutate(data)}
                   isCreating={createSemifinalsMutation.isPending}
+                  startMatchMutation={startMatchMutation}
+                  players={players || []}
+                />
+
+                {/* Final */}
+                <FinalsSection
+                  teams={teams || []}
+                  matches={matches || []}
+                  onCreateFinal={(data) => createFinalMutation.mutate(data)}
+                  isCreating={createFinalMutation.isPending}
                   startMatchMutation={startMatchMutation}
                   players={players || []}
                 />
@@ -3330,6 +3350,162 @@ function SemiFinalsSection({
             >
               {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Create Semi-Final Matches
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FinalsSection({
+  teams,
+  matches,
+  onCreateFinal,
+  isCreating,
+  startMatchMutation,
+  players,
+}: {
+  teams: Team[];
+  matches: Match[];
+  onCreateFinal: (data: { team1Id: string; team2Id: string }) => void;
+  isCreating: boolean;
+  startMatchMutation: any;
+  players: Player[];
+}) {
+  const [finalTeam1, setFinalTeam1] = useState<string>("");
+  const [finalTeam2, setFinalTeam2] = useState<string>("");
+
+  const existingFinal = matches.find(m => m.stage === "final" && m.matchNumber === 0);
+
+  const canCreate = finalTeam1 && finalTeam2 && finalTeam1 !== finalTeam2 && !existingFinal;
+
+  const handleCreate = () => {
+    if (canCreate) {
+      onCreateFinal({ team1Id: finalTeam1, team2Id: finalTeam2 });
+    }
+  };
+
+  const renderTeamOption = (team: Team) => (
+    <SelectItem key={team.id} value={team.id}>
+      <div className="flex items-center gap-2">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt={team.name} className="w-5 h-5 rounded object-cover" />
+        ) : (
+          <div className="w-5 h-5 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team.primaryColor }}>
+            {team.shortName?.slice(0, 2)}
+          </div>
+        )}
+        <span>{team.name}</span>
+      </div>
+    </SelectItem>
+  );
+
+  const renderTeamDisplay = (teamId: string | undefined) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) {
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+            <span className="text-xs">?</span>
+          </div>
+          <span className="text-sm">TBD</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt={team.name} className="w-6 h-6 rounded object-cover" />
+        ) : (
+          <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-display" style={{ backgroundColor: team.primaryColor }}>
+            {team.shortName?.slice(0, 2)}
+          </div>
+        )}
+        <span className="text-sm font-medium">{team.name}</span>
+      </div>
+    );
+  };
+
+  return (
+    <Card className="bg-muted/30">
+      <CardHeader>
+        <CardTitle className="text-lg">Final</CardTitle>
+        <CardDescription>Select 2 teams for the final match</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="max-w-md mx-auto">
+          <Card className="bg-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Grand Final</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {existingFinal ? (
+                <>
+                  <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingFinal.team1Id)}</div>
+                  <div className="text-center text-muted-foreground text-xs">vs</div>
+                  <div className="p-2 rounded-md bg-muted/50">{renderTeamDisplay(existingFinal.team2Id)}</div>
+                  {existingFinal.status === "scheduled" && (
+                    <StartMatchDialog
+                      match={existingFinal}
+                      teams={teams}
+                      players={players}
+                      onStart={(data) => startMatchMutation.mutate({ matchId: existingFinal.id, ...data })}
+                    />
+                  )}
+                  {existingFinal.status === "live" && <Badge className="bg-red-500/20 text-red-600 animate-pulse">LIVE</Badge>}
+                  {existingFinal.status === "completed" && (
+                    <div className="flex items-center gap-2">
+                      <MatchScorecardDialog
+                        match={existingFinal}
+                        teams={teams}
+                        players={players}
+                      />
+                      <div className="flex flex-col items-center gap-1">
+                        <Badge variant="secondary">Completed</Badge>
+                        {existingFinal.winnerId && (
+                          <span className="text-xs text-emerald-600 font-medium">
+                            {teams.find(t => t.id === existingFinal.winnerId)?.shortName} Won - Champions!
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Select value={finalTeam1} onValueChange={setFinalTeam1}>
+                    <SelectTrigger data-testid="select-final-team1">
+                      <SelectValue placeholder="Select Team 1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.filter(t => t.id !== finalTeam2).map(renderTeamOption)}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-center text-muted-foreground text-xs">vs</div>
+                  <Select value={finalTeam2} onValueChange={setFinalTeam2}>
+                    <SelectTrigger data-testid="select-final-team2">
+                      <SelectValue placeholder="Select Team 2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.filter(t => t.id !== finalTeam1).map(renderTeamOption)}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {!existingFinal && (
+          <div className="mt-4 flex justify-center">
+            <Button
+              onClick={handleCreate}
+              disabled={!canCreate || isCreating}
+              data-testid="button-create-final"
+            >
+              {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Create Final Match
             </Button>
           </div>
         )}
