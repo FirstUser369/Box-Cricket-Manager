@@ -3668,56 +3668,15 @@ function StartMatchDialog({
   const [open, setOpen] = useState(false);
   const [tossWinnerId, setTossWinnerId] = useState("");
   const [tossDecision, setTossDecision] = useState("");
-  const [team1PlayingXI, setTeam1PlayingXI] = useState<string[]>([]);
-  const [team2PlayingXI, setTeam2PlayingXI] = useState<string[]>([]);
-
   const team1 = teams.find((t) => t.id === match.team1Id);
   const team2 = teams.find((t) => t.id === match.team2Id);
-  
-  const team1Players = players.filter(p => p.teamId === match.team1Id);
-  const team2Players = players.filter(p => p.teamId === match.team2Id);
-  
-  const team1Needs8 = team1Players.length === 9;
-  const team2Needs8 = team2Players.length === 9;
-  
-  const togglePlayer = (teamNum: 1 | 2, playerId: string) => {
-    if (teamNum === 1) {
-      setTeam1PlayingXI(prev => 
-        prev.includes(playerId) 
-          ? prev.filter(id => id !== playerId)
-          : prev.length < 8 ? [...prev, playerId] : prev
-      );
-    } else {
-      setTeam2PlayingXI(prev => 
-        prev.includes(playerId) 
-          ? prev.filter(id => id !== playerId)
-          : prev.length < 8 ? [...prev, playerId] : prev
-      );
-    }
-  };
 
   const handleSubmit = () => {
-    const data: {
-      tossWinnerId: string;
-      tossDecision: string;
-      team1PlayingXI?: string[];
-      team2PlayingXI?: string[];
-    } = { tossWinnerId, tossDecision };
-    
-    if (team1Needs8) {
-      data.team1PlayingXI = team1PlayingXI;
-    }
-    if (team2Needs8) {
-      data.team2PlayingXI = team2PlayingXI;
-    }
-    
-    onStart(data);
+    onStart({ tossWinnerId, tossDecision });
     setOpen(false);
   };
   
-  const canStart = tossWinnerId && tossDecision && 
-    (!team1Needs8 || team1PlayingXI.length === 8) && 
-    (!team2Needs8 || team2PlayingXI.length === 8);
+  const canStart = tossWinnerId && tossDecision;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -3756,70 +3715,6 @@ function StartMatchDialog({
               </SelectContent>
             </Select>
           </div>
-          
-          {team1Needs8 && (
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span>{team1?.shortName} Playing 8 ({team1PlayingXI.length}/8 selected)</span>
-                {team1PlayingXI.length === 8 && <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-600">Ready</Badge>}
-              </Label>
-              <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
-                {team1Players.map(p => (
-                  <div 
-                    key={p.id}
-                    className={cn(
-                      "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
-                      team1PlayingXI.includes(p.id) 
-                        ? "bg-primary/20 border border-primary" 
-                        : "hover:bg-muted-foreground/10"
-                    )}
-                    onClick={() => togglePlayer(1, p.id)}
-                    data-testid={`toggle-player-t1-${p.id}`}
-                  >
-                    <div className={cn(
-                      "w-4 h-4 rounded border flex items-center justify-center",
-                      team1PlayingXI.includes(p.id) ? "bg-primary border-primary" : "border-muted-foreground"
-                    )}>
-                      {team1PlayingXI.includes(p.id) && <Check className="w-3 h-3 text-primary-foreground" />}
-                    </div>
-                    <span className="text-sm truncate">{p.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {team2Needs8 && (
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span>{team2?.shortName} Playing 8 ({team2PlayingXI.length}/8 selected)</span>
-                {team2PlayingXI.length === 8 && <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-600">Ready</Badge>}
-              </Label>
-              <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
-                {team2Players.map(p => (
-                  <div 
-                    key={p.id}
-                    className={cn(
-                      "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
-                      team2PlayingXI.includes(p.id) 
-                        ? "bg-primary/20 border border-primary" 
-                        : "hover:bg-muted-foreground/10"
-                    )}
-                    onClick={() => togglePlayer(2, p.id)}
-                    data-testid={`toggle-player-t2-${p.id}`}
-                  >
-                    <div className={cn(
-                      "w-4 h-4 rounded border flex items-center justify-center",
-                      team2PlayingXI.includes(p.id) ? "bg-primary border-primary" : "border-muted-foreground"
-                    )}>
-                      {team2PlayingXI.includes(p.id) && <Check className="w-3 h-3 text-primary-foreground" />}
-                    </div>
-                    <span className="text-sm truncate">{p.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         <DialogFooter>
           <Button

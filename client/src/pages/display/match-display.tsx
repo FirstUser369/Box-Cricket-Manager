@@ -153,7 +153,7 @@ export default function MatchDisplay() {
   const sirenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const COUNTDOWN_FROM = 15 * 60;
+  const COUNTDOWN_FROM = 17 * 60;
 
   const formatCountdown = (elapsed: number) => {
     const remaining = COUNTDOWN_FROM - elapsed;
@@ -165,7 +165,7 @@ export default function MatchDisplay() {
   };
 
   const getTimerStatus = () => {
-    const OVERTIME_START = 15 * 60;
+    const OVERTIME_START = 17 * 60;
     const PENALTY_START = 20 * 60;
     const PENALTY_INTERVAL = 5 * 60;
     

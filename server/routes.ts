@@ -878,38 +878,11 @@ export async function registerRoutes(
 
   app.post("/api/matches/:id/start", async (req, res) => {
     try {
-      const { tossWinnerId, tossDecision, team1PlayingXI, team2PlayingXI } = req.body;
+      const { tossWinnerId, tossDecision } = req.body;
       
       const match = await storage.getMatch(req.params.id);
       if (!match) {
         return res.status(404).json({ error: "Match not found" });
-      }
-      
-      // Validate playing XI if provided
-      const allPlayers = await storage.getAllPlayers();
-      const team1Players = allPlayers.filter(p => p.teamId === match.team1Id);
-      const team2Players = allPlayers.filter(p => p.teamId === match.team2Id);
-      
-      // If team has 9 players, require 8-player playing XI selection
-      if (team1Players.length === 9) {
-        if (!team1PlayingXI || team1PlayingXI.length !== 8) {
-          return res.status(400).json({ error: "Team 1 has 9 players - must select exactly 8 for playing XI" });
-        }
-        // Validate all selected players belong to the team
-        const validPlayers = team1PlayingXI.every((id: string) => team1Players.some(p => p.id === id));
-        if (!validPlayers) {
-          return res.status(400).json({ error: "Invalid player selection for Team 1" });
-        }
-      }
-      
-      if (team2Players.length === 9) {
-        if (!team2PlayingXI || team2PlayingXI.length !== 8) {
-          return res.status(400).json({ error: "Team 2 has 9 players - must select exactly 8 for playing XI" });
-        }
-        const validPlayers = team2PlayingXI.every((id: string) => team2Players.some(p => p.id === id));
-        if (!validPlayers) {
-          return res.status(400).json({ error: "Invalid player selection for Team 2" });
-        }
       }
       
       const updatedMatch = await storage.updateMatch(req.params.id, {
@@ -921,8 +894,6 @@ export async function registerRoutes(
         innings2BattingOrder: [],
         innings1BowlingOrder: [],
         innings2BowlingOrder: [],
-        team1PlayingXI: team1PlayingXI || null,
-        team2PlayingXI: team2PlayingXI || null,
         innings1StartTime: new Date(),
       });
       
@@ -1162,15 +1133,13 @@ export async function registerRoutes(
       const { runs, extraType, isWicket, wicketType, dismissedPlayerId, fielderId } = req.body;
       
       // Validate batsmen and bowler are set
-      // Allow scoring with just striker if 7 wickets (last man standing - only 1 batsman remains)
       const currentWicketsForValidation = match.currentInnings === 1 ? match.team1Wickets : match.team2Wickets;
-      const isLastManStandingMode = (currentWicketsForValidation || 0) >= 7; // 7 wickets down = only 1 batsman left
+      const isLastManStandingMode = (currentWicketsForValidation || 0) >= 7;
       
       if (!match.strikerId || !match.currentBowlerId) {
         return res.status(400).json({ error: "Batsmen and bowler must be selected first" });
       }
       
-      // Need non-striker unless it's last-man-standing (7 wickets)
       if (!match.nonStrikerId && !isLastManStandingMode) {
         return res.status(400).json({ error: "Both batsmen must be selected" });
       }
@@ -1209,10 +1178,8 @@ export async function registerRoutes(
         newScore += 1;
       }
       
-      // 8 players per team = max 7 wickets allowed
       const MAX_WICKETS = 7;
       
-      // Prevent wickets beyond 7 (last man standing can't be out)
       if (isWicket && (currentWickets || 0) >= MAX_WICKETS) {
         return res.status(400).json({ error: "Cannot take more wickets - last man standing" });
       }
@@ -1221,18 +1188,12 @@ export async function registerRoutes(
         newWickets += 1;
       }
       
-      // Cap wickets at 7 (shouldn't happen due to guard above, but just in case)
       newWickets = Math.min(newWickets, MAX_WICKETS);
-      
-      // Innings ends at 6 overs. 7 wickets = last man standing, can still bat.
-      // Innings ends when overs complete. Last-man-standing (7 wickets) can continue until overs end.
       const isInningsOver = newOvers >= 6;
       
       // Determine strike rotation
-      // Strike changes on: odd runs, end of over (unless last man standing)
       let shouldRotateStrike = false;
-      // Last man standing = 7 wickets down (only 1 batsman left), no strike rotation possible
-      const isLastManStanding = newWickets >= MAX_WICKETS; // 7 wickets = only 1 batsman remains
+      const isLastManStanding = newWickets >= MAX_WICKETS;
       
       // Only rotate strike if we have a non-striker to rotate with
       if (!isWicket && !extraType && match.nonStrikerId && !isLastManStanding) {
@@ -1242,7 +1203,7 @@ export async function registerRoutes(
         }
       }
       
-      // End of over rotation (only if we have 2 batsmen and NOT last man standing)
+      
       const isEndOfOver = isLegalDelivery && newBalls === 0 && newOvers > overs;
       if (isEndOfOver && !isLastManStanding && match.nonStrikerId) {
         shouldRotateStrike = !shouldRotateStrike; // Toggle - since we may have already rotated for odd runs
@@ -1346,9 +1307,9 @@ export async function registerRoutes(
         // Identify the survivor
         const survivorId = dismissedIsStriker ? originalNonStriker : originalStriker;
         
-        // Check if this wicket puts us in last-man-standing mode (7 wickets = only 1 batsman)
+        
         if (newWickets >= MAX_WICKETS) {
-          // Last man standing - survivor becomes striker, no non-striker
+          
           updateData.strikerId = survivorId;
           updateData.nonStrikerId = null;
         } else {
